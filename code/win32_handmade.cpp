@@ -87,11 +87,11 @@ WinMain(HINSTANCE Instance,
     MSG Message;
     for (;;)
     {
-        BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
+        BOOL MessageResult = GetMessageA(&Message, 0, 0, 0);
         if (MessageResult > 0)
         {
             TranslateMessage(&Message);
-            DispatchMessage(&Message);
+            DispatchMessageA(&Message);
         }
         else
         {
