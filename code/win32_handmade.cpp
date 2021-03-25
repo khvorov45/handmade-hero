@@ -172,13 +172,12 @@ WinMain(HINSTANCE Instance,
         Instance,
         0);
 
-    MSG Message;
     Running = true;
     int XOffset = 0;
     int YOffset = 0;
     while (Running)
     {
-
+        MSG Message;
         while (PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
         {
             if (Message.message == WM_QUIT)
