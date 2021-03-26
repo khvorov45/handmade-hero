@@ -165,6 +165,85 @@ Win32MainWindowCallback(HWND Window,
         OutputDebugStringA("WM_ACTIVATEAPP\n");
     }
     break;
+
+    case WM_SYSKEYDOWN:
+    case WM_SYSKEYUP:
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+    {
+        uint32 VKCode = WParam;
+        bool WasDown = ((LParam & (1 << 30)) != 0);
+        bool isDown = ((LParam & (1 << 31)) == 0);
+        // @NOTE These are key repeats
+        if (WasDown == isDown)
+        {
+            break;
+        }
+        if (VKCode == 'W')
+        {
+            if (isDown)
+            {
+                OutputDebugStringA("W DOWN");
+            }
+            else
+            {
+                OutputDebugStringA("W UP");
+            }
+        }
+        else if (VKCode == 'A')
+        {
+            if (WasDown)
+            {
+                OutputDebugStringA("A WAS DOWN\n");
+            }
+            else
+            {
+                OutputDebugStringA("A WAS NOT DOWN\n");
+            }
+        }
+        else if (VKCode == 'S')
+        {
+            OutputDebugStringA("S");
+        }
+        else if (VKCode == 'D')
+        {
+            OutputDebugStringA("D");
+        }
+        else if (VKCode == 'Q')
+        {
+            OutputDebugStringA("Q");
+        }
+        else if (VKCode == 'E')
+        {
+            OutputDebugStringA("E");
+        }
+        else if (VKCode == VK_UP)
+        {
+            OutputDebugStringA("UP");
+        }
+        else if (VKCode == VK_DOWN)
+        {
+            OutputDebugStringA("DOWN");
+        }
+        else if (VKCode == VK_LEFT)
+        {
+            OutputDebugStringA("LEFT");
+        }
+        else if (VKCode == VK_RIGHT)
+        {
+            OutputDebugStringA("RIGHT");
+        }
+        else if (VKCode == VK_ESCAPE)
+        {
+            OutputDebugStringA("ESCAPE");
+        }
+        else if (VKCode == VK_SPACE)
+        {
+            OutputDebugStringA("SPACE");
+        }
+    }
+    break;
+
     case WM_PAINT:
     {
         PAINTSTRUCT Paint;
