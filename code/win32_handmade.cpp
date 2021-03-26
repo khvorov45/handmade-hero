@@ -67,22 +67,22 @@ global_variable bool GobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 
 internal void
-RenderWeirdGradient(win32_offscreen_buffer Buffer, int XOffset, int YOffset)
+RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
 {
-    int Width = Buffer.Width;
-    uint8 *Row = (uint8 *)Buffer.Memory;
-    for (int Y = 0; Y < Buffer.Height; Y++)
+    int Width = Buffer->Width;
+    uint8 *Row = (uint8 *)Buffer->Memory;
+    for (int Y = 0; Y < Buffer->Height; Y++)
     {
         uint32 *Pixel = (uint32 *)Row;
 
-        for (int X = 0; X < Buffer.Width; X++)
+        for (int X = 0; X < Buffer->Width; X++)
         {
             uint8 Blue = (X + XOffset);
             uint8 Green = (Y + YOffset);
             *Pixel++ = (Green << 8 | Blue);
         }
 
-        Row += Buffer.Pitch;
+        Row += Buffer->Pitch;
     }
 }
 
@@ -366,7 +366,7 @@ WinMain(HINSTANCE Instance,
             }
         }
 
-        RenderWeirdGradient(GlobalBackBuffer, XOffset++, YOffset);
+        RenderWeirdGradient(&GlobalBackBuffer, XOffset++, YOffset);
 
         HDC DeviceContext = GetDC(Window);
         win32_window_dimension Dim = Win32GetWindowDimension(Window);
