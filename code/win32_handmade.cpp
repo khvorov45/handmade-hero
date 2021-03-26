@@ -52,6 +52,17 @@ X_INPUT_SET_STATE(XInputSetStateStub)
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
+internal void
+Win32LoadXInput(void)
+{
+    HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
+    if (XInputLibrary)
+    {
+        XInputGetState = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
+        XInputSetState = (x_input_set_state *)GetProcAddress(XInputLibrary, "XInputSetState");
+    }
+}
+
 global_variable bool GobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 
@@ -182,6 +193,8 @@ WinMain(HINSTANCE Instance,
         LPSTR CommandLine,
         int ShowCode)
 {
+    Win32LoadXInput();
+
     WNDCLASSA WindowClass = {};
 
     Win32ResizeDIBSection(&GlobalBackBuffer, 1280, 720);
@@ -250,13 +263,31 @@ WinMain(HINSTANCE Instance,
 
                 int16 StickX = Pad->sThumbLX;
                 int16 StickY = Pad->sThumbLY;
+
+                XINPUT_VIBRATION Vibration = {};
+                if (AButton)
+                {
+                    YOffset += 2;
+                }
+                if (BButton)
+                {
+                    Vibration.wLeftMotorSpeed = 20000;
+                    Vibration.wRightMotorSpeed = 20000;
+                    XInputSetState(ControllerIndex, &Vibration);
+                }
+                if (YButton)
+                {
+                    Vibration.wLeftMotorSpeed = 0;
+                    Vibration.wRightMotorSpeed = 0;
+                    XInputSetState(ControllerIndex, &Vibration);
+                }
             }
             else
             {
             }
         }
 
-        RenderWeirdGradient(GlobalBackBuffer, XOffset++, YOffset++);
+        RenderWeirdGradient(GlobalBackBuffer, XOffset++, YOffset);
 
         HDC DeviceContext = GetDC(Window);
         win32_window_dimension Dim = Win32GetWindowDimension(Window);
