@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <xinput.h>
+#include <dsound.h>
 #include <stdint.h>
 
 #define internal static
@@ -54,6 +55,10 @@ X_INPUT_SET_STATE(XInputSetStateStub)
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
+// @NOTE DirectSoundCreate
+#define DIRECT_SOUND_CREATE(name) DWORD WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+typedef DIRECT_SOUND_CREATE(direct_sound_create);
+
 internal void
 Win32LoadXInput(void)
 {
@@ -71,6 +76,63 @@ Win32LoadXInput(void)
 
 global_variable bool GobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
+
+internal void
+Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize)
+{
+    HMODULE DSoundLibrary = LoadLibraryA("dsound.dll");
+    if (!DSoundLibrary)
+    {
+        return;
+    }
+    direct_sound_create *DirectSoundCreate = (direct_sound_create *)GetProcAddress(DSoundLibrary, "DirectSoundCreate");
+
+    LPDIRECTSOUND DirectSound;
+    if (!(DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &DirectSound, 0))))
+    {
+        return;
+    }
+    if (!SUCCEEDED(DirectSound->SetCooperativeLevel(Window, DSSCL_PRIORITY)))
+    {
+        return;
+    }
+
+    // Primary buffer
+    DSBUFFERDESC BufferDescriptionPrimary = {};
+    BufferDescriptionPrimary.dwSize = sizeof(BufferDescriptionPrimary);
+    BufferDescriptionPrimary.dwFlags = DSBCAPS_PRIMARYBUFFER;
+    LPDIRECTSOUNDBUFFER PrimaryBuffer;
+    if (!SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescriptionPrimary, &PrimaryBuffer, 0)))
+    {
+        return;
+    }
+
+    WAVEFORMATEX WaveFormat = {};
+    WaveFormat.wFormatTag = WAVE_FORMAT_PCM;
+    WaveFormat.nChannels = 2;
+    WaveFormat.wBitsPerSample = 16;
+    WaveFormat.nSamplesPerSec = SamplesPerSecond;
+    WaveFormat.nBlockAlign = WaveFormat.nChannels * WaveFormat.wBitsPerSample / 8;
+    WaveFormat.nAvgBytesPerSec = WaveFormat.nBlockAlign * SamplesPerSecond;
+    WaveFormat.cbSize = 0;
+
+    if (!SUCCEEDED(PrimaryBuffer->SetFormat(&WaveFormat)))
+    {
+        return;
+    };
+
+    // Secondary buffer
+    DSBUFFERDESC BufferDescriptionSecondary = {};
+    BufferDescriptionSecondary.dwSize = sizeof(BufferDescriptionSecondary);
+    BufferDescriptionSecondary.dwFlags = DSBCAPS_PRIMARYBUFFER;
+    BufferDescriptionSecondary.dwBufferBytes = BufferSize;
+    BufferDescriptionSecondary.lpwfxFormat = &WaveFormat;
+    LPDIRECTSOUNDBUFFER SecondaryBuffer;
+    if (!SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescriptionSecondary, &SecondaryBuffer, 0)))
+    {
+        return;
+    }
+}
 
 internal void
 RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
@@ -310,6 +372,8 @@ WinMain(HINSTANCE Instance,
         0,
         Instance,
         0);
+
+    Win32InitDSound(Window, 48000, 48000 * sizeof(int16) * 2);
 
     GobalRunning = true;
     int XOffset = 0;
