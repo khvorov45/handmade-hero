@@ -245,6 +245,12 @@ Win32MainWindowCallback(HWND Window,
         {
             OutputDebugStringA("SPACE");
         }
+
+        bool AltIsDown = (LParam & (1 << 29)) != 0;
+        if (AltIsDown && VKCode == VK_F4)
+        {
+            GobalRunning = false;
+        }
     }
     break;
 
