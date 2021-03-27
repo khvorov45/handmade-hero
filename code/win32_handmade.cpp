@@ -343,11 +343,34 @@ WinMain(HINSTANCE Instance,
                 int16 StickX = Pad->sThumbLX;
                 int16 StickY = Pad->sThumbLY;
 
-                XINPUT_VIBRATION Vibration = {};
-                if (AButton)
+                bool ReverseX = StickX < 0;
+                bool ReverseY = StickY < 0;
+
+                int16 Deadzone = 12;
+
+                int16 OffsetXBy;
+                if (ReverseX)
                 {
-                    YOffset += 2;
+                    OffsetXBy = ((StickX * -1) >> Deadzone) * -1;
                 }
+                else
+                {
+                    OffsetXBy = StickX >> Deadzone;
+                }
+                int16 OffsetYBy;
+                if (ReverseY)
+                {
+                    OffsetYBy = ((StickY * -1) >> Deadzone) * -1;
+                }
+                else
+                {
+                    OffsetYBy = StickY >> Deadzone;
+                }
+
+                XOffset += OffsetXBy;
+                YOffset -= OffsetYBy;
+
+                XINPUT_VIBRATION Vibration = {};
                 if (BButton)
                 {
                     Vibration.wLeftMotorSpeed = 20000;
@@ -366,7 +389,7 @@ WinMain(HINSTANCE Instance,
             }
         }
 
-        RenderWeirdGradient(&GlobalBackBuffer, XOffset++, YOffset);
+        RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
 
         HDC DeviceContext = GetDC(Window);
         win32_window_dimension Dim = Win32GetWindowDimension(Window);
