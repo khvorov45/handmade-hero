@@ -419,7 +419,7 @@ WinMain(HINSTANCE Instance,
                 int16 StickX = Pad->sThumbLX;
                 int16 StickY = Pad->sThumbLY;
 
-                int16 Deadzone = 12;
+                int16 Deadzone = 13;
 
                 int16 OffsetXBy;
                 if (StickX < 0)
