@@ -124,7 +124,7 @@ Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize)
     // Secondary buffer
     DSBUFFERDESC BufferDescriptionSecondary = {};
     BufferDescriptionSecondary.dwSize = sizeof(BufferDescriptionSecondary);
-    BufferDescriptionSecondary.dwFlags = DSBCAPS_PRIMARYBUFFER;
+    BufferDescriptionSecondary.dwFlags = 0;
     BufferDescriptionSecondary.dwBufferBytes = BufferSize;
     BufferDescriptionSecondary.lpwfxFormat = &WaveFormat;
     LPDIRECTSOUNDBUFFER SecondaryBuffer;
