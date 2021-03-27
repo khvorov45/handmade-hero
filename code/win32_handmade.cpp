@@ -343,13 +343,10 @@ WinMain(HINSTANCE Instance,
                 int16 StickX = Pad->sThumbLX;
                 int16 StickY = Pad->sThumbLY;
 
-                bool ReverseX = StickX < 0;
-                bool ReverseY = StickY < 0;
-
                 int16 Deadzone = 12;
 
                 int16 OffsetXBy;
-                if (ReverseX)
+                if (StickX < 0)
                 {
                     OffsetXBy = ((StickX * -1) >> Deadzone) * -1;
                 }
@@ -358,7 +355,7 @@ WinMain(HINSTANCE Instance,
                     OffsetXBy = StickX >> Deadzone;
                 }
                 int16 OffsetYBy;
-                if (ReverseY)
+                if (StickY < 0)
                 {
                     OffsetYBy = ((StickY * -1) >> Deadzone) * -1;
                 }
