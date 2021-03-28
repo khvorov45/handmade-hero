@@ -59,6 +59,10 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define DIRECT_SOUND_CREATE(name) DWORD WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
+global_variable bool GobalRunning;
+global_variable win32_offscreen_buffer GlobalBackBuffer;
+global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
+
 internal void
 Win32LoadXInput(void)
 {
@@ -73,9 +77,6 @@ Win32LoadXInput(void)
         XInputSetState = (x_input_set_state *)GetProcAddress(XInputLibrary, "XInputSetState");
     }
 }
-
-global_variable bool GobalRunning;
-global_variable win32_offscreen_buffer GlobalBackBuffer;
 
 internal void
 Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize)
@@ -127,8 +128,7 @@ Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize)
     BufferDescriptionSecondary.dwFlags = 0;
     BufferDescriptionSecondary.dwBufferBytes = BufferSize;
     BufferDescriptionSecondary.lpwfxFormat = &WaveFormat;
-    LPDIRECTSOUNDBUFFER SecondaryBuffer;
-    if (!SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescriptionSecondary, &SecondaryBuffer, 0)))
+    if (!SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescriptionSecondary, &GlobalSecondaryBuffer, 0)))
     {
         return;
     }
