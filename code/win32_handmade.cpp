@@ -352,7 +352,7 @@ WinMain(HINSTANCE Instance,
 
     Win32ResizeDIBSection(&GlobalBackBuffer, 1280, 720);
 
-    WindowClass.style = CS_HREDRAW | CS_VREDRAW;
+    WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
     WindowClass.lpszClassName = "HandmadeHeroWindowClass";
@@ -374,6 +374,8 @@ WinMain(HINSTANCE Instance,
         0);
 
     Win32InitDSound(Window, 48000, 48000 * sizeof(int16) * 2);
+    // @NOTE just one DC here because of CS_OWNDC above
+    HDC DeviceContext = GetDC(Window);
 
     GobalRunning = true;
     int XOffset = 0;
@@ -464,12 +466,10 @@ WinMain(HINSTANCE Instance,
 
         RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
 
-        HDC DeviceContext = GetDC(Window);
         win32_window_dimension Dim = Win32GetWindowDimension(Window);
         Win32DisplayBufferInWindow(DeviceContext,
                                    Dim.Width, Dim.Height,
                                    GlobalBackBuffer);
-        ReleaseDC(Window, DeviceContext);
     }
 
     return (0);
