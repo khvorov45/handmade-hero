@@ -8,7 +8,7 @@
 #define local_persist static
 #define global_variable static
 
-#define Pi32 3.14159265358979323846264338327950
+#define Pi32 3.14159265358979323846264338327950f
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;
