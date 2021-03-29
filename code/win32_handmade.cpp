@@ -77,6 +77,10 @@ Win32LoadXInput(void)
     {
         XInputLibrary = LoadLibraryA("xinput1_3.dll");
     }
+    if (!XInputLibrary)
+    {
+        XInputLibrary = LoadLibraryA("xinput9_1_0.dll");
+    }
     if (XInputLibrary)
     {
         XInputGetState = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
