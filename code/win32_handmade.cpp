@@ -483,7 +483,8 @@ WinMain(HINSTANCE Instance,
         // @NOTE sound
         DWORD PlayCursor;
         DWORD WriteCursor;
-        if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
+        HRESULT GetCurrentPositionResult = GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+        if (SUCCEEDED(GetCurrentPositionResult))
         {
             uint32 OnByte = RunningSampleIndex * BytesPerSample;
             DWORD ByteToLock;
@@ -516,11 +517,12 @@ WinMain(HINSTANCE Instance,
             VOID *Region2;
             DWORD Region2Size;
 
-            if (SUCCEEDED(GlobalSecondaryBuffer->Lock(ByteToLock,
-                                                      BytesToWrite,
-                                                      &Region1, &Region1Size,
-                                                      &Region2, &Region2Size,
-                                                      0)))
+            HRESULT LockResult = GlobalSecondaryBuffer->Lock(ByteToLock,
+                                                             BytesToWrite,
+                                                             &Region1, &Region1Size,
+                                                             &Region2, &Region2Size,
+                                                             0);
+            if (SUCCEEDED(LockResult))
             {
                 int16 *SampleOut = (int16 *)Region1;
                 DWORD Region1SampleCount = Region1Size / BytesPerSample;
@@ -541,8 +543,8 @@ WinMain(HINSTANCE Instance,
                     *SampleOut++ = SampleValue;
                 }
 
-                GlobalSecondaryBuffer->Unlock(&Region1, Region1Size,
-                                              &Region2, Region2Size);
+                HRESULT UnlockResult = GlobalSecondaryBuffer->Unlock(&Region1, Region1Size,
+                                                                     &Region2, Region2Size);
             }
         }
 
