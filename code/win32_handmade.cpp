@@ -557,10 +557,6 @@ WinMain(HINSTANCE Instance,
             {
                 BytesToWrite = (SoundOutput.SecondaryBufferSize - ByteToLock) + PlayCursor;
             }
-            else if (ByteToLock == PlayCursor)
-            {
-                BytesToWrite = 0;
-            }
             else
             {
                 BytesToWrite = PlayCursor - ByteToLock;
