@@ -505,29 +505,8 @@ WinMain(HINSTANCE Instance,
                 int16 StickX = Pad->sThumbLX;
                 int16 StickY = Pad->sThumbLY;
 
-                int16 Deadzone = 13;
-
-                int16 OffsetXBy;
-                if (StickX < 0)
-                {
-                    OffsetXBy = ((StickX * -1) >> Deadzone) * -1;
-                }
-                else
-                {
-                    OffsetXBy = StickX >> Deadzone;
-                }
-                int16 OffsetYBy;
-                if (StickY < 0)
-                {
-                    OffsetYBy = ((StickY * -1) >> Deadzone) * -1;
-                }
-                else
-                {
-                    OffsetYBy = StickY >> Deadzone;
-                }
-
-                XOffset += OffsetXBy;
-                YOffset -= OffsetYBy;
+                XOffset += StickX / 4096;
+                YOffset -= StickY / 4096;
 
                 XINPUT_VIBRATION Vibration = {};
                 if (BButton)
