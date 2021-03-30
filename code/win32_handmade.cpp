@@ -39,7 +39,7 @@ struct win32_window_dimension {
     int Height;
 };
 
-// @NOTE XInputGetState
+//* XInputGetState
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
 typedef X_INPUT_GET_STATE(x_input_get_state);
 X_INPUT_GET_STATE(XInputGetStateStub) {
@@ -48,7 +48,7 @@ X_INPUT_GET_STATE(XInputGetStateStub) {
 global_variable x_input_get_state* XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
 
-// @NOTE XInputSetState
+//* XInputSetState
 #define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION *pVibration)
 typedef X_INPUT_SET_STATE(x_input_set_state);
 X_INPUT_SET_STATE(XInputSetStateStub) {
@@ -57,7 +57,7 @@ X_INPUT_SET_STATE(XInputSetStateStub) {
 global_variable x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
-// @NOTE DirectSoundCreate
+//* DirectSoundCreate
 #define DIRECT_SOUND_CREATE(name)\
     DWORD WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND* ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
@@ -97,7 +97,7 @@ Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize) {
         return;
     }
 
-    // Primary buffer
+    //* Primary buffer
     DSBUFFERDESC BufferDescriptionPrimary = {};
     BufferDescriptionPrimary.dwSize = sizeof(BufferDescriptionPrimary);
     BufferDescriptionPrimary.dwFlags = DSBCAPS_PRIMARYBUFFER;
@@ -119,7 +119,7 @@ Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize) {
         return;
     };
 
-    // Secondary buffer
+    //* Secondary buffer
     DSBUFFERDESC BufferDescriptionSecondary = {};
     BufferDescriptionSecondary.dwSize = sizeof(BufferDescriptionSecondary);
     BufferDescriptionSecondary.dwFlags = 0;
@@ -170,7 +170,7 @@ Win32ResizeDIBSection(win32_offscreen_buffer* Buffer, int Width, int Height) {
 
     Buffer->Info.bmiHeader.biSize = sizeof(Buffer->Info.bmiHeader);
     Buffer->Info.bmiHeader.biWidth = Width;
-    // When negative - bimap becomes top-down
+    //* When negative - bimap becomes top-down
     Buffer->Info.bmiHeader.biHeight = -Buffer->Height;
     Buffer->Info.bmiHeader.biPlanes = 1;
     Buffer->Info.bmiHeader.biBitCount = 32;
@@ -233,7 +233,7 @@ Win32MainWindowCallback(HWND Window,
         uint32 VKCode = WParam;
         bool32 WasDown = ((LParam & (1 << 30)) != 0);
         bool32 isDown = ((LParam & (1 << 31)) == 0);
-        // @NOTE These are key repeats
+        //* These are key repeats
         if (WasDown == isDown) {
             break;
         }
@@ -385,7 +385,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         0
     );
 
-    // @NOTE just one DC here because of CS_OWNDC above
+    //* Just one DC here because of CS_OWNDC above
     HDC DeviceContext = GetDC(Window);
 
     GobalRunning = true;
@@ -393,7 +393,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     int XOffset = 0;
     int YOffset = 0;
 
-    // @NOTE: Sample is both left/right (32 bits)
+    //* Sample is both left/right (32 bits)
     win32_sound_output SoundOutput = {};
 
     SoundOutput.SamplesPerSecond = 48000;
@@ -410,6 +410,18 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         &SoundOutput, 0, SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample
     );
     GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+
+    //* Timing
+
+    LARGE_INTEGER PerfCounterFrequencyResult;
+    QueryPerformanceFrequency(&PerfCounterFrequencyResult);
+    int64 PerfCounterFrequency = PerfCounterFrequencyResult.QuadPart;
+
+    LARGE_INTEGER LastCounter;
+    QueryPerformanceCounter(&LastCounter);
+
+    uint64 LastCycleCount = __rdtsc();
 
     while (GobalRunning) {
         MSG Message;
@@ -475,7 +487,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
         RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
 
-        // @NOTE sound
+        //* Sound
         DWORD PlayCursor;
         DWORD WriteCursor;
         HRESULT GetCurrentPositionResult =
@@ -506,6 +518,28 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             Dim.Width, Dim.Height,
             GlobalBackBuffer
         );
+
+        //* Timing
+
+        LARGE_INTEGER EndCounter;
+        QueryPerformanceCounter(&EndCounter);
+        int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+        LastCounter = EndCounter;
+
+        uint64 EndCycleCount = __rdtsc();
+        uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
+        LastCycleCount = EndCycleCount;
+
+        int64 MsPerFrame = (1000 * CounterElapsed) / PerfCounterFrequency;
+        int64 FPS = 1000 / MsPerFrame;
+
+        char Buffer[256];
+        wsprintfA(
+            Buffer,
+            "Frame: %d ms | %d FPS | %d Mcycles\n",
+            MsPerFrame, FPS, CyclesElapsed / 1000 / 1000
+        );
+        OutputDebugStringA(Buffer);
     }
 
     return (0);

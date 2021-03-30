@@ -1,4 +1,5 @@
 {
+  "workbench.colorTheme": "Pitch Black",
   "editor.rulers": [100],
   "terminal.integrated.shellArgs.windows": ["/k", ".\\misc\\shell.bat"]
 }
