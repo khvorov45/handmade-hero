@@ -1,29 +1,10 @@
+#include "handmade.cpp"
+
+#include <math.h>
+
 #include <windows.h>
 #include <xinput.h>
 #include <dsound.h>
-#include <stdint.h>
-#include <math.h>
-
-#define internal static
-#define local_persist static
-#define global_variable static
-
-#define Pi32 3.14159265358979323846264338327950f
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-
-typedef int32 bool32;
-
-typedef float real32;
-typedef double real64;
 
 struct win32_offscreen_buffer {
     BITMAPINFO Info;
@@ -129,23 +110,6 @@ Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize) {
         DirectSound->CreateSoundBuffer(&BufferDescriptionSecondary, &GlobalSecondaryBuffer, 0)
     )) {
         return;
-    }
-}
-
-internal void
-RenderWeirdGradient(win32_offscreen_buffer* Buffer, int XOffset, int YOffset) {
-    int Width = Buffer->Width;
-    uint8* Row = (uint8*)Buffer->Memory;
-    for (int Y = 0; Y < Buffer->Height; Y++) {
-        uint32* Pixel = (uint32*)Row;
-
-        for (int X = 0; X < Buffer->Width; X++) {
-            uint8 Blue = (X + XOffset);
-            uint8 Green = (Y + YOffset);
-            *Pixel++ = (Green << 8 | Blue);
-        }
-
-        Row += Buffer->Pitch;
     }
 }
 
@@ -485,7 +449,12 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             }
         }
 
-        RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
+        game_offscreen_buffer Buffer = {};
+        Buffer.Memory = GlobalBackBuffer.Memory;
+        Buffer.Width = GlobalBackBuffer.Width;
+        Buffer.Height = GlobalBackBuffer.Height;
+        Buffer.Pitch = GlobalBackBuffer.Pitch;
+        GameUpdateAndRender(&Buffer, XOffset, YOffset);
 
         //* Sound
         DWORD PlayCursor;
@@ -533,13 +502,13 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         int64 MsPerFrame = (1000 * CounterElapsed) / PerfCounterFrequency;
         int64 FPS = 1000 / MsPerFrame;
 
-        char Buffer[256];
+        char OutputBuffer[256];
         wsprintfA(
-            Buffer,
+            OutputBuffer,
             "Frame: %d ms | %d FPS | %d Mcycles\n",
             MsPerFrame, FPS, CyclesElapsed / 1000 / 1000
         );
-        OutputDebugStringA(Buffer);
+        OutputDebugStringA(OutputBuffer);
     }
 
     return (0);
