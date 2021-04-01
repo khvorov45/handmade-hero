@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <math.h>
 
 #define internal static
 #define local_persist static
@@ -28,6 +29,26 @@ struct game_offscreen_buffer {
     int Pitch;
 };
 
+struct game_sound_buffer {
+    int16* Samples;
+    int32 SamplesPerSecond;
+    int32 SampleCount;
+};
+
+internal void GameOutputSound(game_sound_buffer* SoundBuffer, int32 ToneHz) {
+    local_persist real32 tSine = 0;
+    int32 ToneVolume = 2000;
+    int32 WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
+    int16* Samples = SoundBuffer->Samples;
+    for (int32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex) {
+        real32 SineValue = sinf(tSine);
+        int16 SampleValue = (int16)(SineValue * ToneVolume);
+        *Samples++ = SampleValue;
+        *Samples++ = SampleValue;
+        tSine += 2.0f * Pi32 * 1.0f / (real32)WavePeriod;
+    }
+}
+
 internal void RenderWeirdGradient(game_offscreen_buffer* Buffer, int BlueOffset, int GreenOffset) {
     int Width = Buffer->Width;
     uint8* Row = (uint8*)Buffer->Memory;
@@ -44,6 +65,10 @@ internal void RenderWeirdGradient(game_offscreen_buffer* Buffer, int BlueOffset,
     }
 }
 
-internal void GameUpdateAndRender(game_offscreen_buffer* Buffer, int BlueOffset, int GreenOffset) {
+internal void GameUpdateAndRender(
+    game_offscreen_buffer* Buffer, int BlueOffset, int GreenOffset,
+    game_sound_buffer* SoundBuffer, int32 ToneHz
+) {
+    GameOutputSound(SoundBuffer, ToneHz);
     RenderWeirdGradient(Buffer, BlueOffset, GreenOffset);
 }
