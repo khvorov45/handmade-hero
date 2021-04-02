@@ -7,6 +7,8 @@
 
 #define Pi32 3.14159265358979323846264338327950f
 
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
@@ -33,6 +35,38 @@ struct game_sound_buffer {
     int16* Samples;
     int32 SamplesPerSecond;
     int32 SampleCount;
+};
+
+struct game_button_state {
+    int32 HalfTransitionCount;
+    bool32 EndedDown;
+};
+
+struct game_controller_input {
+    bool32 IsAnalog;
+
+    real32 StartX;
+    real32 StartY;
+
+    real32 MinX;
+    real32 MinY;
+
+    real32 MaxX;
+    real32 MaxY;
+
+    real32 EndX;
+    real32 EndY;
+
+    game_button_state Up;
+    game_button_state Down;
+    game_button_state Left;
+    game_button_state Right;
+    game_button_state LeftShoulder;
+    game_button_state RightShoulder;
+};
+
+struct game_input {
+    game_controller_input Controllers[4];
 };
 
 internal void GameOutputSound(game_sound_buffer* SoundBuffer, int32 ToneHz) {
@@ -66,9 +100,25 @@ internal void RenderWeirdGradient(game_offscreen_buffer* Buffer, int BlueOffset,
 }
 
 internal void GameUpdateAndRender(
-    game_offscreen_buffer* Buffer, int BlueOffset, int GreenOffset,
-    game_sound_buffer* SoundBuffer, int32 ToneHz
+    game_input* Input,
+    game_offscreen_buffer* Buffer,
+    game_sound_buffer* SoundBuffer
 ) {
+    local_persist int32 BlueOffset = 0;
+    local_persist int32 GreenOffset = 0;
+    local_persist int32 ToneHz = 256;
+
+    game_controller_input* Input0 = &(Input->Controllers[0]);
+    if (Input0->IsAnalog) {
+        ToneHz = 256 + (int32)(Input0->EndY * 128.0f);
+        BlueOffset += (int32)(Input0->EndX
+            + 0 * 4.0f);
+    } else {}
+
+    if (Input0->Down.EndedDown) {
+        GreenOffset++;
+    }
+
     GameOutputSound(SoundBuffer, ToneHz);
     RenderWeirdGradient(Buffer, BlueOffset, GreenOffset);
 }
