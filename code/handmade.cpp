@@ -1,3 +1,13 @@
+/**
+ * HANDMADE_INTERNAL:
+ *  0 - Public release
+ *  1 - Developer
+ *
+ * HANDMADE_SLOW:
+ *  0 - No slow code allowed
+ *  1 - Slow code allowed
+*/
+
 #include <stdint.h>
 #include <math.h>
 
@@ -8,6 +18,17 @@
 #define Pi32 3.14159265358979323846264338327950f
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
+#define Kilobytes(n) (((uint64)n) * 1024)
+#define Megabytes(n) (Kilobytes(n) * 1024)
+#define Gigabytes(n) (Megabytes(n) * 1024)
+#define Terabytes(n) (Gigabytes(n) * 1024)
+
+#if HANDMADE_SLOW
+#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
+#else
+#define Assert(Expression)
+#endif
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;
@@ -23,6 +44,20 @@ typedef int32 bool32;
 
 typedef float real32;
 typedef double real64;
+
+struct game_state {
+    int32 BlueOffset;
+    int32 GreenOffset;
+    int32 ToneHz;
+};
+
+struct game_memory {
+    bool32 IsInitialized;
+    uint64 PermanentStorageSize;
+    void* PermanentStorage; //* Required to be cleared to 0
+    uint64 TransientStorageSize;
+    void* TransientStorage; //* Required to be cleared to 0
+};
 
 struct game_offscreen_buffer {
     void* Memory;
@@ -100,25 +135,32 @@ internal void RenderWeirdGradient(game_offscreen_buffer* Buffer, int BlueOffset,
 }
 
 internal void GameUpdateAndRender(
+    game_memory* Memory,
     game_input* Input,
     game_offscreen_buffer* Buffer,
     game_sound_buffer* SoundBuffer
 ) {
-    local_persist int32 BlueOffset = 0;
-    local_persist int32 GreenOffset = 0;
-    local_persist int32 ToneHz = 256;
+    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+
+    game_state* GameState = (game_state*)Memory->PermanentStorage;
+
+    if (!Memory->IsInitialized) {
+        GameState->ToneHz = 256;
+        GameState->BlueOffset = 0;
+        GameState->GreenOffset = 0;
+        Memory->IsInitialized = true;
+    }
 
     game_controller_input* Input0 = &(Input->Controllers[0]);
     if (Input0->IsAnalog) {
-        ToneHz = 256 + (int32)(Input0->EndY * 128.0f);
-        BlueOffset += (int32)(Input0->EndX
-            + 0 * 4.0f);
+        GameState->ToneHz = 256 + (int32)(Input0->EndY * 128.0f);
+        GameState->BlueOffset += (int32)(Input0->EndX + 0 * 4.0f);
     } else {}
 
     if (Input0->Down.EndedDown) {
-        GreenOffset++;
+        GameState->GreenOffset++;
     }
 
-    GameOutputSound(SoundBuffer, ToneHz);
-    RenderWeirdGradient(Buffer, BlueOffset, GreenOffset);
+    GameOutputSound(SoundBuffer, GameState->ToneHz);
+    RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }

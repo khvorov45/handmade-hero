@@ -412,6 +412,29 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     game_input* NewInput = &Input[0];
     game_input* OldInput = &Input[1];
 
+    //* Memory
+
+#if HANDMADE_INTERNAL
+    LPVOID BaseAddress = (LPVOID)Terabytes(2);
+#else
+    LPVOID BaseAddress = 0;
+#endif
+
+    game_memory GameMemory;
+    GameMemory.IsInitialized = false;
+    GameMemory.PermanentStorageSize = Megabytes(64);
+    GameMemory.TransientStorageSize = Gigabytes(4);
+
+    uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
+
+    GameMemory.PermanentStorage = VirtualAlloc(
+        BaseAddress, TotalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
+    );
+
+    GameMemory.TransientStorage =
+        (uint8*)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize;
+
+
     //* Timing
 
     LARGE_INTEGER PerfCounterFrequencyResult;
@@ -554,7 +577,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
         SoundBuffer.Samples = Samples;
 
-        GameUpdateAndRender(NewInput, &GraphicsBuffer, &SoundBuffer);
+        GameUpdateAndRender(&GameMemory, NewInput, &GraphicsBuffer, &SoundBuffer);
 
         //* Then sound again I guess
 
