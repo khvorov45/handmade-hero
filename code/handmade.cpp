@@ -11,6 +11,21 @@
 #include <stdint.h>
 #include <math.h>
 
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+
+typedef int32 bool32;
+
+typedef float real32;
+typedef double real64;
+
 #define internal static
 #define local_persist static
 #define global_variable static
@@ -30,20 +45,18 @@
 #define Assert(Expression)
 #endif
 
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
 
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
+#if HANDMADE_INTERNAL
+struct debug_read_file_result {
+    void* Contents;
+    uint32 Size;
+};
 
-typedef int32 bool32;
-
-typedef float real32;
-typedef double real64;
+internal debug_read_file_result DEBUGPlatformReadEntireFile(char* Filename);
+internal void DEBUGPlatformFreeFileMemory(void* BitmapMemory);
+internal bool32 DEBUGPlatformWriteEntireFile(char* Filename, uint32 MemorySize, void* Memory);
+#else
+#endif
 
 struct game_state {
     int32 BlueOffset;
@@ -104,6 +117,11 @@ struct game_input {
     game_controller_input Controllers[4];
 };
 
+inline uint32 SafeTruncateUint64(uint64 Value) {
+    Assert(Value <= 0xFFFFFFFF);
+    return (uint32)(Value);
+}
+
 internal void GameOutputSound(game_sound_buffer* SoundBuffer, int32 ToneHz) {
     local_persist real32 tSine = 0;
     int32 ToneVolume = 2000;
@@ -145,6 +163,15 @@ internal void GameUpdateAndRender(
     game_state* GameState = (game_state*)Memory->PermanentStorage;
 
     if (!Memory->IsInitialized) {
+
+        char* Filename = __FILE__;
+
+        debug_read_file_result BitmapMemory = DEBUGPlatformReadEntireFile(Filename);
+        if (BitmapMemory.Contents) {
+            DEBUGPlatformWriteEntireFile("test_write.out", BitmapMemory.Size, BitmapMemory.Contents);
+            DEBUGPlatformFreeFileMemory(BitmapMemory.Contents);
+        }
+
         GameState->ToneHz = 256;
         GameState->BlueOffset = 0;
         GameState->GreenOffset = 0;

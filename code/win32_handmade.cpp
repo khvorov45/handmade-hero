@@ -56,6 +56,62 @@ global_variable bool32 GobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 
+internal debug_read_file_result DEBUGPlatformReadEntireFile(char* Filename) {
+
+    debug_read_file_result Result = {};
+
+    HANDLE FileHandle = CreateFileA(
+        Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0
+    );
+    if (FileHandle == INVALID_HANDLE_VALUE) {
+        return Result;
+    }
+    LARGE_INTEGER FileSize;
+    DWORD FileSizeResult = GetFileSizeEx(FileHandle, &FileSize);
+    if (FileSizeResult == 0) {
+        CloseHandle(FileHandle);
+        return Result;
+    }
+    Result.Size = SafeTruncateUint64(FileSize.QuadPart);
+    Result.Contents = VirtualAlloc(0, Result.Size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (Result.Contents == 0) {
+        CloseHandle(FileHandle);
+        return Result;
+    }
+    DWORD BytesRead;
+    BOOL ReadFileResult = ReadFile(FileHandle, Result.Contents, Result.Size, &BytesRead, 0);
+    if (ReadFileResult == 0 || Result.Size != BytesRead) {
+        DEBUGPlatformFreeFileMemory(Result.Contents);
+        CloseHandle(FileHandle);
+        return Result;
+    }
+    CloseHandle(FileHandle);
+    return Result;
+}
+
+internal void DEBUGPlatformFreeFileMemory(void* Memory) {
+    if (!Memory) {
+        return;
+    }
+    VirtualFree(Memory, 0, MEM_RELEASE);
+}
+
+internal bool32 DEBUGPlatformWriteEntireFile(char* Filename, uint32 MemorySize, void* Memory) {
+    HANDLE FileHandle = CreateFileA(
+        Filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0
+    );
+    if (FileHandle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    DWORD BytesWritten;
+    BOOL WriteFileResult = WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, 0);
+    CloseHandle(FileHandle);
+    if (WriteFileResult == 0 || MemorySize != BytesWritten) {
+        return false;
+    }
+    return true;
+}
+
 internal void
 Win32LoadXInput(void) {
     HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");

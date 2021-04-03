@@ -11,7 +11,7 @@
       "program": "${workspaceFolder}/build/win32_handmade.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/data",
       "environment": [],
       "console": "externalTerminal"
     }
