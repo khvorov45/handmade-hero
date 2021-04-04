@@ -14,7 +14,7 @@ pub fn run() -> Result<()> {
             break;
         };
 
-        game::graphics::render_weird_gradient(&mut graphics_buffer);
+        game::update_and_render(&mut graphics_buffer);
 
         let window_dimensions = window.get_dimensions()?;
         graphics_buffer.display(
