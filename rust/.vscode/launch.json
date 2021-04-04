@@ -1,0 +1,55 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'handmade-rust'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=handmade-rust"],
+        "filter": {
+          "name": "handmade-rust",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'handmade-rust'",
+      "cargo": {
+        "args": ["build", "--bin=handmade-rust", "--package=handmade-rust"],
+        "filter": {
+          "name": "handmade-rust",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'handmade-rust'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=handmade-rust",
+          "--package=handmade-rust"
+        ],
+        "filter": {
+          "name": "handmade-rust",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
