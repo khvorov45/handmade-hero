@@ -10,8 +10,12 @@ mod util;
 use util::ToWide;
 
 pub fn run() -> Result<()> {
-    let window = create_window()?;
-    run_message_loop(window);
+    create_window()?;
+    loop {
+        if process_messages() == ShouldQuit::Yes {
+            break;
+        };
+    }
     Ok(())
 }
 
@@ -72,15 +76,10 @@ fn create_window() -> Result<HWND> {
 }
 
 extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
-    use winapi::um::winuser::{
-        DefWindowProcW, DestroyWindow, PostQuitMessage, WM_CLOSE, WM_DESTROY,
-    };
+    use winapi::um::winuser::{DefWindowProcW, PostQuitMessage, WM_CLOSE, WM_DESTROY};
     unsafe {
         match msg {
-            WM_CLOSE => {
-                DestroyWindow(hwnd);
-            }
-            WM_DESTROY => {
+            WM_CLOSE | WM_DESTROY => {
                 PostQuitMessage(0);
             }
             _ => return DefWindowProcW(hwnd, msg, wparam, lparam),
@@ -89,19 +88,26 @@ extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LP
     0
 }
 
-fn run_message_loop(window: HWND) -> WPARAM {
-    use winapi::um::winuser::{DispatchMessageW, GetMessageW, TranslateMessage, MSG};
+#[derive(Debug, PartialEq)]
+enum ShouldQuit {
+    Yes,
+    No,
+}
+
+fn process_messages() -> ShouldQuit {
+    use std::ptr::null_mut;
+    use winapi::um::winuser::{
+        DispatchMessageW, PeekMessageW, TranslateMessage, MSG, PM_REMOVE, WM_QUIT,
+    };
     let mut msg = std::mem::MaybeUninit::<MSG>::uninit();
     unsafe {
-        loop {
-            // Get message from message queue
-            if GetMessageW(msg.as_mut_ptr(), window, 0, 0) > 0 {
-                TranslateMessage(msg.as_ptr());
-                DispatchMessageW(msg.as_ptr());
-            } else {
-                // Return on error (<0) or exit (=0) cases
-                return msg.assume_init().wParam;
+        while PeekMessageW(msg.as_mut_ptr(), null_mut(), 0, 0, PM_REMOVE) != 0 {
+            if msg.assume_init().message == WM_QUIT {
+                return ShouldQuit::Yes;
             }
+            TranslateMessage(msg.as_ptr());
+            DispatchMessageW(msg.as_ptr());
         }
-    }
+    };
+    ShouldQuit::No
 }
