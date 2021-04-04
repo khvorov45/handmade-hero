@@ -2,65 +2,102 @@ use crate::Result;
 use anyhow::bail;
 use winapi::shared::{
     minwindef::{LPARAM, LRESULT, UINT, WPARAM},
-    windef::HWND,
+    windef::{HDC, HWND},
 };
+use winapi::um::winuser::GetDC;
 
 use crate::win32::util::ToWide;
 
-pub fn create() -> Result<HWND> {
-    use std::ptr::null_mut;
-    use winapi::shared::windef::HBRUSH;
-    use winapi::um::libloaderapi::GetModuleHandleW;
-    use winapi::um::winuser::{
-        CreateWindowExW, RegisterClassExW, COLOR_BACKGROUND, CS_HREDRAW, CS_OWNDC, CS_VREDRAW,
-        CW_USEDEFAULT, WNDCLASSEXW, WS_OVERLAPPEDWINDOW, WS_VISIBLE,
-    };
+pub struct Window {
+    handle: HWND,
+    device_context: HDC,
+}
 
-    let instance = unsafe { GetModuleHandleW(null_mut()) };
+impl Window {
+    pub fn new() -> Result<Self> {
+        use std::ptr::null_mut;
+        use winapi::shared::windef::HBRUSH;
+        use winapi::um::libloaderapi::GetModuleHandleW;
+        use winapi::um::winuser::{
+            CreateWindowExW, RegisterClassExW, COLOR_BACKGROUND, CS_HREDRAW, CS_OWNDC, CS_VREDRAW,
+            CW_USEDEFAULT, WNDCLASSEXW, WS_OVERLAPPEDWINDOW, WS_VISIBLE,
+        };
 
-    let class_name = "HandmadeRustClassName".to_wide_null();
+        let instance = unsafe { GetModuleHandleW(null_mut()) };
 
-    let wnd_class = WNDCLASSEXW {
-        cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
-        style: CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
-        lpfnWndProc: Some(window_proc),
-        cbClsExtra: 0,
-        cbWndExtra: 0,
-        hInstance: instance,
-        hIcon: null_mut(),
-        hCursor: null_mut(),
-        hbrBackground: COLOR_BACKGROUND as HBRUSH,
-        lpszMenuName: null_mut(),
-        lpszClassName: class_name.as_ptr(),
-        hIconSm: null_mut(),
-    };
+        let class_name = "HandmadeRustClassName".to_wide_null();
 
-    if unsafe { RegisterClassExW(&wnd_class) == 0 } {
-        bail!("window class registration failed");
-    };
+        let wnd_class = WNDCLASSEXW {
+            cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
+            style: CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
+            lpfnWndProc: Some(window_proc),
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hInstance: instance,
+            hIcon: null_mut(),
+            hCursor: null_mut(),
+            hbrBackground: COLOR_BACKGROUND as HBRUSH,
+            lpszMenuName: null_mut(),
+            lpszClassName: class_name.as_ptr(),
+            hIconSm: null_mut(),
+        };
 
-    let window = unsafe {
-        CreateWindowExW(
-            0,                                       // dwExStyle
-            class_name.as_ptr(),                     // lpClassName
-            "Handmade Rust".to_wide_null().as_ptr(), // lpWindowName
-            WS_OVERLAPPEDWINDOW | WS_VISIBLE,        // dwStyle
-            CW_USEDEFAULT,                           // Int x
-            CW_USEDEFAULT,                           // Int y
-            CW_USEDEFAULT,                           // Int nWidth
-            CW_USEDEFAULT,                           // Int nHeight
-            null_mut(),                              // hWndParent
-            null_mut(),                              // hMenu
-            instance,                                // hInstance
-            null_mut(),                              // lpParam
-        )
-    };
+        if unsafe { RegisterClassExW(&wnd_class) == 0 } {
+            bail!("window class registration failed");
+        };
 
-    if window.is_null() {
-        bail!("Window Creation Failed!");
+        let window = unsafe {
+            CreateWindowExW(
+                0,                                       // dwExStyle
+                class_name.as_ptr(),                     // lpClassName
+                "Handmade Rust".to_wide_null().as_ptr(), // lpWindowName
+                WS_OVERLAPPEDWINDOW | WS_VISIBLE,        // dwStyle
+                CW_USEDEFAULT,                           // Int x
+                CW_USEDEFAULT,                           // Int y
+                CW_USEDEFAULT,                           // Int nWidth
+                CW_USEDEFAULT,                           // Int nHeight
+                null_mut(),                              // hWndParent
+                null_mut(),                              // hMenu
+                instance,                                // hInstance
+                null_mut(),                              // lpParam
+            )
+        };
+
+        if window.is_null() {
+            bail!("Window Creation Failed!");
+        }
+
+        Ok(Self {
+            handle: window,
+            device_context: unsafe { GetDC(window) }, //* Only need one because of `CS_OWNDC`
+        })
     }
+    pub fn get_device_context(&self) -> HDC {
+        self.device_context
+    }
+    pub fn get_dimensions(&self) -> Result<Dimensions> {
+        use winapi::shared::windef::RECT;
+        use winapi::um::winuser::GetClientRect;
+        let mut client_rect = RECT {
+            bottom: 0,
+            left: 0,
+            right: 0,
+            top: 0,
+        };
+        let res = unsafe { GetClientRect(self.handle, &mut client_rect) };
+        if res == 0 {
+            bail!("failed to get rectangle");
+        }
+        Ok(Dimensions {
+            width: (client_rect.right - client_rect.left) as u32,
+            height: (client_rect.bottom - client_rect.top) as u32,
+        })
+    }
+}
 
-    Ok(window)
+pub struct Dimensions {
+    pub width: u32,
+    pub height: u32,
 }
 
 extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
