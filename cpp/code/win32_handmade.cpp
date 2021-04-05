@@ -259,7 +259,7 @@ Win32MainWindowCallback(HWND Window,
     case WM_KEYDOWN:
     case WM_KEYUP:
     {
-        uint32 VKCode = WParam;
+        uint32 VKCode = (uint32)WParam;
         bool32 WasDown = ((LParam & (1 << 30)) != 0);
         bool32 isDown = ((LParam & (1 << 31)) == 0);
         //* These are key repeats
@@ -479,7 +479,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     game_memory GameMemory;
     GameMemory.IsInitialized = false;
     GameMemory.PermanentStorageSize = Megabytes(64);
-    GameMemory.TransientStorageSize = Gigabytes(4);
+    GameMemory.TransientStorageSize = Gigabytes(1);
 
     uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
 
@@ -505,8 +505,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     while (GobalRunning) {
         MSG Message;
 
-        game_input Input = {};
-
         while (PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) {
             if (Message.message == WM_QUIT) {
                 GobalRunning = false;
@@ -515,12 +513,12 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             DispatchMessageA(&Message);
         };
 
-        int32 MaxControllerCount = XUSER_MAX_COUNT;
+        DWORD MaxControllerCount = XUSER_MAX_COUNT;
         if (MaxControllerCount > ArrayCount(NewInput->Controllers)) {
             MaxControllerCount = ArrayCount(NewInput->Controllers);
         }
 
-        for (DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex) {
+        for (DWORD ControllerIndex = 0; ControllerIndex < MaxControllerCount; ++ControllerIndex) {
             game_controller_input* OldController = &OldInput->Controllers[ControllerIndex];
             game_controller_input* NewController = &NewInput->Controllers[ControllerIndex];
 
@@ -591,17 +589,16 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         //* Sound
 
         bool32 SoundIsValid = false;
-        DWORD ByteToLock;
-        DWORD TargetCursor;
-        DWORD BytesToWrite;
+        DWORD ByteToLock = 0;
+        DWORD TargetCursor = 0;
+        DWORD BytesToWrite = 0;
 
-        DWORD PlayCursor;
-        DWORD WriteCursor;
+        DWORD PlayCursor = 0;
+        DWORD WriteCursor = 0;
 
         HRESULT GetCurrentPositionResult =
             GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
         if (SUCCEEDED(GetCurrentPositionResult)) {
-            int16 Samples[48000 * 2];
             ByteToLock =
                 (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample) %
                 SoundOutput.SecondaryBufferSize;
