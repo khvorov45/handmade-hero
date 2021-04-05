@@ -8,7 +8,7 @@ use winapi::um::winuser::GetDC;
 
 use crate::win32::util::ToWide;
 
-pub fn create_handle() -> Result<HWND> {
+pub fn create_handle(width: u32, height: u32) -> Result<HWND> {
     use std::ptr::null_mut;
     use winapi::shared::windef::HBRUSH;
     use winapi::um::libloaderapi::GetModuleHandleW;
@@ -48,8 +48,8 @@ pub fn create_handle() -> Result<HWND> {
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,        // dwStyle
             CW_USEDEFAULT,                           // Int x
             CW_USEDEFAULT,                           // Int y
-            CW_USEDEFAULT,                           // Int nWidth
-            CW_USEDEFAULT,                           // Int nHeight
+            width as i32,                            // Int nWidth
+            height as i32,                           // Int nHeight
             null_mut(),                              // hWndParent
             null_mut(),                              // hMenu
             instance,                                // hInstance
@@ -74,12 +74,25 @@ pub struct Dimensions {
     pub height: u32,
 }
 
+/// Do not process any messages here, process in `process_messages` instead.
+/// Some messages don't enter the queue and thus are not picked up by `process_messages`
+/// (e.g. WM_SIZE), hence the need to post them to the queue.
 extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
-    use winapi::um::winuser::{DefWindowProcW, PostQuitMessage, WM_CLOSE, WM_DESTROY};
+    use winapi::um::winuser::{
+        DefWindowProcW, PostMessageW, PostQuitMessage, WM_CLOSE, WM_DESTROY, WM_EXITSIZEMOVE,
+        WM_SIZE,
+    };
+    static mut LAST_SIZE_LPARAM: LPARAM = 0; // Stupid BS
     unsafe {
         match msg {
             WM_CLOSE | WM_DESTROY => {
                 PostQuitMessage(0);
+            }
+            //* Resize handling.
+            //* Note that exit size is sent after the last size, so need to save sizes
+            WM_SIZE => LAST_SIZE_LPARAM = lparam,
+            WM_EXITSIZEMOVE => {
+                PostMessageW(hwnd, WM_SIZE, 0, LAST_SIZE_LPARAM);
             }
             _ => return DefWindowProcW(hwnd, msg, wparam, lparam),
         }
@@ -90,41 +103,31 @@ extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LP
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Action {
     Quit,
+    Resize(u32, u32),
     None,
-}
-
-pub fn get_dimensions(window: HWND) -> Result<Dimensions> {
-    use winapi::shared::windef::RECT;
-    use winapi::um::winuser::GetClientRect;
-    let mut client_rect = RECT {
-        bottom: 0,
-        left: 0,
-        right: 0,
-        top: 0,
-    };
-    let res = unsafe { GetClientRect(window, &mut client_rect) };
-    if res == 0 {
-        bail!("failed to get rectangle");
-    }
-    Ok(Dimensions {
-        width: (client_rect.right - client_rect.left) as u32,
-        height: (client_rect.bottom - client_rect.top) as u32,
-    })
 }
 
 pub fn process_messages() -> Action {
     use std::ptr::null_mut;
+    use winapi::shared::minwindef::{HIWORD, LOWORD};
     use winapi::um::winuser::{
-        DispatchMessageW, PeekMessageW, TranslateMessage, MSG, PM_REMOVE, WM_QUIT,
+        DispatchMessageW, PeekMessageW, TranslateMessage, MSG, PM_REMOVE, WM_QUIT, WM_SIZE,
     };
     let mut msg = std::mem::MaybeUninit::<MSG>::uninit();
     unsafe {
         while PeekMessageW(msg.as_mut_ptr(), null_mut(), 0, 0, PM_REMOVE) != 0 {
-            if msg.assume_init().message == WM_QUIT {
-                return Action::Quit;
+            let msg_value = msg.assume_init();
+            match msg_value.message {
+                WM_QUIT => return Action::Quit,
+                WM_SIZE => {
+                    let new_size = msg_value.lParam as u32;
+                    return Action::Resize(LOWORD(new_size) as u32, HIWORD(new_size) as u32);
+                }
+                _ => {
+                    TranslateMessage(msg.as_ptr());
+                    DispatchMessageW(msg.as_ptr());
+                }
             }
-            TranslateMessage(msg.as_ptr());
-            DispatchMessageW(msg.as_ptr());
         }
     };
     Action::None
