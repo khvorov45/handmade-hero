@@ -18,6 +18,7 @@ pub fn run() -> Result<()> {
 
         game::update_and_render(&mut graphics_buffer);
 
+        // TODO: don't calculate dimensions every frame
         let dimensions = window::get_dimensions(window)?;
         graphics_buffer.display(device_context, dimensions.width, dimensions.height);
     }
