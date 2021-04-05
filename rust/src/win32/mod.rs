@@ -5,23 +5,21 @@ mod util;
 mod window;
 
 pub fn run() -> Result<()> {
-    let window = window::Window::new()?;
+    let window = window::create_handle()?;
+    let device_context = window::create_device_context(window);
 
     let mut graphics_buffer = graphics::Buffer::new(1280, 720);
 
     loop {
-        if window::process_messages() == window::ShouldQuit::Yes {
-            break;
-        };
+        match window::process_messages() {
+            window::Action::Quit => break,
+            window::Action::None => {}
+        }
 
         game::update_and_render(&mut graphics_buffer);
 
-        let window_dimensions = window.get_dimensions()?;
-        graphics_buffer.display(
-            window.get_device_context(),
-            window_dimensions.width,
-            window_dimensions.height,
-        );
+        let dimensions = window::get_dimensions(window)?;
+        graphics_buffer.display(device_context, dimensions.width, dimensions.height);
     }
     Ok(())
 }
