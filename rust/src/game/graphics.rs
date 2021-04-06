@@ -18,8 +18,8 @@ pub fn render_weird_gradient<B: Buffer>(buffer: &mut B, state: &mut game::State)
     while y < height {
         let mut x = 0;
         while x < width {
-            let blue = Wrapping(x as u8) + Wrapping(state.blue_offset.0 as u8);
-            let green = Wrapping(y as u8) + Wrapping(state.green_offset.0 as u8);
+            let blue = Wrapping(x as u8) + state.blue_offset;
+            let green = Wrapping(y as u8) + state.green_offset;
             memory[pixel] = ((green.0 as u32) << 8) | blue.0 as u32;
             x += 1;
             pixel += 1;
