@@ -16,6 +16,7 @@ pub fn run() -> Result<()> {
 
     let mut graphics_buffer = graphics::Buffer::new(internal_width, intenal_height);
     let mut new_input = game::input::Controller::default();
+    let mut game_state = game::State::default();
 
     loop {
         match window::process_messages() {
@@ -28,7 +29,7 @@ pub fn run() -> Result<()> {
             window::Action::None => {}
         }
 
-        game::update_and_render(&mut graphics_buffer, &new_input);
+        game::update_and_render(&mut game_state, &mut graphics_buffer, &new_input);
 
         graphics_buffer.display(device_context, window_width, window_height);
     }
