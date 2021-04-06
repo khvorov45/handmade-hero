@@ -2,6 +2,7 @@ use crate::{game, Result};
 
 mod graphics;
 mod input;
+mod sound;
 mod util;
 mod window;
 
@@ -15,6 +16,7 @@ pub fn run() -> Result<()> {
     let device_context = window::create_device_context(window);
 
     let mut graphics_buffer = graphics::Buffer::new(internal_width, intenal_height);
+    let mut sound_buffer = sound::Buffer::new()?;
     let mut new_input = game::input::Controller::default();
     let mut game_state = game::State::default();
 
@@ -29,7 +31,12 @@ pub fn run() -> Result<()> {
             window::Action::None => {}
         }
 
-        game::update_and_render(&mut game_state, &mut graphics_buffer, &new_input);
+        game::update_and_render(
+            &mut game_state,
+            &mut graphics_buffer,
+            &mut sound_buffer,
+            &new_input,
+        );
 
         graphics_buffer.display(device_context, window_width, window_height);
     }
