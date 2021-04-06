@@ -104,6 +104,7 @@ extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LP
 pub enum Action {
     Quit,
     Resize(u32, u32),
+    Keyboard(u32),
     None,
 }
 
@@ -111,7 +112,8 @@ pub fn process_messages() -> Action {
     use std::ptr::null_mut;
     use winapi::shared::minwindef::{HIWORD, LOWORD};
     use winapi::um::winuser::{
-        DispatchMessageW, PeekMessageW, TranslateMessage, MSG, PM_REMOVE, WM_QUIT, WM_SIZE,
+        DispatchMessageW, PeekMessageW, TranslateMessage, MSG, PM_REMOVE, WM_KEYDOWN, WM_KEYUP,
+        WM_QUIT, WM_SIZE, WM_SYSKEYDOWN, WM_SYSKEYUP,
     };
     let mut msg = std::mem::MaybeUninit::<MSG>::uninit();
     unsafe {
@@ -122,6 +124,17 @@ pub fn process_messages() -> Action {
                 WM_SIZE => {
                     let new_size = msg_value.lParam as u32;
                     return Action::Resize(LOWORD(new_size) as u32, HIWORD(new_size) as u32);
+                }
+                WM_SYSKEYDOWN | WM_SYSKEYUP | WM_KEYDOWN | WM_KEYUP => {
+                    let code = msg_value.wParam;
+                    let was_down = (msg_value.lParam & (1 << 30)) != 0;
+                    let is_down = (msg_value.lParam & (1 << 31)) == 0;
+                    //* These are key repeats
+                    if was_down == is_down {
+                        break;
+                    } else {
+                        return Action::Keyboard(code as u32);
+                    }
                 }
                 _ => {
                     TranslateMessage(msg.as_ptr());

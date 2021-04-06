@@ -1,3 +1,5 @@
+use std::num::Wrapping;
+
 pub trait Buffer {
     fn get_pixels(&self) -> &[u32];
     fn get_mut_pixels(&mut self) -> &mut [u32];
@@ -5,7 +7,7 @@ pub trait Buffer {
     fn get_width(&self) -> u32;
 }
 
-pub fn render_weird_gradient<B: Buffer>(buffer: &mut B) {
+pub fn render_weird_gradient<B: Buffer>(buffer: &mut B, blue_offset: i8, green_offset: i8) {
     let height = buffer.get_height();
     let width = buffer.get_width();
     let memory = buffer.get_mut_pixels();
@@ -15,9 +17,9 @@ pub fn render_weird_gradient<B: Buffer>(buffer: &mut B) {
     while y < height {
         let mut x = 0;
         while x < width {
-            let blue = x as u8;
-            let green = y as u8;
-            memory[pixel] = ((green as u32) << 8) | blue as u32;
+            let blue = Wrapping(x as u8) + Wrapping(blue_offset as u8);
+            let green = Wrapping(y as u8) + Wrapping(green_offset as u8);
+            memory[pixel] = ((green.0 as u32) << 8) | blue.0 as u32;
             x += 1;
             pixel += 1;
         }
