@@ -16,7 +16,7 @@ pub fn run() -> Result<()> {
     let device_context = window::create_device_context(window);
 
     let mut graphics_buffer = graphics::Buffer::new(internal_width, intenal_height);
-    let mut sound_buffer = sound::Buffer::new()?;
+    let mut sound_buffer = sound::Buffer::new(window)?;
     let mut new_input = game::input::Controller::default();
     let mut game_state = game::State::default();
 
