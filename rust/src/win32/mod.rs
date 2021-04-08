@@ -20,6 +20,8 @@ pub fn run() -> Result<()> {
     let mut new_input = game::input::Controller::default();
     let mut game_state = game::State::default();
 
+    sound_buffer.play()?;
+
     loop {
         match window::process_messages() {
             window::Action::Quit => break,
@@ -36,7 +38,7 @@ pub fn run() -> Result<()> {
             &mut graphics_buffer,
             &mut sound_buffer,
             &new_input,
-        );
+        )?;
 
         graphics_buffer.display(device_context, window_width, window_height);
     }

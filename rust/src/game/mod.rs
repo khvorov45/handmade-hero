@@ -1,3 +1,4 @@
+use crate::Result;
 use std::num::Wrapping;
 
 pub mod graphics;
@@ -15,7 +16,7 @@ pub fn update_and_render<G: graphics::Buffer, S: sound::Buffer>(
     graphics_buffer: &mut G,
     sound_buffer: &mut S,
     input: &input::Controller,
-) {
+) -> Result<()> {
     let speed: i8 = 10;
     state.green_offset += Wrapping(
         (speed * (input.buttons.down.ended_down as i8 - input.buttons.up.ended_down as i8)) as u8,
@@ -25,5 +26,6 @@ pub fn update_and_render<G: graphics::Buffer, S: sound::Buffer>(
             as u8,
     );
     graphics::render_weird_gradient(graphics_buffer, state);
-    sound::play_sinewave(sound_buffer, 0);
+    sound::play_sinewave(sound_buffer)?;
+    Ok(())
 }
