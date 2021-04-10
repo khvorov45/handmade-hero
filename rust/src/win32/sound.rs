@@ -50,6 +50,23 @@ pub struct NewSamples {
     info: Option<NewSamplesInfo>,
 }
 
+impl NewSamples {
+    pub fn new(size: usize) -> Self {
+        let store = vec![0; size];
+        Self {
+            storage: (store.clone(), store),
+            info: None,
+        }
+    }
+    pub fn get_mut(&mut self) -> Option<(&mut [i16], &mut [i16])> {
+        let info = self.info.as_ref()?;
+        Some((
+            &mut self.storage.0[0..info.size_samples_per_channel as usize],
+            &mut self.storage.1[0..info.size_samples_per_channel as usize],
+        ))
+    }
+}
+
 pub struct NewSamplesInfo {
     target: u32,
     size_bytes: u32,
@@ -79,33 +96,29 @@ impl<'a> game::sound::Buffer for Buffer<'a> {
             size_samples_per_channel: samples_per_channel,
         });
 
-        Ok((
-            &mut self.new_samples.storage.0[0..samples_per_channel as usize],
-            &mut self.new_samples.storage.1[0..samples_per_channel as usize],
-        ))
+        Ok(self.new_samples.get_mut().unwrap())
     }
+
     fn play_new_samples(&mut self) -> Result<()> {
         if self.new_samples.info.is_none() {
             return Ok(());
         }
 
-        let new_info = self.new_samples.info.as_ref().unwrap();
+        let new_samples_size = self.new_samples.info.as_ref().unwrap().size_bytes;
 
         fill_buffer(
             self.secondary,
-            (
-                &mut self.new_samples.storage.0[0..new_info.size_samples_per_channel as usize],
-                &mut self.new_samples.storage.1[0..new_info.size_samples_per_channel as usize],
-            ),
+            self.new_samples.get_mut().unwrap(),
             self.current_byte,
-            new_info.size_bytes,
+            new_samples_size,
             self.info.sample_size_bytes_all_channels,
         )?;
 
-        self.current_byte = new_info.target;
+        self.current_byte = self.new_samples.info.as_ref().unwrap().target;
         self.new_samples.info = None;
         Ok(())
     }
+
     fn get_samples_per_second_per_channel(&self) -> u32 {
         self.info.samples_per_second_per_channel
     }
@@ -134,13 +147,9 @@ impl<'a> Buffer<'a> {
         Ok(Self {
             secondary: secondary_buffer,
             current_byte: 0,
-            new_samples: NewSamples {
-                info: None,
-                storage: (
-                    vec![0; info.samples_per_second_per_channel as usize],
-                    vec![0; info.samples_per_second_per_channel as usize],
-                ),
-            },
+            new_samples: NewSamples::new(
+                (info.samples_per_second_per_channel * info.buffer_size_seconds) as usize,
+            ),
             info,
         })
     }
