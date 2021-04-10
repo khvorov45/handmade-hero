@@ -2,11 +2,12 @@ use crate::Result;
 
 pub trait Buffer {
     fn write(&mut self, samples: &[i16]) -> Result<()>;
-    fn get_samples_per_second(&self) -> u32;
+    fn get_samples_per_second_per_channel(&self) -> u32;
     fn get_n_channels(&self) -> u32;
 }
 
-pub fn play_sinewave<B: Buffer>(_buffer: &mut B) -> Result<()> {
+pub fn play_sinewave<B: Buffer>(buffer: &mut B) -> Result<()> {
+    buffer.write(&[])?;
     /*static mut T_SINE: f32 = 0.0;
     let volume = 2000;
     let tone_hz = 256;
