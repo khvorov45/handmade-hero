@@ -45,34 +45,69 @@ impl Info {
     }
 }
 
+pub struct NewSamples {
+    storage: (Vec<i16>, Vec<i16>),
+    info: Option<NewSamplesInfo>,
+}
+
+pub struct NewSamplesInfo {
+    target: u32,
+    size_bytes: u32,
+    size_samples_per_channel: u32,
+}
+
 pub struct Buffer<'a> {
     info: Info,
     secondary: &'a IDirectSoundBuffer,
     current_byte: u32,
+    new_samples: NewSamples,
 }
 
 impl<'a> game::sound::Buffer for Buffer<'a> {
-    fn write(&mut self, _samples: &[i16]) -> Result<()> {
+    fn get_new_samples_mut(&mut self) -> Result<(&mut [i16], &mut [i16])> {
         let pos = get_current_position(self.secondary)?;
 
         let to = (pos.write + self.info.latency_size_bytes_all_channels)
             % self.info.buffer_size_bytes_all_channels;
 
+        let bytes_to_write = self.get_n_bytes_beween(to, self.current_byte);
+        let samples_per_channel = bytes_to_write / self.info.sample_size_bytes_all_channels;
+
+        self.new_samples.info = Some(NewSamplesInfo {
+            target: to,
+            size_bytes: bytes_to_write,
+            size_samples_per_channel: samples_per_channel,
+        });
+
+        Ok((
+            &mut self.new_samples.storage.0[0..samples_per_channel as usize],
+            &mut self.new_samples.storage.1[0..samples_per_channel as usize],
+        ))
+    }
+    fn play_new_samples(&mut self) -> Result<()> {
+        if self.new_samples.info.is_none() {
+            return Ok(());
+        }
+
+        let new_info = self.new_samples.info.as_ref().unwrap();
+
         fill_buffer(
             self.secondary,
+            (
+                &mut self.new_samples.storage.0[0..new_info.size_samples_per_channel as usize],
+                &mut self.new_samples.storage.1[0..new_info.size_samples_per_channel as usize],
+            ),
             self.current_byte,
-            self.get_n_bytes_beween(to, self.current_byte),
+            new_info.size_bytes,
             self.info.sample_size_bytes_all_channels,
         )?;
 
-        self.current_byte = to;
+        self.current_byte = new_info.target;
+        self.new_samples.info = None;
         Ok(())
     }
     fn get_samples_per_second_per_channel(&self) -> u32 {
         self.info.samples_per_second_per_channel
-    }
-    fn get_n_channels(&self) -> u32 {
-        self.info.n_channels
     }
 }
 
@@ -97,9 +132,16 @@ impl<'a> Buffer<'a> {
         )?;
 
         Ok(Self {
-            info,
             secondary: secondary_buffer,
             current_byte: 0,
+            new_samples: NewSamples {
+                info: None,
+                storage: (
+                    vec![0; info.samples_per_second_per_channel as usize],
+                    vec![0; info.samples_per_second_per_channel as usize],
+                ),
+            },
+            info,
         })
     }
 
@@ -275,19 +317,19 @@ fn unlock_buffer(buffer: &IDirectSoundBuffer, lock_result: LockResult) -> Result
 
 fn clear_buffer(buffer: &IDirectSoundBuffer, size: u32) -> Result<()> {
     let lock_result = lock_buffer(buffer, 0, size)?;
-    /*unsafe {
-        let mut dest_byte = lock_result.region1;
-        for _ in 0..lock_result.region1_size {
+    unsafe {
+        let mut dest_byte = lock_result.region1.cast::<u8>();
+        for _ in 0..lock_result.region1_bytes {
             *dest_byte = 0;
             dest_byte = dest_byte.add(1);
         }
 
-        dest_byte = lock_result.region2;
-        for _ in 0..lock_result.region2_size {
+        dest_byte = lock_result.region2.cast::<u8>();
+        for _ in 0..lock_result.region2_bytes {
             *dest_byte = 0;
             dest_byte = dest_byte.add(1);
         }
-    }*/
+    }
     unlock_buffer(buffer, lock_result)?;
     Ok(())
 }
@@ -316,16 +358,20 @@ fn get_current_position(buffer: &IDirectSoundBuffer) -> Result<Position> {
 
 fn fill_buffer(
     buffer: &IDirectSoundBuffer,
+    samples: (&mut [i16], &mut [i16]),
     first_byte: u32,
     bytes_to_write: u32,
     bytes_per_sample_all_channels: u32,
 ) -> Result<()> {
     let lock_result = lock_buffer(buffer, first_byte, bytes_to_write)?;
+    let region1_sample_count = lock_result.region1_bytes / bytes_per_sample_all_channels;
+    fill_buffer_region(&samples, lock_result.region1, region1_sample_count);
+    let total_samples = samples.0.len();
     fill_buffer_region(
-        lock_result.region1,
-        lock_result.region1_bytes / bytes_per_sample_all_channels,
-    );
-    fill_buffer_region(
+        &(
+            &mut samples.0[region1_sample_count as usize..total_samples as usize],
+            &mut samples.1[region1_sample_count as usize..total_samples as usize],
+        ),
         lock_result.region2,
         lock_result.region2_bytes / bytes_per_sample_all_channels,
     );
@@ -333,23 +379,18 @@ fn fill_buffer(
     Ok(())
 }
 
-fn fill_buffer_region(start: *mut i16, sample_count_for_each_channel: u32) {
-    static mut T_SINE: f32 = 0.0;
-    let volume = 2000;
-    let tone_hz = 256;
-    let wave_period = 48000 / tone_hz;
-
+fn fill_buffer_region(
+    samples: &(&mut [i16], &mut [i16]),
+    start: *mut i16,
+    sample_count_for_each_channel: u32,
+) {
     let mut dest = start;
     unsafe {
-        for _ in 0..sample_count_for_each_channel {
-            let sine_value = T_SINE.sin();
-            let sample_value = (sine_value * volume as f32) as i16;
-            *dest = sample_value;
+        for i in 0..sample_count_for_each_channel {
+            *dest = samples.0[i as usize];
             dest = dest.add(1);
-            *dest = sample_value;
+            *dest = samples.1[i as usize];
             dest = dest.add(1);
-            T_SINE = (T_SINE + 2.0f32 * std::f32::consts::PI / wave_period as f32)
-                % (2f32 * std::f32::consts::PI);
         }
     }
 }
