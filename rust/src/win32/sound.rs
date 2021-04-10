@@ -5,13 +5,49 @@ use std::{mem, ptr};
 use winapi::shared::{mmreg::WAVEFORMATEX, windef::HWND, winerror::SUCCEEDED};
 use winapi::um::dsound::{IDirectSound, IDirectSoundBuffer, DSBUFFERDESC};
 
+#[derive(Debug)]
+pub struct Info {
+    pub n_channels: u32,
+    pub samples_per_second_per_channel: u32,
+    pub sample_size_bytes_per_channel: u32,
+    pub sample_size_bytes_all_channels: u32,
+    pub buffer_size_seconds: u32,
+    pub buffer_size_samples_per_channel: u32,
+    pub buffer_size_bytes_all_channels: u32,
+    pub latency_size_samples_per_channel: u32,
+    pub latency_size_bytes_all_channels: u32,
+}
+
+impl Info {
+    pub fn new(
+        n_channels: u32,
+        samples_per_second_per_channel: u32,
+        sample_size_bytes_per_channel: u32,
+        buffer_size_seconds: u32,
+        latency_size_samples_per_channel: u32,
+    ) -> Self {
+        Self {
+            n_channels,
+            samples_per_second_per_channel,
+            sample_size_bytes_per_channel,
+            sample_size_bytes_all_channels: sample_size_bytes_per_channel * n_channels,
+            buffer_size_seconds,
+            buffer_size_samples_per_channel: buffer_size_seconds * samples_per_second_per_channel,
+            buffer_size_bytes_all_channels: buffer_size_seconds
+                * samples_per_second_per_channel
+                * sample_size_bytes_per_channel
+                * n_channels,
+            latency_size_samples_per_channel,
+            latency_size_bytes_all_channels: latency_size_samples_per_channel
+                * sample_size_bytes_per_channel
+                * n_channels,
+        }
+    }
+}
+
 pub struct Buffer<'a> {
-    samples_per_second_per_channel: u32,
-    n_channels: u32,
-    bytes_per_sample_per_channel: u32,
+    info: Info,
     secondary: &'a IDirectSoundBuffer,
-    size_bytes: u32,
-    latency_bytes: u32,
     current_byte: u32,
 }
 
@@ -19,23 +55,24 @@ impl<'a> game::sound::Buffer for Buffer<'a> {
     fn write(&mut self, _samples: &[i16]) -> Result<()> {
         let pos = get_current_position(self.secondary)?;
 
-        let to = (pos.write + self.latency_bytes) % self.size_bytes;
+        let to = (pos.write + self.info.latency_size_bytes_all_channels)
+            % self.info.buffer_size_bytes_all_channels;
 
         fill_buffer(
             self.secondary,
             self.current_byte,
             self.get_n_bytes_beween(to, self.current_byte),
-            self.bytes_per_sample_per_channel * self.n_channels,
+            self.info.sample_size_bytes_all_channels,
         )?;
 
         self.current_byte = to;
         Ok(())
     }
     fn get_samples_per_second_per_channel(&self) -> u32 {
-        self.samples_per_second_per_channel
+        self.info.samples_per_second_per_channel
     }
     fn get_n_channels(&self) -> u32 {
-        self.n_channels
+        self.info.n_channels
     }
 }
 
@@ -43,31 +80,25 @@ impl<'a> Buffer<'a> {
     pub fn new(window: HWND) -> Result<Self> {
         let direct_sound = create_direct_sound(window)?;
 
-        let samples_per_second_per_channel = 48000;
-        let n_channels: u32 = 2;
-        let bytes_per_sample_per_channel = mem::size_of::<i16>() as u32;
-        let bytes_per_sample_all_channels = bytes_per_sample_per_channel * n_channels;
-        let secondary_buffer_bytes = samples_per_second_per_channel * bytes_per_sample_all_channels;
-        let latency_sample_count_per_channel = samples_per_second_per_channel / 15;
-        let latency_bytes = latency_sample_count_per_channel * bytes_per_sample_all_channels;
+        let info = Info::new(2, 48000, mem::size_of::<i16>() as u32, 1, 3200);
+
         let mut wave_format = create_wave_format(
-            samples_per_second_per_channel,
-            n_channels,
-            bytes_per_sample_per_channel,
+            info.samples_per_second_per_channel,
+            info.n_channels,
+            info.sample_size_bytes_per_channel,
         );
 
         set_primary_format(direct_sound, &wave_format)?;
 
-        let secondary_buffer =
-            create_secondary_buffer(direct_sound, &mut wave_format, secondary_buffer_bytes)?;
+        let secondary_buffer = create_secondary_buffer(
+            direct_sound,
+            &mut wave_format,
+            info.buffer_size_bytes_all_channels,
+        )?;
 
         Ok(Self {
-            samples_per_second_per_channel,
-            n_channels,
-            bytes_per_sample_per_channel,
+            info,
             secondary: secondary_buffer,
-            size_bytes: secondary_buffer_bytes,
-            latency_bytes,
             current_byte: 0,
         })
     }
@@ -88,7 +119,7 @@ impl<'a> Buffer<'a> {
         if a > b {
             a - b
         } else {
-            self.size_bytes - b + a
+            self.info.buffer_size_bytes_all_channels - b + a
         }
     }
 }
