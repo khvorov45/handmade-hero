@@ -105,16 +105,21 @@ struct game_controller_input {
     real32 EndX;
     real32 EndY;
 
-    game_button_state Up;
-    game_button_state Down;
-    game_button_state Left;
-    game_button_state Right;
-    game_button_state LeftShoulder;
-    game_button_state RightShoulder;
+    union {
+        game_button_state Buttons[6];
+        struct {
+            game_button_state Up;
+            game_button_state Down;
+            game_button_state Left;
+            game_button_state Right;
+            game_button_state LeftShoulder;
+            game_button_state RightShoulder;
+        };
+    };
 };
 
 struct game_input {
-    game_controller_input Controllers[4];
+    game_controller_input Controllers[5];
 };
 
 inline uint32 SafeTruncateUint64(uint64 Value) {
