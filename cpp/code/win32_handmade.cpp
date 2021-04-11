@@ -540,8 +540,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     while (GlobalRunning) {
         game_controller_input* OldKeyboardController = GetController(OldInput, 0);
         game_controller_input* NewKeyboardController = GetController(NewInput, 0);
-        game_controller_input ZeroController = {};
-        *NewKeyboardController = ZeroController;
+        *NewKeyboardController = {};
         NewKeyboardController->IsConnected = true;
         for (int ButtonIndex = 0;
             ButtonIndex < ArrayCount(NewKeyboardController->Buttons);
