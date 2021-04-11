@@ -573,14 +573,16 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 bool32 Left = ButtonState & XINPUT_GAMEPAD_DPAD_LEFT;
                 bool32 Right = ButtonState & XINPUT_GAMEPAD_DPAD_RIGHT;
 
-                NewController->IsAnalog = true;
-
                 NewController->StickAverageX = Win32ProcessXInputStickValue(
                     Pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
                 );
                 NewController->StickAverageY = Win32ProcessXInputStickValue(
                     Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
                 );
+
+                if ((NewController->StickAverageX != 0.0) || (NewController->StickAverageY != 0.0)) {
+                    NewController->IsAnalog = true;
+                }
 
                 if (ButtonState & XINPUT_GAMEPAD_DPAD_UP) {
                     NewController->StickAverageY = 1;
