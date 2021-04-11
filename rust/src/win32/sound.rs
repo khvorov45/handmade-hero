@@ -99,26 +99,6 @@ impl<'a> game::sound::Buffer for Buffer<'a> {
         Ok(self.new_samples.get_mut().unwrap())
     }
 
-    fn play_new_samples(&mut self) -> Result<()> {
-        if self.new_samples.info.is_none() {
-            return Ok(());
-        }
-
-        let new_samples_size = self.new_samples.info.as_ref().unwrap().size_bytes;
-
-        fill_buffer(
-            self.secondary,
-            self.new_samples.get_mut().unwrap(),
-            self.current_byte,
-            new_samples_size,
-            self.info.sample_size_bytes_all_channels,
-        )?;
-
-        self.current_byte = self.new_samples.info.as_ref().unwrap().target;
-        self.new_samples.info = None;
-        Ok(())
-    }
-
     fn get_samples_per_second_per_channel(&self) -> u32 {
         self.info.samples_per_second_per_channel
     }
@@ -162,6 +142,26 @@ impl<'a> Buffer<'a> {
                 bail!("failed to play sound");
             }
         };
+        Ok(())
+    }
+
+    pub fn play_new_samples(&mut self) -> Result<()> {
+        if self.new_samples.info.is_none() {
+            return Ok(());
+        }
+
+        let new_samples_size = self.new_samples.info.as_ref().unwrap().size_bytes;
+
+        fill_buffer(
+            self.secondary,
+            self.new_samples.get_mut().unwrap(),
+            self.current_byte,
+            new_samples_size,
+            self.info.sample_size_bytes_all_channels,
+        )?;
+
+        self.current_byte = self.new_samples.info.as_ref().unwrap().target;
+        self.new_samples.info = None;
         Ok(())
     }
 

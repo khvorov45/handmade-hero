@@ -2,7 +2,6 @@ use crate::Result;
 
 pub trait Buffer {
     fn get_new_samples_mut(&mut self) -> Result<(&mut [i16], &mut [i16])>;
-    fn play_new_samples(&mut self) -> Result<()>;
     fn get_samples_per_second_per_channel(&self) -> u32;
 }
 
@@ -25,8 +24,6 @@ pub fn play_sinewave<B: Buffer>(buffer: &mut B) -> Result<()> {
 
         unsafe { T_SINE = (T_SINE + two_pi / wave_period as f32) % two_pi };
     }
-
-    buffer.play_new_samples()?;
 
     Ok(())
 }

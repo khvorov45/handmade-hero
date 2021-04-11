@@ -41,6 +41,7 @@ pub fn run() -> Result<()> {
         )?;
 
         graphics_buffer.display(device_context, window_width, window_height);
+        sound_buffer.play_new_samples()?;
     }
     Ok(())
 }
