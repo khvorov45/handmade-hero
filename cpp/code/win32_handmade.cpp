@@ -584,15 +584,19 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
                 if (ButtonState & XINPUT_GAMEPAD_DPAD_UP) {
                     NewController->StickAverageY = 1;
+                    NewController->IsAnalog = false;
                 }
                 if (ButtonState & XINPUT_GAMEPAD_DPAD_DOWN) {
                     NewController->StickAverageY = -1;
+                    NewController->IsAnalog = false;
                 }
                 if (ButtonState & XINPUT_GAMEPAD_DPAD_LEFT) {
                     NewController->StickAverageX = -1;
+                    NewController->IsAnalog = false;
                 }
                 if (ButtonState & XINPUT_GAMEPAD_DPAD_RIGHT) {
                     NewController->StickAverageX = 1;
+                    NewController->IsAnalog = false;
                 }
 
                 real32 Threshold = 0.5f;
