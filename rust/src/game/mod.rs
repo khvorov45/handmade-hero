@@ -5,10 +5,25 @@ pub mod graphics;
 pub mod input;
 pub mod sound;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct State {
     green_offset: Wrapping<u8>,
     blue_offset: Wrapping<u8>,
+    tone_hz: u32,
+    volume: u32,
+    t_sine: f32,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            green_offset: Wrapping(0),
+            blue_offset: Wrapping(0),
+            tone_hz: 256,
+            volume: 2000,
+            t_sine: 0f32,
+        }
+    }
 }
 
 pub fn update_and_render<G: graphics::Buffer, S: sound::Buffer>(
@@ -26,6 +41,6 @@ pub fn update_and_render<G: graphics::Buffer, S: sound::Buffer>(
             as u8,
     );
     graphics::render_weird_gradient(graphics_buffer, state);
-    sound::play_sinewave(sound_buffer)?;
+    sound::play_sinewave(sound_buffer, state)?;
     Ok(())
 }
