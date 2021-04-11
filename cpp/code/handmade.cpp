@@ -168,6 +168,10 @@ internal void GameUpdateAndRender(
     game_sound_buffer* SoundBuffer
 ) {
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+    Assert(
+        &Input->Controllers[0].Back - &Input->Controllers[0].MoveUp ==
+        ArrayCount(Input->Controllers[0].Buttons) - 1
+    );
 
     game_state* GameState = (game_state*)Memory->PermanentStorage;
 
