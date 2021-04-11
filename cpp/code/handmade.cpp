@@ -114,6 +114,9 @@ struct game_controller_input {
 
             game_button_state Start;
             game_button_state Back;
+
+            // Add buttons above this
+            game_button_state Terminator;
         };
     };
 };
@@ -169,8 +172,8 @@ internal void GameUpdateAndRender(
 ) {
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     Assert(
-        &Input->Controllers[0].Back - &Input->Controllers[0].MoveUp ==
-        ArrayCount(Input->Controllers[0].Buttons) - 1
+        &Input->Controllers[0].Terminator - &Input->Controllers[0].MoveUp ==
+        ArrayCount(Input->Controllers[0].Buttons)
     );
 
     game_state* GameState = (game_state*)Memory->PermanentStorage;
