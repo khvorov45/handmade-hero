@@ -375,9 +375,9 @@ internal void Win32ProcessKeyboardMessage(
 internal real32 Win32ProcessXInputStickValue(int16 Value, int16 Deadzone) {
     real32 Result = 0;
     if (Value < -Deadzone) {
-        Result = (real32)Value / 32768.0f;
+        Result = (real32)((Value + Deadzone) / (32768.0f - Deadzone));
     } else if (Value > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) {
-        Result = (real32)Value / 32767.0f;
+        Result = (real32)((Value - Deadzone) / (32767.0f - Deadzone));
     }
     return Result;
 }
