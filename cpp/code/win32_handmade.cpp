@@ -372,6 +372,16 @@ internal void Win32ProcessKeyboardMessage(
     ++New->HalfTransitionCount;
 }
 
+internal real32 Win32ProcessXInputStickValue(int16 Value, int16 Deadzone) {
+    real32 Result = 0;
+    if (Value < -Deadzone) {
+        Result = (real32)Value / 32768.0f;
+    } else if (Value > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) {
+        Result = (real32)Value / 32767.0f;
+    }
+    return Result;
+}
+
 internal void Win32ProcessPendingMessages(game_controller_input* KeyboardController) {
     MSG Message;
     while (PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) {
@@ -571,22 +581,12 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
                 NewController->IsAnalog = true;
 
-                int16 StickX = Pad->sThumbLX;
-                int16 StickY = Pad->sThumbLY;
-
-                real32 X;
-                if (StickX < 0) {
-                    X = StickX / 32768.0f;
-                } else {
-                    X = StickX / 32767.0f;
-                }
-
-                real32 Y;
-                if (StickX < 0) {
-                    Y = (real32)StickY / 32768.0f;
-                } else {
-                    Y = (real32)StickY / 32767.0f;
-                }
+                real32 X = Win32ProcessXInputStickValue(
+                    Pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
+                );
+                real32 Y = Win32ProcessXInputStickValue(
+                    Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
+                );
 
                 NewController->StartX = OldController->EndX;
                 NewController->StartY = OldController->EndY;
