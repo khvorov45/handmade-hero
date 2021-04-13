@@ -743,7 +743,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         if (SecondsElapsedForFrame < TargetSecondsPerFrame) {
             if (SleepIsGranular) {
                 DWORD SleepMS =
-                    (DWORD)((TargetSecondsPerFrame - SecondsElapsedForFrame) * 1000.0f);
+                    (DWORD)((TargetSecondsPerFrame - SecondsElapsedForFrame) * 1000.0f) - 1;
                 if (SleepMS > 0) {
                     Sleep(SleepMS);
                 }
