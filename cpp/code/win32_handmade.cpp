@@ -743,7 +743,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         if (SecondsElapsedForFrame < TargetSecondsPerFrame) {
             if (SleepIsGranular) {
                 DWORD SleepMS =
-                    (DWORD)((TargetSecondsPerFrame - SecondsElapsedForFrame) * 1000.0f);
+                    (DWORD)((TargetSecondsPerFrame - SecondsElapsedForFrame) * 1000.0f) - 1;
                 if (SleepMS > 0) {
                     Sleep(SleepMS);
                 }
@@ -756,7 +756,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         } else {
             //* MISSED FRAME
         }
-        LastCounter = Win32GetWallClock();
 
         //* Display
 
@@ -771,7 +770,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
         uint64 EndCycleCount = __rdtsc();
         uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
-        LastCycleCount = __rdtsc();
 
         char OutputBuffer[256];
         sprintf_s(
@@ -781,6 +779,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         );
         OutputDebugStringA(OutputBuffer);
 
+        LastCounter = Win32GetWallClock();
+        LastCycleCount = __rdtsc();
     }
 
     return (0);
