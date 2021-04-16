@@ -46,31 +46,27 @@ impl Info {
 }
 
 pub struct NewSamples {
-    storage: (Vec<i16>, Vec<i16>),
+    storage: Vec<i16>,
     info: Option<NewSamplesInfo>,
 }
 
 impl NewSamples {
     pub fn new(size: usize) -> Self {
-        let store = vec![0; size];
         Self {
-            storage: (store.clone(), store),
+            storage: vec![0; size],
             info: None,
         }
     }
-    pub fn get_mut(&mut self) -> Option<(&mut [i16], &mut [i16])> {
+    pub fn get_mut(&mut self) -> Option<&mut [i16]> {
         let info = self.info.as_ref()?;
-        Some((
-            &mut self.storage.0[0..info.size_samples_per_channel as usize],
-            &mut self.storage.1[0..info.size_samples_per_channel as usize],
-        ))
+        Some(&mut self.storage[0..info.size_samples_all_channels as usize])
     }
 }
 
 pub struct NewSamplesInfo {
     target: u32,
     size_bytes: u32,
-    size_samples_per_channel: u32,
+    size_samples_all_channels: u32,
 }
 
 pub struct Buffer<'a> {
@@ -81,19 +77,19 @@ pub struct Buffer<'a> {
 }
 
 impl<'a> game::sound::Buffer for Buffer<'a> {
-    fn get_new_samples_mut(&mut self) -> Result<(&mut [i16], &mut [i16])> {
+    fn get_new_samples_mut(&mut self) -> Result<&mut [i16]> {
         let pos = get_current_position(self.secondary)?;
 
         let to = (pos.play + self.info.latency_size_bytes_all_channels)
             % self.info.buffer_size_bytes_all_channels;
 
         let bytes_to_write = self.get_n_bytes_beween(to, self.current_byte);
-        let samples_per_channel = bytes_to_write / self.info.sample_size_bytes_all_channels;
+        let samples_all_channels = bytes_to_write / self.info.sample_size_bytes_per_channel;
 
         self.new_samples.info = Some(NewSamplesInfo {
             target: to,
             size_bytes: bytes_to_write,
-            size_samples_per_channel: samples_per_channel,
+            size_samples_all_channels: samples_all_channels,
         });
 
         Ok(self.new_samples.get_mut().unwrap())
@@ -157,7 +153,7 @@ impl<'a> Buffer<'a> {
             self.new_samples.get_mut().unwrap(),
             self.current_byte,
             new_samples_size,
-            self.info.sample_size_bytes_all_channels,
+            self.info.sample_size_bytes_per_channel,
         )?;
 
         self.current_byte = self.new_samples.info.as_ref().unwrap().target;
@@ -367,38 +363,34 @@ fn get_current_position(buffer: &IDirectSoundBuffer) -> Result<Position> {
 
 fn fill_buffer(
     buffer: &IDirectSoundBuffer,
-    samples: (&mut [i16], &mut [i16]),
+    samples: &mut [i16],
     first_byte: u32,
     bytes_to_write: u32,
-    bytes_per_sample_all_channels: u32,
+    bytes_per_sample_per_channel: u32,
 ) -> Result<()> {
     let lock_result = lock_buffer(buffer, first_byte, bytes_to_write)?;
-    let region1_sample_count = lock_result.region1_bytes / bytes_per_sample_all_channels;
-    fill_buffer_region(&samples, lock_result.region1, region1_sample_count);
-    let total_samples = samples.0.len();
+    let region1_sample_count_all_channels =
+        lock_result.region1_bytes / bytes_per_sample_per_channel;
     fill_buffer_region(
-        &(
-            &mut samples.0[region1_sample_count as usize..total_samples as usize],
-            &mut samples.1[region1_sample_count as usize..total_samples as usize],
-        ),
+        samples,
+        lock_result.region1,
+        region1_sample_count_all_channels,
+    );
+    let total_samples = samples.len();
+    fill_buffer_region(
+        &mut samples[region1_sample_count_all_channels as usize..total_samples],
         lock_result.region2,
-        lock_result.region2_bytes / bytes_per_sample_all_channels,
+        lock_result.region2_bytes / bytes_per_sample_per_channel,
     );
     unlock_buffer(buffer, lock_result)?;
     Ok(())
 }
 
-fn fill_buffer_region(
-    samples: &(&mut [i16], &mut [i16]),
-    start: *mut i16,
-    sample_count_for_each_channel: u32,
-) {
+fn fill_buffer_region(samples: &mut [i16], start: *mut i16, sample_count_all_channels: u32) {
     let mut dest = start;
     unsafe {
-        for i in 0..sample_count_for_each_channel {
-            *dest = samples.0[i as usize];
-            dest = dest.add(1);
-            *dest = samples.1[i as usize];
+        for i in 0..sample_count_all_channels {
+            *dest = samples[i as usize];
             dest = dest.add(1);
         }
     }
