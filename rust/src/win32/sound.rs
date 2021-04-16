@@ -124,7 +124,8 @@ impl<'a> Buffer<'a> {
             secondary: secondary_buffer,
             current_byte: 0,
             new_samples: NewSamples::new(
-                (info.samples_per_second_per_channel * info.buffer_size_seconds) as usize,
+                (info.samples_per_second_per_channel * info.buffer_size_seconds * info.n_channels)
+                    as usize,
             ),
             info,
         })
