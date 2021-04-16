@@ -84,7 +84,7 @@ impl<'a> game::sound::Buffer for Buffer<'a> {
     fn get_new_samples_mut(&mut self) -> Result<(&mut [i16], &mut [i16])> {
         let pos = get_current_position(self.secondary)?;
 
-        let to = (pos.write + self.info.latency_size_bytes_all_channels)
+        let to = (pos.play + self.info.latency_size_bytes_all_channels)
             % self.info.buffer_size_bytes_all_channels;
 
         let bytes_to_write = self.get_n_bytes_beween(to, self.current_byte);
