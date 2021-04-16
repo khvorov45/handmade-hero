@@ -841,10 +841,11 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         //* Debug sound
 #if HANDMADE_INTERNAL
         {
+            Assert(DebugLastMarkerIndex < ArrayCount(DebugLastMarker));
             DebugLastMarker[DebugLastMarkerIndex].PlayCursor = PlayCursor;
             DebugLastMarker[DebugLastMarkerIndex].WriteCursor = WriteCursor;
             DebugLastMarkerIndex++;
-            if (DebugLastMarkerIndex >= ArrayCount(DebugLastMarker)) {
+            if (DebugLastMarkerIndex == ArrayCount(DebugLastMarker)) {
                 DebugLastMarkerIndex = 0;
             }
         }
