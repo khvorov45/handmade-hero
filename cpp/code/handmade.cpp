@@ -140,12 +140,16 @@ internal void GameOutputSound(game_sound_buffer* SoundBuffer, int32 ToneHz) {
     int32 ToneVolume = 2000;
     int32 WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
     int16* Samples = SoundBuffer->Samples;
+    real32 Pi2 = 2.0f * Pi32;
     for (int32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex) {
         real32 SineValue = sinf(tSine);
         int16 SampleValue = (int16)(SineValue * ToneVolume);
         *Samples++ = SampleValue;
         *Samples++ = SampleValue;
-        tSine += 2.0f * Pi32 * 1.0f / (real32)WavePeriod;
+        tSine = tSine + Pi2 * 1.0f / (real32)WavePeriod;
+        if (tSine >= Pi2) {
+            tSine -= Pi2;
+        }
     }
 }
 
