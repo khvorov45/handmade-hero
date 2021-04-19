@@ -5,6 +5,7 @@ set CommonCompilerFlags=-MT -nologo -GR- -Gm- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4
 
 mkdir build
 pushd build
-cl %CommonCompilerFlags% ..\code\handmade.cpp -Fmhandmade.map /LD /link /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples
+del *.pdb
+cl %CommonCompilerFlags% ..\code\handmade.cpp -Fmhandmade.map  -LD /link /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no -PDB:handmade_%date%-%time:~0,2%-%time:~3,2%-%time:~6,2%-%time:~9,2%.pdb
 cl %CommonCompilerFlags% ..\code\win32_handmade.cpp -Fmwin32_handmade.map /link %CommonLinkerFlags%
 popd
