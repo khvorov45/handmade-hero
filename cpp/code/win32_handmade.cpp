@@ -126,19 +126,37 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile) {
     return true;
 }
 
+internal FILETIME Win32GetLastWriteTime(char* FileName) {
+    WIN32_FIND_DATA FindData = {};
+    HANDLE FindHandle = FindFirstFileA(FileName, &FindData);
+    if (FindHandle == INVALID_HANDLE_VALUE) {
+        FILETIME Result = {};
+        return Result;
+    }
+    FindClose(FindHandle);
+    return FindData.ftLastWriteTime;
+}
+
 struct win32_game_code {
     HMODULE GameCodeDLL;
+    FILETIME LastWriteTime;
     game_get_sound_samples* GetSoundSamples;
     game_update_and_render* UpdateAndRender;
     bool32 IsValid;
 };
 
-internal win32_game_code Win32LoadGameCode() {
+internal win32_game_code Win32LoadGameCode(char* FileName) {
     win32_game_code Result = {};
+
     Result.GetSoundSamples = GameGetSoundSamplesStub;
     Result.UpdateAndRender = GameUpdateAndRenderStub;
-    CopyFileA("handmade.dll", "handmade.lock.dll", FALSE);
-    HMODULE GameCodeDLL = LoadLibraryA("handmade.lock.dll");
+
+    Result.LastWriteTime = Win32GetLastWriteTime(FileName);
+
+    char* TempDLLName = "handmade.lock.dll";
+
+    CopyFileA(FileName, TempDLLName, FALSE);
+    HMODULE GameCodeDLL = LoadLibraryA(TempDLLName);
     if (!GameCodeDLL) {
         return Result;
     }
@@ -705,15 +723,15 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     real32 AudioLatencySeconds = 0;
     bool32 SoundIsValid = false;
 
-    win32_game_code GameCode = Win32LoadGameCode();
-    uint32 LoadCounter = 0;
+    char* GameCodeSourceDLLFileName = "handmade.dll";
+    win32_game_code GameCode = Win32LoadGameCode(GameCodeSourceDLLFileName);
 
     while (GlobalRunning) {
 
-        if (LoadCounter++ > 120) {
+        FILETIME NewDLLWriteTime = Win32GetLastWriteTime(GameCodeSourceDLLFileName);
+        if (CompareFileTime(&NewDLLWriteTime, &GameCode.LastWriteTime) != 0) {
             Win32UnloadCode(&GameCode);
-            GameCode = Win32LoadGameCode();
-            LoadCounter = 0;
+            GameCode = Win32LoadGameCode(GameCodeSourceDLLFileName);
         }
 
         game_controller_input* OldKeyboardController = GetController(OldInput, 0);
