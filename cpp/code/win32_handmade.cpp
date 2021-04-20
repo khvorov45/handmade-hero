@@ -145,18 +145,16 @@ struct win32_game_code {
     bool32 IsValid;
 };
 
-internal win32_game_code Win32LoadGameCode(char* FileName) {
+internal win32_game_code Win32LoadGameCode(char* Source, char* Locked) {
     win32_game_code Result = {};
 
     Result.GetSoundSamples = GameGetSoundSamplesStub;
     Result.UpdateAndRender = GameUpdateAndRenderStub;
 
-    Result.LastWriteTime = Win32GetLastWriteTime(FileName);
+    Result.LastWriteTime = Win32GetLastWriteTime(Source);
 
-    char* TempDLLName = "handmade.lock.dll";
-
-    CopyFileA(FileName, TempDLLName, FALSE);
-    HMODULE GameCodeDLL = LoadLibraryA(TempDLLName);
+    CopyFileA(Source, Locked, FALSE);
+    HMODULE GameCodeDLL = LoadLibraryA(Locked);
     if (!GameCodeDLL) {
         return Result;
     }
@@ -609,7 +607,45 @@ internal void Win32DebugSyncDisplay(
     }
 }
 
+void CatStrings(
+    size_t SourceACount, char* SourceA,
+    size_t SourceBCount, char* SourceB,
+    size_t DestCount, char* Dest
+) {
+    for (int Index = 0; Index < SourceACount; Index++) {
+        *Dest++ = *SourceA++;
+    }
+    for (int Index = 0; Index < SourceBCount; Index++) {
+        *Dest++ = *SourceB++;
+    }
+    *Dest = '\0';
+}
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
+
+    char ExecutableName[MAX_PATH];
+    GetModuleFileNameA(0, ExecutableName, sizeof(ExecutableName));
+    char* OnePastLastSlash = ExecutableName;
+    for (char* Scan = ExecutableName; *Scan; ++Scan) {
+        if (*Scan == '\\') {
+            OnePastLastSlash = Scan + 1;
+        }
+    }
+
+    char GameCodeDLLFilenameSource[] = "handmade.dll";
+    char GameCodeDLLFullPathSource[MAX_PATH];
+    CatStrings(
+        OnePastLastSlash - ExecutableName, ExecutableName,
+        sizeof(GameCodeDLLFilenameSource) - 1, GameCodeDLLFilenameSource,
+        sizeof(GameCodeDLLFullPathSource), GameCodeDLLFullPathSource
+    );
+    char GameCodeDLLFilenameLocked[] = "handmade.lock.dll";
+    char GameCodeDLLFullPathLocked[MAX_PATH];
+    CatStrings(
+        OnePastLastSlash - ExecutableName, ExecutableName,
+        sizeof(GameCodeDLLFilenameLocked) - 1, GameCodeDLLFilenameLocked,
+        sizeof(GameCodeDLLFullPathLocked), GameCodeDLLFullPathLocked
+    );
 
     LARGE_INTEGER PerfCounterFrequencyResult;
     QueryPerformanceFrequency(&PerfCounterFrequencyResult);
@@ -723,15 +759,14 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     real32 AudioLatencySeconds = 0;
     bool32 SoundIsValid = false;
 
-    char* GameCodeSourceDLLFileName = "handmade.dll";
-    win32_game_code GameCode = Win32LoadGameCode(GameCodeSourceDLLFileName);
+    win32_game_code GameCode = Win32LoadGameCode(GameCodeDLLFullPathSource, GameCodeDLLFullPathLocked);
 
     while (GlobalRunning) {
 
-        FILETIME NewDLLWriteTime = Win32GetLastWriteTime(GameCodeSourceDLLFileName);
+        FILETIME NewDLLWriteTime = Win32GetLastWriteTime(GameCodeDLLFullPathSource);
         if (CompareFileTime(&NewDLLWriteTime, &GameCode.LastWriteTime) != 0) {
             Win32UnloadCode(&GameCode);
-            GameCode = Win32LoadGameCode(GameCodeSourceDLLFileName);
+            GameCode = Win32LoadGameCode(GameCodeDLLFullPathSource, GameCodeDLLFullPathLocked);
         }
 
         game_controller_input* OldKeyboardController = GetController(OldInput, 0);
