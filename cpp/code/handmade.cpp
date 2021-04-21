@@ -2,20 +2,26 @@
 #include <math.h>
 
 internal void GameOutputSound(game_sound_buffer* SoundBuffer, game_state* GameState) {
+
     int32 ToneVolume = 2000;
     int32 WavePeriod = SoundBuffer->SamplesPerSecond / GameState->ToneHz;
     int16* Samples = SoundBuffer->Samples;
     real32 Pi2 = 2.0f * Pi32;
     for (int32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex) {
         real32 SineValue = sinf(GameState->tSine);
+#if 0
         int16 SampleValue = (int16)(SineValue * ToneVolume);
-        *Samples++ = SampleValue;
+#else
+        int16 SampleValue = 0;
+#endif
+        * Samples++ = SampleValue;
         *Samples++ = SampleValue;
         GameState->tSine += Pi2 * 1.0f / (real32)WavePeriod;
         if (GameState->tSine >= Pi2) {
             GameState->tSine -= Pi2;
         }
     }
+
 }
 
 internal void RenderWeirdGradient(game_offscreen_buffer* Buffer, int BlueOffset, int GreenOffset) {
@@ -30,6 +36,24 @@ internal void RenderWeirdGradient(game_offscreen_buffer* Buffer, int BlueOffset,
         }
 
         Row += Buffer->Pitch;
+    }
+}
+
+internal void RenderPlayer(game_offscreen_buffer* Buffer, game_state* State) {
+    uint8* EndOfBuffer = (uint8*)Buffer->Memory + Buffer->Pitch * Buffer->Height;
+    int32 Top = State->PlayerY;
+    int32 Bottom = State->PlayerY + 10;
+    uint32 Color = 0x000000;
+    for (int32 X = State->PlayerX; X < State->PlayerX + 10; ++X) {
+        uint8* Pixel =
+            (uint8*)Buffer->Memory + X * Buffer->BytesPerPixel
+            + Top * Buffer->Pitch;
+        for (int Y = Top; Y < Bottom; ++Y) {
+            if (Pixel >= Buffer->Memory && Pixel < EndOfBuffer) {
+                *(uint32*)Pixel = Color;
+                Pixel += Buffer->Pitch;
+            }
+        }
     }
 }
 
@@ -62,6 +86,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         GameState->BlueOffset = 0;
         GameState->GreenOffset = 0;
+
+        GameState->PlayerX = 100;
+        GameState->PlayerY = 100;
+
         Memory->IsInitialized = true;
     }
 
@@ -81,9 +109,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
         }
 
-        if (Controller->ActionDown.EndedDown) {
-            GameState->GreenOffset++;
+        GameState->PlayerX += (int32)(Controller->StickAverageX * 10.0f);
+        GameState->PlayerY -= (int32)(Controller->StickAverageY * 20.0f);
+        if (GameState->tJump > 0) {
+            GameState->PlayerY -= (int32)(10.0f * sinf(GameState->tJump));
         }
+        if (Controller->ActionDown.EndedDown) {
+            GameState->tJump = 1.0;
+        }
+        GameState->tJump -= 0.033f;
     }
     RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+    RenderPlayer(Buffer, GameState);
 }

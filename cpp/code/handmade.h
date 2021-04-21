@@ -71,6 +71,11 @@ struct game_state {
     int32 GreenOffset;
     int32 ToneHz;
     real32 tSine;
+
+    int32 PlayerX;
+    int32 PlayerY;
+
+    real32 tJump;
 };
 
 struct game_memory {
@@ -90,6 +95,7 @@ struct game_offscreen_buffer {
     int Width;
     int Height;
     int Pitch;
+    int BytesPerPixel;
 };
 
 struct game_sound_buffer {
