@@ -47,6 +47,9 @@ struct win32_recorded_input {
 };
 
 struct win32_state {
+    uint64 TotalSize;
+    void* GameMemoryBlock;
+
     HANDLE RecordingHandle;
     int InputRecordingIndex;
 
@@ -472,6 +475,10 @@ internal void Win32BeginRecordingInput(win32_state* Win32State, int InputRecordi
         Filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0
     );
     Win32State->InputRecordingIndex = InputRecordingIndex;
+    DWORD BytesToWrite = (DWORD)Win32State->TotalSize;
+    Assert(Win32State->TotalSize == BytesToWrite);
+    DWORD BytesWritten;
+    WriteFile(Win32State->RecordingHandle, Win32State->GameMemoryBlock, BytesToWrite, &BytesWritten, 0);
 }
 
 internal void Win32EndRecordingInput(win32_state* Win32State) {
@@ -485,6 +492,10 @@ internal void Win32BeginInputPlayback(win32_state* Win32State, int InputPlayingI
         Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0
     );
     Win32State->InputPlayingIndex = InputPlayingIndex;
+    DWORD BytesToRead = (DWORD)Win32State->TotalSize;
+    Assert(Win32State->TotalSize == BytesToRead);
+    DWORD BytesRead;
+    ReadFile(Win32State->PlayingHandle, Win32State->GameMemoryBlock, BytesToRead, &BytesRead, 0);
 }
 
 internal void Win32EndInputPlayback(win32_state* Win32State) {
@@ -499,10 +510,12 @@ internal void Win32RecordInput(win32_state* Win32State, game_input* NewInput) {
 
 internal void Win32PlayBackInput(win32_state* Win32State, game_input* NewInput) {
     DWORD BytesRead;
-    if (ReadFile(Win32State->PlayingHandle, NewInput, sizeof(*NewInput), &BytesRead, 0) == 0) {
-        int PlayingIndex = Win32State->InputPlayingIndex;
-        Win32EndInputPlayback(Win32State);
-        Win32BeginInputPlayback(Win32State, PlayingIndex);
+    if (ReadFile(Win32State->PlayingHandle, NewInput, sizeof(*NewInput), &BytesRead, 0) != 0) {
+        if (BytesRead == 0) {
+            int PlayingIndex = Win32State->InputPlayingIndex;
+            Win32EndInputPlayback(Win32State);
+            Win32BeginInputPlayback(Win32State, PlayingIndex);
+        }
     }
 }
 
@@ -796,11 +809,12 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     GameMemory.PermanentStorageSize = Megabytes(64);
     GameMemory.TransientStorageSize = Gigabytes(1);
 
-    uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
+    Win32State.TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
 
-    GameMemory.PermanentStorage = VirtualAlloc(
-        BaseAddress, TotalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
+    Win32State.GameMemoryBlock = VirtualAlloc(
+        BaseAddress, Win32State.TotalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
     );
+    GameMemory.PermanentStorage = Win32State.GameMemoryBlock;
 
     GameMemory.TransientStorage =
         (uint8*)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize;
