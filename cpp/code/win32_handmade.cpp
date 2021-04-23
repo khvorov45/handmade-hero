@@ -46,6 +46,7 @@ struct win32_recorded_input {
     game_input* InputStream;
 };
 
+#define WIN32_STATE_FILE_NAME_COUNT MAX_PATH
 struct win32_state {
     uint64 TotalSize;
     void* GameMemoryBlock;
@@ -55,6 +56,9 @@ struct win32_state {
 
     HANDLE PlayingHandle;
     int InputPlayingIndex;
+
+    char EXEFileName[WIN32_STATE_FILE_NAME_COUNT];
+    char* OnePastLastExeFilenameSlash;
 };
 
 //* XInputGetState
@@ -85,6 +89,46 @@ global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 global_variable int64 GlobalPerfCounterFrequency;
 global_variable int64 GlobalPause;
+
+void CatStrings(
+    size_t SourceACount, char* SourceA,
+    size_t SourceBCount, char* SourceB,
+    size_t DestCount, char* Dest
+) {
+    for (int Index = 0; Index < SourceACount; Index++) {
+        *Dest++ = *SourceA++;
+    }
+    for (int Index = 0; Index < SourceBCount; Index++) {
+        *Dest++ = *SourceB++;
+    }
+    *Dest = '\0';
+}
+
+internal int32 StringLength(char* String) {
+    int32 Count = 0;
+    while (*String++ != '\0') {
+        ++Count;
+    }
+    return Count;
+}
+
+internal void Win32GetExeFileName(win32_state* State) {
+    GetModuleFileNameA(0, State->EXEFileName, sizeof(State->EXEFileName));
+    State->OnePastLastExeFilenameSlash = State->EXEFileName;
+    for (char* Scan = State->EXEFileName; *Scan; ++Scan) {
+        if (*Scan == '\\') {
+            State->OnePastLastExeFilenameSlash = Scan + 1;
+        }
+    }
+}
+
+internal void Win32BuildExePathFilename(win32_state* State, char* Filename, size_t DestCount, char* Dest) {
+    CatStrings(
+        State->OnePastLastExeFilenameSlash - State->EXEFileName, State->EXEFileName,
+        StringLength(Filename), Filename,
+        DestCount, Dest
+    );
+}
 
 DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUGPlatformFreeFileMemory) {
     if (!BitmapMemory) {
@@ -473,16 +517,22 @@ internal real32 Win32ProcessXInputStickValue(int16 Value, int16 Deadzone) {
     return Result;
 }
 
-internal void Win32BeginRecordingInput(win32_state* Win32State, int InputRecordingIndex) {
-    char* Filename = "foo.hmi";
-    Win32State->RecordingHandle = CreateFileA(
+internal void Win32GetInputFileLocation(win32_state* State, int32 SlotIndex, size_t DestCount, char* Dest) {
+    Assert(SlotIndex == 1);
+    Win32BuildExePathFilename(State, "loop_edit.hmi", DestCount, Dest);
+}
+
+internal void Win32BeginRecordingInput(win32_state* State, int InputRecordingIndex) {
+    char Filename[WIN32_STATE_FILE_NAME_COUNT];
+    Win32GetInputFileLocation(State, 1, sizeof(Filename), Filename);
+    State->RecordingHandle = CreateFileA(
         Filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0
     );
-    Win32State->InputRecordingIndex = InputRecordingIndex;
-    DWORD BytesToWrite = (DWORD)Win32State->TotalSize;
-    Assert(Win32State->TotalSize == BytesToWrite);
+    State->InputRecordingIndex = InputRecordingIndex;
+    DWORD BytesToWrite = (DWORD)State->TotalSize;
+    Assert(State->TotalSize == BytesToWrite);
     DWORD BytesWritten;
-    WriteFile(Win32State->RecordingHandle, Win32State->GameMemoryBlock, BytesToWrite, &BytesWritten, 0);
+    WriteFile(State->RecordingHandle, State->GameMemoryBlock, BytesToWrite, &BytesWritten, 0);
 }
 
 internal void Win32EndRecordingInput(win32_state* Win32State) {
@@ -490,16 +540,17 @@ internal void Win32EndRecordingInput(win32_state* Win32State) {
     Win32State->InputRecordingIndex = 0;
 }
 
-internal void Win32BeginInputPlayback(win32_state* Win32State, int InputPlayingIndex) {
-    char* Filename = "foo.hmi";
-    Win32State->PlayingHandle = CreateFileA(
+internal void Win32BeginInputPlayback(win32_state* State, int InputPlayingIndex) {
+    char Filename[WIN32_STATE_FILE_NAME_COUNT];
+    Win32GetInputFileLocation(State, 1, sizeof(Filename), Filename);
+    State->PlayingHandle = CreateFileA(
         Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0
     );
-    Win32State->InputPlayingIndex = InputPlayingIndex;
-    DWORD BytesToRead = (DWORD)Win32State->TotalSize;
-    Assert(Win32State->TotalSize == BytesToRead);
+    State->InputPlayingIndex = InputPlayingIndex;
+    DWORD BytesToRead = (DWORD)State->TotalSize;
+    Assert(State->TotalSize == BytesToRead);
     DWORD BytesRead;
-    ReadFile(Win32State->PlayingHandle, Win32State->GameMemoryBlock, BytesToRead, &BytesRead, 0);
+    ReadFile(State->PlayingHandle, State->GameMemoryBlock, BytesToRead, &BytesRead, 0);
 }
 
 internal void Win32EndInputPlayback(win32_state* Win32State) {
@@ -687,45 +738,17 @@ internal void Win32DebugSyncDisplay(
     }
 }
 
-void CatStrings(
-    size_t SourceACount, char* SourceA,
-    size_t SourceBCount, char* SourceB,
-    size_t DestCount, char* Dest
-) {
-    for (int Index = 0; Index < SourceACount; Index++) {
-        *Dest++ = *SourceA++;
-    }
-    for (int Index = 0; Index < SourceBCount; Index++) {
-        *Dest++ = *SourceB++;
-    }
-    *Dest = '\0';
-}
-
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
-    char ExecutableName[MAX_PATH];
-    GetModuleFileNameA(0, ExecutableName, sizeof(ExecutableName));
-    char* OnePastLastSlash = ExecutableName;
-    for (char* Scan = ExecutableName; *Scan; ++Scan) {
-        if (*Scan == '\\') {
-            OnePastLastSlash = Scan + 1;
-        }
-    }
+    win32_state Win32State = {};
 
-    char GameCodeDLLFilenameSource[] = "handmade.dll";
-    char GameCodeDLLFullPathSource[MAX_PATH];
-    CatStrings(
-        OnePastLastSlash - ExecutableName, ExecutableName,
-        sizeof(GameCodeDLLFilenameSource) - 1, GameCodeDLLFilenameSource,
-        sizeof(GameCodeDLLFullPathSource), GameCodeDLLFullPathSource
-    );
-    char GameCodeDLLFilenameLocked[] = "handmade.lock.dll";
-    char GameCodeDLLFullPathLocked[MAX_PATH];
-    CatStrings(
-        OnePastLastSlash - ExecutableName, ExecutableName,
-        sizeof(GameCodeDLLFilenameLocked) - 1, GameCodeDLLFilenameLocked,
-        sizeof(GameCodeDLLFullPathLocked), GameCodeDLLFullPathLocked
-    );
+    Win32GetExeFileName(&Win32State);
+
+    char GameCodeDLLFullPathSource[WIN32_STATE_FILE_NAME_COUNT];
+    Win32BuildExePathFilename(&Win32State, "handmade.dll", sizeof(GameCodeDLLFullPathSource), GameCodeDLLFullPathSource);
+
+    char GameCodeDLLFullPathLocked[WIN32_STATE_FILE_NAME_COUNT];
+    Win32BuildExePathFilename(&Win32State, "handmade.lock.dll", sizeof(GameCodeDLLFullPathLocked), GameCodeDLLFullPathLocked);
 
     LARGE_INTEGER PerfCounterFrequencyResult;
     QueryPerformanceFrequency(&PerfCounterFrequencyResult);
@@ -762,7 +785,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         0
     );
 
-    win32_state Win32State = {};
     GlobalRunning = true;
     GlobalPause = false;
 
