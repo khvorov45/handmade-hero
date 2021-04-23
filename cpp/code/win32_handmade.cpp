@@ -1122,8 +1122,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
             while (SecondsElapsedForFrame < TargetSecondsPerFrame) {
                 SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
-        }
-    } else {
+            }
+        } else {
             //* MISSED FRAME
         }
         LastCounter = Win32GetWallClock();
