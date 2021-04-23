@@ -771,7 +771,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     RegisterClassA(&WindowClass);
 
     HWND Window = CreateWindowExA(
-        WS_EX_TOPMOST | WS_EX_LAYERED,
+        0, //WS_EX_TOPMOST | WS_EX_LAYERED,
         WindowClass.lpszClassName,
         "Handmade hero",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
