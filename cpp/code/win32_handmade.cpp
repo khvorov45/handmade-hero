@@ -878,6 +878,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             XINPUT_STATE ControllerState;
             if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS) {
                 NewController->IsConnected = true;
+                NewController->IsAnalog = OldController->IsAnalog;
                 XINPUT_GAMEPAD* Pad = &ControllerState.Gamepad;
                 DWORD ButtonState = Pad->wButtons;
 
