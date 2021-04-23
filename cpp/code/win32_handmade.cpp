@@ -207,8 +207,8 @@ struct win32_game_code {
 internal win32_game_code Win32LoadGameCode(char* Source, char* Locked) {
     win32_game_code Result = {};
 
-    Result.GetSoundSamples = GameGetSoundSamplesStub;
-    Result.UpdateAndRender = GameUpdateAndRenderStub;
+    Result.GetSoundSamples = 0;
+    Result.UpdateAndRender = 0;
 
     Result.LastWriteTime = Win32GetLastWriteTime(Source);
 
@@ -238,8 +238,8 @@ internal void Win32UnloadCode(win32_game_code* GameCode) {
         GameCode->GameCodeDLL = 0;
     }
     GameCode->IsValid = false;
-    GameCode->GetSoundSamples = GameGetSoundSamplesStub;
-    GameCode->UpdateAndRender = GameUpdateAndRenderStub;
+    GameCode->GetSoundSamples = 0;
+    GameCode->UpdateAndRender = 0;
 }
 
 internal void
@@ -1009,7 +1009,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         if (Win32State.InputPlayingIndex) {
             Win32PlayBackInput(&Win32State, NewInput);
         }
-        GameCode.UpdateAndRender(&GameMemory, NewInput, &GraphicsBuffer);
+        if (GameCode.UpdateAndRender != 0) {
+            GameCode.UpdateAndRender(&GameMemory, NewInput, &GraphicsBuffer);
+        }
 
         //* Input
 
@@ -1069,7 +1071,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
             SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
             SoundBuffer.Samples = Samples;
-            GameCode.GetSoundSamples(&GameMemory, &SoundBuffer);
+            if (GameCode.GetSoundSamples != 0) {
+                GameCode.GetSoundSamples(&GameMemory, &SoundBuffer);
+            }
 
 #if HANDMADE_INTERNAL
             win32_debug_time_marker* Marker = &DebugLastMarker[DebugLastMarkerIndex];
