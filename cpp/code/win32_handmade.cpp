@@ -186,15 +186,14 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile) {
     return true;
 }
 
-internal FILETIME Win32GetLastWriteTime(char* FileName) {
-    WIN32_FIND_DATA FindData = {};
-    HANDLE FindHandle = FindFirstFileA(FileName, &FindData);
-    if (FindHandle == INVALID_HANDLE_VALUE) {
+internal FILETIME Win32GetLastWriteTime(char* Filename) {
+    WIN32_FILE_ATTRIBUTE_DATA Data;
+    BOOL FindResult = GetFileAttributesExA(Filename, GetFileExInfoStandard, &Data);
+    if (FindResult == FALSE) {
         FILETIME Result = {};
         return Result;
     }
-    FindClose(FindHandle);
-    return FindData.ftLastWriteTime;
+    return Data.ftLastWriteTime;
 }
 
 struct win32_game_code {
@@ -1123,8 +1122,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
             while (SecondsElapsedForFrame < TargetSecondsPerFrame) {
                 SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
-            }
-        } else {
+        }
+    } else {
             //* MISSED FRAME
         }
         LastCounter = Win32GetWallClock();
