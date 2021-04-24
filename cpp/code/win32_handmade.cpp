@@ -688,7 +688,7 @@ inline LARGE_INTEGER Win32GetWallClock() {
     QueryPerformanceCounter(&Counter);
     return Counter;
 }
-
+# if 0
 internal void Wind32DebugDrawVertical(
     win32_offscreen_buffer* BackBuffer, int32 X, int32 Top, int32 Bottom,
     uint32 Color
@@ -763,6 +763,7 @@ internal void Win32DebugSyncDisplay(
         Win32DrawMarker(ThisMarker.FlipWriteCursor, BackBuffer, PadX, C, Top, Bottom, ColorWrite);
     }
 }
+#endif
 
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
@@ -1163,7 +1164,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             AudioLatencySeconds =
                 (real32)AudioLatencyBytes / (real32)SoundOutput.BytesPerSample /
                 (real32)SoundOutput.SamplesPerSecond;
-
+#if 0
             char SoundTextBuffer[256];
             sprintf_s(
                 SoundTextBuffer,
@@ -1172,6 +1173,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 PlayCursor, WriteCursor
             );
             OutputDebugStringA(SoundTextBuffer);
+#endif
 #endif
             Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
         } else {
@@ -1205,7 +1207,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         //* Display
 
         win32_window_dimension Dim = Win32GetWindowDimension(Window);
-#if HANDMADE_INTERNAL
+#if 0
         Win32DebugSyncDisplay(
             &GlobalBackBuffer,
             ArrayCount(DebugLastMarker), DebugLastMarker,
