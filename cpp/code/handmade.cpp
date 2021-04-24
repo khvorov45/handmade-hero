@@ -109,10 +109,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
         }
 
-        GameState->PlayerX += (int32)(Controller->StickAverageX * 10.0f);
-        GameState->PlayerY -= (int32)(Controller->StickAverageY * 20.0f);
+        //GameState->PlayerX += (int32)(Controller->StickAverageX * 10.0f);
+        //GameState->PlayerY -= (int32)(Controller->StickAverageY * 20.0f);
         if (GameState->tJump > 0) {
-            GameState->PlayerY += (int32)(5.0f * sinf(Pi32 * 0.5f * GameState->tJump));
+            //GameState->PlayerY += (int32)(5.0f * sinf(Pi32 * 0.5f * GameState->tJump));
         }
         if (Controller->ActionDown.EndedDown) {
             GameState->tJump = 4.0f;
@@ -120,5 +120,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->tJump -= 0.033f;
     }
     RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+    GameState->PlayerX = Input->MouseX;
+    GameState->PlayerY = Input->MouseY;
     RenderPlayer(Buffer, GameState);
+
+    for (int32 ButtonIndex = 0; ButtonIndex < ArrayCount(Input->MouseButtons); ++ButtonIndex) {
+        if (Input->MouseButtons[ButtonIndex].EndedDown) {
+            GameState->PlayerX = 10 + 10 * ButtonIndex;
+            GameState->PlayerY = 10 + 10 * ButtonIndex;
+            RenderPlayer(Buffer, GameState);
+        }
+    }
 }

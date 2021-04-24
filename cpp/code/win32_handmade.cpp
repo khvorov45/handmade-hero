@@ -500,9 +500,10 @@ internal void Win32ProcessKeyboardMessage(
     game_button_state* New,
     bool32 IsDown
 ) {
-    Assert(New->EndedDown != IsDown);
-    New->EndedDown = IsDown;
-    ++New->HalfTransitionCount;
+    if (New->EndedDown != IsDown) {
+        New->EndedDown = IsDown;
+        ++New->HalfTransitionCount;
+    }
 }
 
 internal real32 Win32ProcessXInputStickValue(int16 Value, int16 Deadzone) {
@@ -775,8 +776,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
+        GlobalBackBuffer.Width,
+        GlobalBackBuffer.Height,
         0,
         0,
         Instance,
@@ -890,6 +891,20 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         if (GlobalPause) {
             continue;
         }
+
+
+        //* Mouse
+        POINT MouseP;
+        GetCursorPos(&MouseP);
+        ScreenToClient(Window, &MouseP);
+        NewInput->MouseX = MouseP.x;
+        NewInput->MouseY = MouseP.y;
+        NewInput->MouseZ = 0;
+        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[0], GetKeyState(VK_LBUTTON) & (1 << 15));
+        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[1], GetKeyState(VK_RBUTTON) & (1 << 15));
+        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[2], GetKeyState(VK_MBUTTON) & (1 << 15));
+        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[3], GetKeyState(VK_XBUTTON1) & (1 << 15));
+        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[4], GetKeyState(VK_XBUTTON2) & (1 << 15));
 
         DWORD MaxControllerCount = XUSER_MAX_COUNT;
         if (MaxControllerCount > (ArrayCount(NewInput->Controllers) - 1)) {
