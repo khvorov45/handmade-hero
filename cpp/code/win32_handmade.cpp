@@ -22,7 +22,6 @@ struct win32_sound_output {
     uint32 RunningSampleIndex;
     int32 SecondaryBufferSize;
     real32 tSine;
-    int LatencySampleCount;
     DWORD SafetyBytes;
 };
 
@@ -784,24 +783,30 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         0
     );
 
+    int32 MonitorRefreshHz = 60;
+    HDC RefreshDC = GetDC(Window);
+    int32 Win32RefreshRate = GetDeviceCaps(RefreshDC, VREFRESH);
+    ReleaseDC(Window, RefreshDC);
+    if (Win32RefreshRate > 1) {
+        MonitorRefreshHz = Win32RefreshRate;
+    }
+
+    real32 GameRefreshHz = (real32)MonitorRefreshHz / 2;
+    real32 TargetSecondsPerFrame = 1.0f / GameRefreshHz;
+
     GlobalRunning = true;
     GlobalPause = false;
 
     int XOffset = 0;
     int YOffset = 0;
 
-#define MonitorRefreshHz 60
-#define GameRefreshHz (MonitorRefreshHz / 2)
-    real32 TargetSecondsPerFrame = 1.0f / (real32)GameRefreshHz;
-
     //* Sample is both left/right (32 bits)
     win32_sound_output SoundOutput = {};
 
     SoundOutput.SamplesPerSecond = 48000;
     SoundOutput.BytesPerSample = sizeof(int16) * 2;
-    SoundOutput.LatencySampleCount = 3 * (SoundOutput.SamplesPerSecond / GameRefreshHz);
     SoundOutput.SafetyBytes =
-        SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample / GameRefreshHz / 3;
+        (int32)((real32)SoundOutput.SamplesPerSecond * (real32)SoundOutput.BytesPerSample / GameRefreshHz / 3);
     SoundOutput.RunningSampleIndex = 0;
     SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;
 
@@ -854,7 +859,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     uint64 LastCycleCount = __rdtsc();
 
     int32 DebugLastMarkerIndex = 0;
-    win32_debug_time_marker DebugLastMarker[GameRefreshHz / 2] = {};
+    win32_debug_time_marker DebugLastMarker[30] = {};
     DWORD AudioLatencyBytes = 0;
     real32 AudioLatencySeconds = 0;
     bool32 SoundIsValid = false;
@@ -1037,7 +1042,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 SoundOutput.SecondaryBufferSize;
 
             DWORD ExpectedSoundBytesPerFrame =
-                SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample / GameRefreshHz;
+                (int32)((real32)SoundOutput.SamplesPerSecond * (real32)SoundOutput.BytesPerSample / GameRefreshHz);
             DWORD ExpectedBytesUntilFlip = (DWORD)((TargetSecondsPerFrame - SecSinceFlip) *
                 (real32)(SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample));
             DWORD ExpectedFrameBoundaryByte = PlayCursor + ExpectedBytesUntilFlip;
