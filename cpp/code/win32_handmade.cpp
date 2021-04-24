@@ -647,12 +647,17 @@ internal void Win32ProcessPendingMessages(win32_state* Win32State, game_controll
                 }
             } else if (VKCode == 'L') {
                 if (IsDown) {
-                    if (Win32State->InputRecordingIndex == 0) {
-                        Win32BeginRecordingInput(Win32State, 1);
+                    if (Win32State->InputPlayingIndex == 0) {
+                        if (Win32State->InputRecordingIndex == 0) {
+                            Win32BeginRecordingInput(Win32State, 1);
+                        } else {
+                            Win32EndRecordingInput(Win32State);
+                            Win32BeginInputPlayback(Win32State, 1);
+                        }
                     } else {
-                        Win32EndRecordingInput(Win32State);
-                        Win32BeginInputPlayback(Win32State, 1);
+                        Win32EndInputPlayback(Win32State);
                     }
+
                 }
             }
 #endif
