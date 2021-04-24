@@ -46,7 +46,7 @@ impl Buffer {
             height,
         }
     }
-    pub fn display(&self, device_context: HDC, window_width: u32, window_height: u32) {
+    pub fn display(&self, device_context: HDC) {
         use winapi::ctypes::c_void;
         use winapi::um::wingdi::{DIB_RGB_COLORS, SRCCOPY};
         unsafe {
@@ -54,8 +54,8 @@ impl Buffer {
                 device_context,
                 0, // XDest
                 0, // YDest
-                window_width as i32,
-                window_height as i32,
+                self.width as i32,
+                self.height as i32,
                 0, // XSrc
                 0, // YSrc
                 self.width as i32,

@@ -10,7 +10,7 @@ use input::AcceptKeyboardKey;
 
 pub fn run() -> Result<()> {
     let (internal_width, intenal_height) = (1280, 720);
-    let (mut window_width, mut window_height) = (1280, 720);
+    let (window_width, window_height) = (internal_width, intenal_height);
 
     let window = window::create_handle(window_width, window_height)?;
     let device_context = window::create_device_context(window);
@@ -25,10 +25,7 @@ pub fn run() -> Result<()> {
     loop {
         match window::process_messages() {
             window::Action::Quit => break,
-            window::Action::Resize(new_width, new_height) => {
-                window_width = new_width;
-                window_height = new_height;
-            }
+            window::Action::Resize(_, _) => {}
             window::Action::Keyboard(key) => new_input.accept_keyboard_key(key),
             window::Action::None => {}
         }
@@ -40,7 +37,7 @@ pub fn run() -> Result<()> {
             &new_input,
         )?;
 
-        graphics_buffer.display(device_context, window_width, window_height);
+        graphics_buffer.display(device_context);
         sound_buffer.play_new_samples()?;
     }
     Ok(())
