@@ -806,7 +806,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     SoundOutput.SamplesPerSecond = 48000;
     SoundOutput.BytesPerSample = sizeof(int16) * 2;
     SoundOutput.SafetyBytes =
-        (int32)((real32)SoundOutput.SamplesPerSecond * (real32)SoundOutput.BytesPerSample / GameRefreshHz / 3);
+        (int32)((real32)SoundOutput.SamplesPerSecond * (real32)SoundOutput.BytesPerSample / 10);
     SoundOutput.RunningSampleIndex = 0;
     SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;
 
