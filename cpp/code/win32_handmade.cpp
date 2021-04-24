@@ -161,7 +161,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile) {
     DWORD BytesRead;
     BOOL ReadFileResult = ReadFile(FileHandle, Result.Contents, Result.Size, &BytesRead, 0);
     if (ReadFileResult == 0 || Result.Size != BytesRead) {
-        DEBUGPlatformFreeFileMemory(Result.Contents);
+        DEBUGPlatformFreeFileMemory(Thread, Result.Contents);
         CloseHandle(FileHandle);
         return Result;
     }
@@ -1001,6 +1001,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
         //* Game
 
+        thread_context Thread = {};
+
         game_offscreen_buffer GraphicsBuffer = {};
         GraphicsBuffer.Memory = GlobalBackBuffer.Memory;
         GraphicsBuffer.Width = GlobalBackBuffer.Width;
@@ -1015,7 +1017,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             Win32PlayBackInput(&Win32State, NewInput);
         }
         if (GameCode.UpdateAndRender != 0) {
-            GameCode.UpdateAndRender(&GameMemory, NewInput, &GraphicsBuffer);
+            GameCode.UpdateAndRender(&Thread, &GameMemory, NewInput, &GraphicsBuffer);
         }
 
         //* Input
@@ -1077,7 +1079,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
             SoundBuffer.Samples = Samples;
             if (GameCode.GetSoundSamples != 0) {
-                GameCode.GetSoundSamples(&GameMemory, &SoundBuffer);
+                GameCode.GetSoundSamples(&Thread, &GameMemory, &SoundBuffer);
             }
 
 #if HANDMADE_INTERNAL

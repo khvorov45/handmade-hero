@@ -75,10 +75,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         char* Filename = __FILE__;
 
-        debug_read_file_result BitmapMemory = Memory->DEBUGPlatformReadEntireFile(Filename);
+        debug_read_file_result BitmapMemory = Memory->DEBUGPlatformReadEntireFile(Thread, Filename);
         if (BitmapMemory.Contents) {
-            Memory->DEBUGPlatformWriteEntireFile("test_write.out", BitmapMemory.Size, BitmapMemory.Contents);
-            Memory->DEBUGPlatformFreeFileMemory(BitmapMemory.Contents);
+            Memory->DEBUGPlatformWriteEntireFile(Thread, "test_write.out", BitmapMemory.Size, BitmapMemory.Contents);
+            Memory->DEBUGPlatformFreeFileMemory(Thread, BitmapMemory.Contents);
         }
 
         GameState->ToneHz = 256;
