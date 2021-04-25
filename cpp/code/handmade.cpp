@@ -11,21 +11,42 @@ internal void GameOutputSound(game_sound_buffer* SoundBuffer) {
     }
 }
 
-internal void RenderRectangle(game_offscreen_buffer* Buffer, int32 XCoord, int32 YCoord) {
-    uint8* EndOfBuffer = (uint8*)Buffer->Memory + Buffer->Pitch * Buffer->Height;
-    int32 Top = YCoord;
-    int32 Bottom = YCoord + 10;
-    uint32 Color = 0x000000;
-    for (int32 X = XCoord; X < XCoord + 10; ++X) {
-        uint8* Pixel =
-            (uint8*)Buffer->Memory + X * Buffer->BytesPerPixel
-            + Top * Buffer->Pitch;
-        for (int Y = Top; Y < Bottom; ++Y) {
-            if (Pixel >= Buffer->Memory && Pixel < EndOfBuffer) {
-                *(uint32*)Pixel = Color;
-                Pixel += Buffer->Pitch;
-            }
+internal inline int32 RoundReal32ToInt32(real32 X) {
+    return (int32)(X + 0.5f);
+}
+
+/// Maximums are not inclusive
+internal void DrawRectangle(
+    game_offscreen_buffer* Buffer,
+    real32 RealMinX, real32 RealMinY, real32 RealMaxX, real32 RealMaxY,
+    uint32 Color
+) {
+    int32 MinX = RoundReal32ToInt32(RealMinX);
+    int32 MinY = RoundReal32ToInt32(RealMinY);
+    int32 MaxX = RoundReal32ToInt32(RealMaxX);
+    int32 MaxY = RoundReal32ToInt32(RealMaxY);
+
+    if (MinX < 0) {
+        MinX = 0;
+    }
+    if (MinY < 0) {
+        MinY = 0;
+    }
+
+    if (MaxX > Buffer->Width) {
+        MaxX = Buffer->Width;
+    }
+    if (MaxY > Buffer->Height) {
+        MaxY = Buffer->Height;
+    }
+
+    uint8* Row = (uint8*)Buffer->Memory + MinY * Buffer->Pitch + MinX * Buffer->BytesPerPixel;
+    for (int32 Y = MinY; Y < MaxY; ++Y) {
+        uint32* Pixel = (uint32*)Row;
+        for (int32 X = MinX; X < MaxX; ++X) {
+            *Pixel++ = Color;
         }
+        Row += Buffer->Pitch;
     }
 }
 
@@ -52,6 +73,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         ControllerIndex < ArrayCount(Input->Controllers);
         ++ControllerIndex) {
         game_controller_input* Controller = &(Input->Controllers[ControllerIndex]);
-
     }
+    DrawRectangle(Buffer, 0, 0, (real32)Buffer->Width, (real32)Buffer->Height, 0x000000);
+    DrawRectangle(Buffer, -10, 10, 70, 50, 0xFFFFFF);
 }
