@@ -70,15 +70,7 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 #endif
 
 struct game_state {
-    int32 BlueOffset;
-    int32 GreenOffset;
-    int32 ToneHz;
-    real32 tSine;
 
-    int32 PlayerX;
-    int32 PlayerY;
-
-    real32 tJump;
 };
 
 struct game_memory {
