@@ -68,7 +68,7 @@ pub struct NewSamplesInfo {
 }
 
 pub struct Buffer {
-    _direct_sound: Audio::IDirectSound,
+    _direct_sound: Audio::IDirectSound, //* If this is dropped, `IDirectSoundBuffer` stops working
     info: Info,
     pub secondary: Audio::IDirectSoundBuffer,
     current_byte: u32,
