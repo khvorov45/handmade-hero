@@ -1,9 +1,8 @@
 use crate::game;
-use winapi::shared::windef::HDC;
-use winapi::um::wingdi::{StretchDIBits, BITMAPINFO};
+use crate::win32::bindings::Windows::Win32::Gdi;
 
 pub struct Buffer {
-    info: BITMAPINFO,
+    info: Gdi::BITMAPINFO,
     pixels: Vec<u32>,
     width: u32,
     height: u32,
@@ -11,13 +10,11 @@ pub struct Buffer {
 
 impl Buffer {
     pub fn new(width: u32, height: u32) -> Self {
-        use winapi::um::wingdi::{BITMAPINFOHEADER, BI_RGB, RGBQUAD};
-
-        let bmi_header = BITMAPINFOHEADER {
+        let bmi_header = Gdi::BITMAPINFOHEADER {
             biBitCount: 32,
-            biCompression: BI_RGB,
+            biCompression: Gdi::BI_RGB as u32,
             biHeight: -(height as i32), //* Negative makes the window top-down
-            biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+            biSize: std::mem::size_of::<Gdi::BITMAPINFOHEADER>() as u32,
             biWidth: width as i32,
             biPlanes: 1,
             biXPelsPerMeter: 0,
@@ -27,14 +24,14 @@ impl Buffer {
             biSizeImage: 0,
         };
 
-        let bmi_colors = RGBQUAD {
+        let bmi_colors = Gdi::RGBQUAD {
             rgbBlue: 0,
             rgbRed: 0,
             rgbGreen: 0,
             rgbReserved: 0,
         };
 
-        let info = BITMAPINFO {
+        let info = Gdi::BITMAPINFO {
             bmiHeader: bmi_header,
             bmiColors: [bmi_colors],
         };
@@ -46,11 +43,11 @@ impl Buffer {
             height,
         }
     }
-    pub fn display(&self, device_context: HDC) {
-        use winapi::ctypes::c_void;
-        use winapi::um::wingdi::{DIB_RGB_COLORS, SRCCOPY};
+    pub fn display(&self, device_context: Gdi::HDC) {
+        use std::ffi::c_void;
+
         unsafe {
-            StretchDIBits(
+            Gdi::StretchDIBits(
                 device_context,
                 0, // XDest
                 0, // YDest
@@ -62,8 +59,8 @@ impl Buffer {
                 self.height as i32,
                 self.pixels.as_ptr() as *mut c_void,
                 &self.info,
-                DIB_RGB_COLORS,
-                SRCCOPY,
+                Gdi::DIB_USAGE::DIB_RGB_COLORS,
+                Gdi::ROP_CODE::SRCCOPY,
             );
         }
     }

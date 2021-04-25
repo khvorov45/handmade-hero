@@ -1,9 +1,7 @@
+use crate::win32::bindings::Windows::Win32::{Audio, Multimedia, WindowsAndMessaging};
 use crate::{game, Result};
-use anyhow::bail;
 use anyhow::Context;
 use std::{mem, ptr};
-use winapi::shared::{mmreg::WAVEFORMATEX, windef::HWND, winerror::SUCCEEDED};
-use winapi::um::dsound::{IDirectSound, IDirectSoundBuffer, DSBUFFERDESC};
 
 #[derive(Debug)]
 pub struct Info {
@@ -69,21 +67,22 @@ pub struct NewSamplesInfo {
     size_samples_all_channels: u32,
 }
 
-pub struct Buffer<'a> {
+pub struct Buffer {
+    _direct_sound: Audio::IDirectSound,
     info: Info,
-    secondary: &'a IDirectSoundBuffer,
+    pub secondary: Audio::IDirectSoundBuffer,
     current_byte: u32,
     new_samples: NewSamples,
 }
 
-impl<'a> game::sound::Buffer for Buffer<'a> {
+impl game::sound::Buffer for Buffer {
     fn get_new_samples_mut(&mut self) -> Result<&mut [i16]> {
-        let pos = get_current_position(self.secondary)?;
+        let pos = get_current_position(&self.secondary)?;
 
         let to = (pos.play + self.info.latency_size_bytes_all_channels)
             % self.info.buffer_size_bytes_all_channels;
 
-        let bytes_to_write = self.get_n_bytes_beween(to, self.current_byte);
+        let bytes_to_write = self.get_n_bytes_between(to, self.current_byte);
         let samples_all_channels = bytes_to_write / self.info.sample_size_bytes_per_channel;
 
         self.new_samples.info = Some(NewSamplesInfo {
@@ -100,8 +99,8 @@ impl<'a> game::sound::Buffer for Buffer<'a> {
     }
 }
 
-impl<'a> Buffer<'a> {
-    pub fn new(window: HWND) -> Result<Self> {
+impl Buffer {
+    pub fn new(window: WindowsAndMessaging::HWND) -> Result<Self> {
         let direct_sound = create_direct_sound(window)?;
 
         let info = Info::new(2, 48000, mem::size_of::<i16>() as u32, 1, 3200);
@@ -112,15 +111,16 @@ impl<'a> Buffer<'a> {
             info.sample_size_bytes_per_channel,
         );
 
-        set_primary_format(direct_sound, &wave_format)?;
+        set_primary_format(&direct_sound, &mut wave_format)?;
 
         let secondary_buffer = create_secondary_buffer(
-            direct_sound,
+            &direct_sound,
             &mut wave_format,
             info.buffer_size_bytes_all_channels,
         )?;
 
         Ok(Self {
+            _direct_sound: direct_sound,
             secondary: secondary_buffer,
             current_byte: 0,
             new_samples: NewSamples::new(
@@ -132,13 +132,7 @@ impl<'a> Buffer<'a> {
     }
 
     pub fn play(&self) -> Result<()> {
-        use winapi::um::dsound::DSBPLAY_LOOPING;
-        unsafe {
-            let code = self.secondary.Play(0, 0, DSBPLAY_LOOPING);
-            if !SUCCEEDED(code) {
-                bail!("failed to play sound");
-            }
-        };
+        unsafe { self.secondary.Play(0, 0, Audio::DSBPLAY_LOOPING).ok()? };
         Ok(())
     }
 
@@ -150,7 +144,7 @@ impl<'a> Buffer<'a> {
         let new_samples_size = self.new_samples.info.as_ref().unwrap().size_bytes;
 
         fill_buffer(
-            self.secondary,
+            &self.secondary,
             self.new_samples.get_mut().unwrap(),
             self.current_byte,
             new_samples_size,
@@ -163,7 +157,7 @@ impl<'a> Buffer<'a> {
     }
 
     /// Like a - b but accounts for a and b being byte positions in a ring buffer
-    fn get_n_bytes_beween(&self, a: u32, b: u32) -> u32 {
+    fn get_n_bytes_between(&self, a: u32, b: u32) -> u32 {
         if a > b {
             a - b
         } else {
@@ -176,93 +170,76 @@ fn create_wave_format(
     samples_per_second_per_channel: u32,
     n_channels: u32,
     bytes_per_sample_per_channel: u32,
-) -> WAVEFORMATEX {
-    use winapi::shared::mmreg::WAVE_FORMAT_PCM;
-
+) -> Multimedia::WAVEFORMATEX {
     let n_block_align = n_channels * bytes_per_sample_per_channel;
     let n_avg_bytes_per_sec = n_block_align * samples_per_second_per_channel;
-    WAVEFORMATEX {
+    Multimedia::WAVEFORMATEX {
         cbSize: 0,
         nAvgBytesPerSec: n_avg_bytes_per_sec,
         nBlockAlign: n_block_align as u16,
         nChannels: n_channels as u16,
         nSamplesPerSec: samples_per_second_per_channel,
         wBitsPerSample: (bytes_per_sample_per_channel * 8) as u16,
-        wFormatTag: WAVE_FORMAT_PCM,
+        wFormatTag: Multimedia::WAVE_FORMAT_PCM as u16,
     }
 }
 
-fn create_direct_sound<'a>(window: HWND) -> Result<&'a IDirectSound> {
-    use winapi::um::dsound::{DirectSoundCreate, DSSCL_PRIORITY};
-
+fn create_direct_sound(window: WindowsAndMessaging::HWND) -> Result<Audio::IDirectSound> {
     let direct_sound = unsafe {
         let mut direct_sound = mem::zeroed();
-        if !SUCCEEDED(DirectSoundCreate(
-            ptr::null_mut(),
-            &mut direct_sound,
-            ptr::null_mut(),
-        )) {
-            bail!("failed to create direct sound");
-        }
-        let direct_sound = direct_sound.as_ref().unwrap();
-        let code = direct_sound.SetCooperativeLevel(window, DSSCL_PRIORITY);
-        if !SUCCEEDED(code) {
-            bail!("failed to set cooperative level: {:#X}", code);
-        }
+        Audio::DirectSoundCreate(ptr::null_mut(), &mut direct_sound, None).ok()?;
+        let direct_sound = direct_sound.unwrap();
+        direct_sound
+            .SetCooperativeLevel(window, Audio::DSSCL_PRIORITY)
+            .ok()?;
         direct_sound
     };
 
     Ok(direct_sound)
 }
 
-fn create_dsound_buffer<'a>(
-    direct_sound: &IDirectSound,
-    desc: &DSBUFFERDESC,
-) -> Result<&'a IDirectSoundBuffer> {
-    use winapi::um::dsound::LPDIRECTSOUNDBUFFER;
-
+fn create_dsound_buffer(
+    direct_sound: &Audio::IDirectSound,
+    desc: &mut Audio::DSBUFFERDESC,
+) -> Result<Audio::IDirectSoundBuffer> {
     let buffer = unsafe {
-        let mut buffer: LPDIRECTSOUNDBUFFER = ptr::null_mut();
-        let code = direct_sound.CreateSoundBuffer(desc, &mut buffer, ptr::null_mut());
-        if !SUCCEEDED(code) {
-            bail!("failed to create buffer: {:#X}", code);
-        }
-        buffer.as_ref().unwrap()
+        let mut buffer: Option<Audio::IDirectSoundBuffer> = None;
+        direct_sound
+            .CreateSoundBuffer(desc, &mut buffer, None)
+            .ok()?;
+        buffer.unwrap()
     };
-
     Ok(buffer)
 }
 
-fn set_primary_format(direct_sound: &IDirectSound, format: &WAVEFORMATEX) -> Result<()> {
-    use winapi::um::dsound::DSBCAPS_PRIMARYBUFFER;
+fn set_primary_format(
+    direct_sound: &Audio::IDirectSound,
+    format: &mut Multimedia::WAVEFORMATEX,
+) -> Result<()> {
+    let mut primary_buffer_desc: Audio::DSBUFFERDESC = unsafe { mem::zeroed() };
+    primary_buffer_desc.dwSize = mem::size_of::<Audio::DSBUFFERDESC>() as u32;
+    primary_buffer_desc.dwFlags = Audio::DSBCAPS_PRIMARYBUFFER;
 
-    let mut primary_buffer_desc: DSBUFFERDESC = unsafe { mem::zeroed() };
-    primary_buffer_desc.dwSize = mem::size_of::<DSBUFFERDESC>() as u32;
-    primary_buffer_desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
-
-    let primary_buffer = create_dsound_buffer(direct_sound, &primary_buffer_desc)?;
-    let code = unsafe { (*primary_buffer).SetFormat(format) };
-    if !SUCCEEDED(code) {
-        bail!("failed to set primary format");
-    }
+    let primary_buffer = create_dsound_buffer(direct_sound, &mut primary_buffer_desc)?;
+    unsafe { primary_buffer.SetFormat(format).ok()? };
     Ok(())
 }
 
-fn create_secondary_buffer<'a>(
-    direct_sound: &IDirectSound,
-    format: &mut WAVEFORMATEX,
+fn create_secondary_buffer(
+    direct_sound: &Audio::IDirectSound,
+    format: &mut Multimedia::WAVEFORMATEX,
     size: u32,
-) -> Result<&'a IDirectSoundBuffer> {
-    let mut secondary_buffer_desc: DSBUFFERDESC = unsafe { mem::zeroed() };
-    secondary_buffer_desc.dwSize = mem::size_of::<DSBUFFERDESC>() as u32;
+) -> Result<Audio::IDirectSoundBuffer> {
+    let mut secondary_buffer_desc: Audio::DSBUFFERDESC = unsafe { mem::zeroed() };
+    secondary_buffer_desc.dwSize = mem::size_of::<Audio::DSBUFFERDESC>() as u32;
     secondary_buffer_desc.dwFlags = 0;
     secondary_buffer_desc.dwBufferBytes = size;
     secondary_buffer_desc.lpwfxFormat = format;
 
-    let secondary_buffer = create_dsound_buffer(direct_sound, &secondary_buffer_desc)
+    let secondary_buffer = create_dsound_buffer(direct_sound, &mut secondary_buffer_desc)
         .context("failed to create secondary buffer")?;
 
-    clear_buffer(secondary_buffer, size)?;
+    clear_buffer(&secondary_buffer, size)?;
 
     Ok(secondary_buffer)
 }
@@ -274,8 +251,8 @@ struct LockResult {
     region2_bytes: u32,
 }
 
-fn lock_buffer(
-    buffer: &IDirectSoundBuffer,
+fn lock_buffer<'a>(
+    buffer: &'a Audio::IDirectSoundBuffer,
     first_byte: u32,
     bytes_to_write: u32,
 ) -> Result<LockResult> {
@@ -284,18 +261,17 @@ fn lock_buffer(
         let mut region1_bytes = mem::zeroed();
         let mut region2 = mem::zeroed();
         let mut region2_bytes = mem::zeroed();
-        let code = buffer.Lock(
-            first_byte,
-            bytes_to_write,
-            &mut region1,
-            &mut region1_bytes,
-            &mut region2,
-            &mut region2_bytes,
-            0,
-        );
-        if !SUCCEEDED(code) {
-            bail!("failed to lock buffer: {:#X}", code);
-        }
+        (*buffer)
+            .Lock(
+                first_byte,
+                bytes_to_write,
+                &mut region1,
+                &mut region1_bytes,
+                &mut region2,
+                &mut region2_bytes,
+                0,
+            )
+            .ok()?;
         LockResult {
             region1: region1.cast(),
             region1_bytes,
@@ -306,22 +282,21 @@ fn lock_buffer(
     Ok(lock_result)
 }
 
-fn unlock_buffer(buffer: &IDirectSoundBuffer, lock_result: LockResult) -> Result<()> {
+fn unlock_buffer<'a>(buffer: &'a Audio::IDirectSoundBuffer, lock_result: LockResult) -> Result<()> {
     unsafe {
-        let code = buffer.Unlock(
-            lock_result.region1.cast(),
-            lock_result.region1_bytes,
-            lock_result.region2.cast(),
-            lock_result.region2_bytes,
-        );
-        if !SUCCEEDED(code) {
-            bail!("failed to unlock buffer for clearing");
-        }
+        (*buffer)
+            .Unlock(
+                lock_result.region1.cast(),
+                lock_result.region1_bytes,
+                lock_result.region2.cast(),
+                lock_result.region2_bytes,
+            )
+            .ok()?;
     }
     Ok(())
 }
 
-fn clear_buffer(buffer: &IDirectSoundBuffer, size: u32) -> Result<()> {
+fn clear_buffer<'a>(buffer: &'a Audio::IDirectSoundBuffer, size: u32) -> Result<()> {
     let lock_result = lock_buffer(buffer, 0, size)?;
     unsafe {
         let mut dest_byte = lock_result.region1.cast::<u8>();
@@ -346,14 +321,13 @@ struct Position {
     pub write: u32,
 }
 
-fn get_current_position(buffer: &IDirectSoundBuffer) -> Result<Position> {
+fn get_current_position<'a>(buffer: &Audio::IDirectSoundBuffer) -> Result<Position> {
     let pos = unsafe {
         let mut play_cursor = mem::zeroed();
         let mut write_cursor = mem::zeroed();
-        let code = buffer.GetCurrentPosition(&mut play_cursor, &mut write_cursor);
-        if !SUCCEEDED(code) {
-            bail!("failed to get current position");
-        }
+        (*buffer)
+            .GetCurrentPosition(&mut play_cursor, &mut write_cursor)
+            .ok()?;
         Position {
             play: play_cursor,
             write: write_cursor,
@@ -362,8 +336,8 @@ fn get_current_position(buffer: &IDirectSoundBuffer) -> Result<Position> {
     Ok(pos)
 }
 
-fn fill_buffer(
-    buffer: &IDirectSoundBuffer,
+fn fill_buffer<'a>(
+    buffer: &'a Audio::IDirectSoundBuffer,
     samples: &mut [i16],
     first_byte: u32,
     bytes_to_write: u32,

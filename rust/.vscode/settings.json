@@ -1,3 +1,35 @@
 {
-  "editor.rulers": [100]
+  "editor.rulers": [100],
+  "workbench.colorTheme": "Pitch Black",
+  "cSpell.words": [
+    "DSBCAPS",
+    "DSBPLAY",
+    "DSBUFFERDESC",
+    "DSSCL",
+    "HBRUSH",
+    "HCURSOR",
+    "HICON",
+    "HMENU",
+    "HREDRAW",
+    "HRESULT",
+    "HWND",
+    "KEYUP",
+    "LPARAM",
+    "LRESULT",
+    "OWNDC",
+    "PWSTR",
+    "Pels",
+    "RGBQUAD",
+    "SRCCOPY",
+    "SYSKEYDOWN",
+    "SYSKEYUP",
+    "VREDRAW",
+    "WNDCLASS",
+    "WNDCLASSEXW",
+    "WPARAM",
+    "dsound",
+    "lpfn",
+    "lpsz",
+    "lpwfx"
+  ]
 }

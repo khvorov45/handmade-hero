@@ -1,4 +1,9 @@
 use crate::{game, Result};
+use anyhow::Context;
+
+mod bindings {
+    windows::include_bindings!();
+}
 
 mod graphics;
 mod input;
@@ -9,18 +14,17 @@ mod window;
 use input::AcceptKeyboardKey;
 
 pub fn run() -> Result<()> {
-    let (internal_width, intenal_height) = (1280, 720);
-    let (window_width, window_height) = (internal_width, intenal_height);
+    let (internal_width, internal_height) = (1280, 720);
 
-    let window = window::create_handle(window_width, window_height)?;
+    let window = window::create_handle(internal_width, internal_height)?;
     let device_context = window::create_device_context(window);
 
-    let mut graphics_buffer = graphics::Buffer::new(internal_width, intenal_height);
+    let mut graphics_buffer = graphics::Buffer::new(internal_width, internal_height);
     let mut sound_buffer = sound::Buffer::new(window)?;
     let mut new_input = game::input::Controller::default();
     let mut game_state = game::State::default();
 
-    sound_buffer.play()?;
+    sound_buffer.play().context("failed to play sound")?;
 
     loop {
         match window::process_messages() {
