@@ -788,7 +788,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     WNDCLASSA WindowClass = {};
 
-    Win32ResizeDIBSection(&GlobalBackBuffer, 1280, 720);
+    Win32ResizeDIBSection(&GlobalBackBuffer, 960, 540);
 
     WindowClass.style = CS_HREDRAW | CS_VREDRAW;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
@@ -812,6 +812,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         0
     );
 
+#if 0
     int32 MonitorRefreshHz = 60;
     HDC RefreshDC = GetDC(Window);
     int32 Win32RefreshRate = GetDeviceCaps(RefreshDC, VREFRESH);
@@ -819,8 +820,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     if (Win32RefreshRate > 1) {
         MonitorRefreshHz = Win32RefreshRate;
     }
+#endif
 
-    real32 GameRefreshHz = (real32)MonitorRefreshHz / 2;
+    real32 GameRefreshHz = 30;
     real32 TargetSecondsPerFrame = 1.0f / GameRefreshHz;
 
     GlobalRunning = true;
