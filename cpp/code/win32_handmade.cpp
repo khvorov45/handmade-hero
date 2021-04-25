@@ -941,6 +941,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             continue;
         }
 
+        NewInput->SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
 
         //* Mouse
         POINT MouseP;
@@ -1258,4 +1259,4 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     }
 
     return (0);
-    }
+}
