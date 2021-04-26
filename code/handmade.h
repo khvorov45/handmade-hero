@@ -70,7 +70,8 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 #endif
 
 struct game_state {
-
+    real32 PlayerX;
+    real32 PlayerY;
 };
 
 struct game_memory {
@@ -138,7 +139,7 @@ struct game_controller_input {
 struct game_input {
     game_button_state MouseButtons[5];
     int32 MouseX, MouseY, MouseZ;
-    real32 SecondsToAdvanceOverUpdate;
+    real32 dtForFrame;
     game_controller_input Controllers[5];
 };
 
