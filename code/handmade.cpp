@@ -15,11 +15,15 @@ internal inline int32 RoundReal32ToInt32(real32 X) {
     return (int32)(X + 0.5f);
 }
 
+internal inline uint32 RoundReal32ToUint32(real32 X) {
+    return (uint32)(X + 0.5f);
+}
+
 /// Maximums are not inclusive
 internal void DrawRectangle(
     game_offscreen_buffer* Buffer,
     real32 RealMinX, real32 RealMinY, real32 RealMaxX, real32 RealMaxY,
-    uint32 Color
+    real32 R, real32 G, real32 B
 ) {
     int32 MinX = RoundReal32ToInt32(RealMinX);
     int32 MinY = RoundReal32ToInt32(RealMinY);
@@ -39,6 +43,10 @@ internal void DrawRectangle(
     if (MaxY > Buffer->Height) {
         MaxY = Buffer->Height;
     }
+
+    uint32 Color = (RoundReal32ToUint32(R * 255.0f) << 16) |
+        (RoundReal32ToUint32(G * 255.0f) << 8) |
+        (RoundReal32ToUint32(B * 255.0f));
 
     uint8* Row = (uint8*)Buffer->Memory + MinY * Buffer->Pitch + MinX * Buffer->BytesPerPixel;
     for (int32 Y = MinY; Y < MaxY; ++Y) {
@@ -74,6 +82,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         ++ControllerIndex) {
         game_controller_input* Controller = &(Input->Controllers[ControllerIndex]);
     }
-    DrawRectangle(Buffer, 0, 0, (real32)Buffer->Width, (real32)Buffer->Height, 0x000000);
-    DrawRectangle(Buffer, -10, 10, 70, 50, 0xFFFFFF);
+    DrawRectangle(Buffer, 0, 0, (real32)Buffer->Width, (real32)Buffer->Height, 1.0f, 0.0f, 1.0f);
+    DrawRectangle(Buffer, -10, 10, 70, 50, 0.0f, 1.0f, 1.0f);
 }
