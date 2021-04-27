@@ -5,15 +5,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(Windows) Launch",
+      "name": "Linux launch",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/linux_main",
+      "args": [],
+      "cwd": "${workspaceFolder}/data"
+    },
+    {
+      "name": "Windows launch",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/win32_handmade.exe",
+      "program": "${workspaceFolder}/build/win32_main.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/data",
       "environment": [],
-      "console": "externalTerminal"
+      "console": "internalConsole"
     }
   ]
 }
