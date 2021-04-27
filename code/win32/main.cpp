@@ -1,4 +1,4 @@
-#include "handmade.h"
+#include "../game/lib.hpp"
 
 #include <math.h>
 #include <stdio.h>
@@ -772,10 +772,10 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     Win32GetExeFileName(&Win32State);
 
     char GameCodeDLLFullPathSource[WIN32_STATE_FILE_NAME_COUNT];
-    Win32BuildExePathFilename(&Win32State, "handmade.dll", sizeof(GameCodeDLLFullPathSource), GameCodeDLLFullPathSource);
+    Win32BuildExePathFilename(&Win32State, "game_lib.dll", sizeof(GameCodeDLLFullPathSource), GameCodeDLLFullPathSource);
 
     char GameCodeDLLFullPathLocked[WIN32_STATE_FILE_NAME_COUNT];
-    Win32BuildExePathFilename(&Win32State, "handmade.lock.dll", sizeof(GameCodeDLLFullPathLocked), GameCodeDLLFullPathLocked);
+    Win32BuildExePathFilename(&Win32State, "game_lib.lock.dll", sizeof(GameCodeDLLFullPathLocked), GameCodeDLLFullPathLocked);
 
     LARGE_INTEGER PerfCounterFrequencyResult;
     QueryPerformanceFrequency(&PerfCounterFrequencyResult);

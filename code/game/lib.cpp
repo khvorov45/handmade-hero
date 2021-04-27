@@ -1,4 +1,4 @@
-#include "handmade.h"
+#include "lib.hpp"
 #include <math.h>
 
 internal void GameOutputSound(game_sound_buffer* SoundBuffer) {

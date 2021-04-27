@@ -6,6 +6,6 @@ set CommonCompilerFlags=-MTd -nologo -GR- -Gm- -EHa- -Od -Oi -WX -W4 -wd4201 -wd
 mkdir build
 pushd build
 del *.pdb
-cl %CommonCompilerFlags% ..\code\handmade.cpp -Fmhandmade.map  -LD /link /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no -PDB:handmade_%random%.pdb
-cl %CommonCompilerFlags% ..\code\win32_handmade.cpp -Fmwin32_handmade.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% ..\code\game\lib.cpp -Fmgame_lib.map -Fegame_lib.dll -Fogame_lib.obj  -LD /link /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no -PDB:win32_lib_%random%.pdb
+cl %CommonCompilerFlags% ..\code\win32\main.cpp -Fmwin32_handmade.map -Fewin32_main.exe -Fowin32_main.obj /link %CommonLinkerFlags%
 popd
