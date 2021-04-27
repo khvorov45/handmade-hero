@@ -352,16 +352,21 @@ Win32ResizeDIBSection(win32_offscreen_buffer* Buffer, int Width, int Height) {
 internal void Win32DisplayBufferInWindow(
     HDC DeviceContext,
     int WindowWidth, int WindowHeight,
-    win32_offscreen_buffer Buffer
+    win32_offscreen_buffer* Buffer
 ) {
-    PatBlt(DeviceContext, 0, 0, WindowWidth, WindowHeight, BLACKNESS);
     int32 OffsetX = 10;
     int32 OffsetY = 10;
+
+    PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
+    PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
+    PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
+    PatBlt(DeviceContext, 0, OffsetY + Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
+
     StretchDIBits(
         DeviceContext,
-        OffsetX, OffsetY, Buffer.Width, Buffer.Height,
-        0, 0, Buffer.Width, Buffer.Height,
-        Buffer.Memory, &Buffer.Info,
+        OffsetX, OffsetY, Buffer->Width, Buffer->Height,
+        0, 0, Buffer->Width, Buffer->Height,
+        Buffer->Memory, &Buffer->Info,
         DIB_RGB_COLORS, SRCCOPY
     );
 }
@@ -412,9 +417,11 @@ Win32MainWindowCallback(HWND Window,
         PAINTSTRUCT Paint;
         HDC DeviceContext = BeginPaint(Window, &Paint);
         win32_window_dimension Dim = Win32GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(DeviceContext,
+        Win32DisplayBufferInWindow(
+            DeviceContext,
             Dim.Width, Dim.Height,
-            GlobalBackBuffer);
+            &GlobalBackBuffer
+        );
 
         EndPaint(Window, &Paint);
     }
@@ -1226,7 +1233,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         Win32DisplayBufferInWindow(
             DeviceContext,
             Dim.Width, Dim.Height,
-            GlobalBackBuffer
+            &GlobalBackBuffer
         );
         ReleaseDC(Window, DeviceContext);
         FlipWallClock = Win32GetWallClock();
