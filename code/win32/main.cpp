@@ -349,13 +349,17 @@ Win32ResizeDIBSection(win32_offscreen_buffer* Buffer, int Width, int Height) {
     Buffer->Pitch = Width * Buffer->BytesPerPixel;
 }
 
-internal void
-Win32DisplayBufferInWindow(HDC DeviceContext,
+internal void Win32DisplayBufferInWindow(
+    HDC DeviceContext,
     int WindowWidth, int WindowHeight,
-    win32_offscreen_buffer Buffer) {
+    win32_offscreen_buffer Buffer
+) {
+    PatBlt(DeviceContext, 0, 0, WindowWidth, WindowHeight, BLACKNESS);
+    int32 OffsetX = 10;
+    int32 OffsetY = 10;
     StretchDIBits(
         DeviceContext,
-        0, 0, Buffer.Width, Buffer.Height,
+        OffsetX, OffsetY, Buffer.Width, Buffer.Height,
         0, 0, Buffer.Width, Buffer.Height,
         Buffer.Memory, &Buffer.Info,
         DIB_RGB_COLORS, SRCCOPY
@@ -804,8 +808,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        GlobalBackBuffer.Width,
-        GlobalBackBuffer.Height,
+        GlobalBackBuffer.Width + 50,
+        GlobalBackBuffer.Height + 100,
         0,
         0,
         Instance,
