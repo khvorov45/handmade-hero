@@ -72,6 +72,9 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 struct game_state {
     real32 PlayerX;
     real32 PlayerY;
+
+    int32 PlayerTileMapX;
+    int32 PlayerTileMapY;
 };
 
 struct game_memory {
