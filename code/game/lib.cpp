@@ -131,8 +131,8 @@ struct canonical_position {
     int32 TileY;
 
     //* Tile-relative
-    real32 X;
-    real32 Y;
+    real32 XTileRel;
+    real32 YTileRel;
 };
 
 struct raw_position {
@@ -140,8 +140,8 @@ struct raw_position {
     int32 TileMapY;
 
     //* Tilemap-relative
-    real32 X;
-    real32 Y;
+    real32 XTilemapRel;
+    real32 YTilemapRel;
 };
 
 internal inline canonical_position GetCanonicalPosition(world* World, raw_position Pos) {
@@ -149,17 +149,17 @@ internal inline canonical_position GetCanonicalPosition(world* World, raw_positi
     CanonicalPos.TileMapX = Pos.TileMapX;
     CanonicalPos.TileMapY = Pos.TileMapY;
 
-    real32 X = Pos.X - World->UpperLeftX;
-    real32 Y = Pos.Y - World->UpperLeftY;
+    real32 X = Pos.XTilemapRel - World->UpperLeftX;
+    real32 Y = Pos.YTilemapRel - World->UpperLeftY;
     CanonicalPos.TileX = FloorReal32ToInt32(X / World->TileWidth);
     CanonicalPos.TileY = FloorReal32ToInt32(Y / World->TileHeight);
-    CanonicalPos.X = X - CanonicalPos.TileX * World->TileWidth;
-    CanonicalPos.Y = Y - CanonicalPos.TileY * World->TileHeight;
+    CanonicalPos.XTileRel = X - CanonicalPos.TileX * World->TileWidth;
+    CanonicalPos.YTileRel = Y - CanonicalPos.TileY * World->TileHeight;
 
-    Assert(CanonicalPos.X >= 0);
-    Assert(CanonicalPos.Y >= 0);
-    Assert(CanonicalPos.X < World->TileWidth);
-    Assert(CanonicalPos.Y < World->TileHeight);
+    Assert(CanonicalPos.XTileRel >= 0);
+    Assert(CanonicalPos.YTileRel >= 0);
+    Assert(CanonicalPos.XTileRel < World->TileWidth);
+    Assert(CanonicalPos.YTileRel < World->TileHeight);
 
     if (CanonicalPos.TileX < 0) {
         CanonicalPos.TileX += World->TilesPerMapCountX;
@@ -320,9 +320,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             GameState->PlayerTileMapX, GameState->PlayerTileMapY, NewPlayerX, NewPlayerY
         };
         raw_position PlayerLeft = PlayerPos;
-        PlayerLeft.X -= 0.5f * PlayerWidth;
+        PlayerLeft.XTilemapRel -= 0.5f * PlayerWidth;
         raw_position PlayerRight = PlayerPos;
-        PlayerRight.X += 0.5f * PlayerWidth;
+        PlayerRight.XTilemapRel += 0.5f * PlayerWidth;
 
         if (IsWorldPointEmpty(&World, PlayerPos) &&
             IsWorldPointEmpty(&World, PlayerLeft) &&
@@ -332,8 +332,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             GameState->PlayerTileMapX = CanonicalPos.TileMapX;
             GameState->PlayerTileMapY = CanonicalPos.TileMapY;
-            GameState->PlayerX = World.UpperLeftX + CanonicalPos.TileX * World.TileWidth + CanonicalPos.X;
-            GameState->PlayerY = World.UpperLeftY + CanonicalPos.TileY * World.TileHeight + CanonicalPos.Y;
+            GameState->PlayerX = World.UpperLeftX + CanonicalPos.TileX * World.TileWidth + CanonicalPos.XTileRel;
+            GameState->PlayerY = World.UpperLeftY + CanonicalPos.TileY * World.TileHeight + CanonicalPos.YTileRel;
         }
     }
 
