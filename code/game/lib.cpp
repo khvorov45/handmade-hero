@@ -55,14 +55,14 @@ struct tile_map {
 };
 
 struct world {
+    real32 TileSideInMeters;
+    uint32 TileSideInPixels;
+
     int32 TilesPerMapCountX;
     int32 TilesPerMapCountY;
 
     real32 UpperLeftX;
     real32 UpperLeftY;
-
-    real32 TileWidth;
-    real32 TileHeight;
 
     int32 TilemapCountX;
     int32 TilemapCountY;
@@ -135,15 +135,15 @@ internal inline canonical_position GetCanonicalPosition(world* World, raw_positi
 
     real32 X = Pos.XTilemapRel - World->UpperLeftX;
     real32 Y = Pos.YTilemapRel - World->UpperLeftY;
-    CanonicalPos.TileX = FloorReal32ToInt32(X / World->TileWidth);
-    CanonicalPos.TileY = FloorReal32ToInt32(Y / World->TileHeight);
-    CanonicalPos.XTileRel = X - CanonicalPos.TileX * World->TileWidth;
-    CanonicalPos.YTileRel = Y - CanonicalPos.TileY * World->TileHeight;
+    CanonicalPos.TileX = FloorReal32ToInt32(X / World->TileSideInPixels);
+    CanonicalPos.TileY = FloorReal32ToInt32(Y / World->TileSideInPixels);
+    CanonicalPos.XTileRel = X - CanonicalPos.TileX * World->TileSideInPixels;
+    CanonicalPos.YTileRel = Y - CanonicalPos.TileY * World->TileSideInPixels;
 
     Assert(CanonicalPos.XTileRel >= 0);
     Assert(CanonicalPos.YTileRel >= 0);
-    Assert(CanonicalPos.XTileRel < World->TileWidth);
-    Assert(CanonicalPos.YTileRel < World->TileHeight);
+    Assert(CanonicalPos.XTileRel < World->TileSideInPixels);
+    Assert(CanonicalPos.YTileRel < World->TileSideInPixels);
 
     if (CanonicalPos.TileX < 0) {
         CanonicalPos.TileX += World->TilesPerMapCountX;
@@ -209,17 +209,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     World.TilemapCountY = WORLD_TILEMAP_COUNT_Y;
     World.TilesPerMapCountX = TILES_PER_MAP_COUNT_X;
     World.TilesPerMapCountY = TILES_PER_MAP_COUNT_Y;
-    World.UpperLeftX = -30;
+
+    World.TileSideInMeters = 1.4f;
+    World.TileSideInPixels = 60;
+    World.UpperLeftX = -(real32)World.TileSideInPixels / 2;
     World.UpperLeftY = 0;
-    World.TileWidth = 60;
-    World.TileHeight = 60;
 
     tile_map TileMaps[WORLD_TILEMAP_COUNT_Y][WORLD_TILEMAP_COUNT_X];
 
     World.TileMaps = (tile_map*)TileMaps;
 
-    real32 PlayerWidth = 0.75f * World.TileWidth;
-    real32 PlayerHeight = 1.0f * World.TileHeight;
+    real32 PlayerWidth = 0.75f * World.TileSideInPixels;
+    real32 PlayerHeight = 1.0f * World.TileSideInPixels;
 
     uint32 Tiles00[TILES_PER_MAP_COUNT_Y][TILES_PER_MAP_COUNT_X] = {
            {1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1},
@@ -316,8 +317,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             GameState->PlayerTileMapX = CanonicalPos.TileMapX;
             GameState->PlayerTileMapY = CanonicalPos.TileMapY;
-            GameState->PlayerX = World.UpperLeftX + CanonicalPos.TileX * World.TileWidth + CanonicalPos.XTileRel;
-            GameState->PlayerY = World.UpperLeftY + CanonicalPos.TileY * World.TileHeight + CanonicalPos.YTileRel;
+            GameState->PlayerX = World.UpperLeftX + CanonicalPos.TileX * World.TileSideInPixels + CanonicalPos.XTileRel;
+            GameState->PlayerY = World.UpperLeftY + CanonicalPos.TileY * World.TileSideInPixels + CanonicalPos.YTileRel;
         }
     }
 
@@ -332,10 +333,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Color = 1.0f;
             }
 
-            real32 MinX = World.UpperLeftX + ((real32)(Column)) * World.TileWidth;
-            real32 MinY = World.UpperLeftY + ((real32)(Row)) * World.TileHeight;
-            real32 MaxX = MinX + World.TileWidth;
-            real32 MaxY = MinY + World.TileHeight;
+            real32 MinX = World.UpperLeftX + ((real32)(Column)) * World.TileSideInPixels;
+            real32 MinY = World.UpperLeftY + ((real32)(Row)) * World.TileSideInPixels;
+            real32 MaxX = MinX + World.TileSideInPixels;
+            real32 MaxY = MinY + World.TileSideInPixels;
 
             DrawRectangle(Buffer, MinX, MinY, MaxX, MaxY, Color, Color, Color);
         }
