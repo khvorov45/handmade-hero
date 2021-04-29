@@ -114,7 +114,6 @@ struct canonical_position {
     int32 TileX;
     int32 TileY;
 
-    //* Tile-relative
     real32 XTileRel;
     real32 YTileRel;
 };
@@ -123,7 +122,6 @@ struct raw_position {
     int32 TileMapX;
     int32 TileMapY;
 
-    //* Tilemap-relative
     real32 XTilemapRel;
     real32 YTilemapRel;
 };
