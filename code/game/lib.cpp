@@ -11,14 +11,6 @@ internal void GameOutputSound(game_sound_buffer* SoundBuffer) {
     }
 }
 
-internal inline int32 RoundReal32ToInt32(real32 X) {
-    return (int32)(X + 0.5f);
-}
-
-internal inline uint32 RoundReal32ToUint32(real32 X) {
-    return (uint32)(X + 0.5f);
-}
-
 /// Maximums are not inclusive
 internal void DrawRectangle(
     game_offscreen_buffer* Buffer,
@@ -56,14 +48,6 @@ internal void DrawRectangle(
         }
         Row += Buffer->Pitch;
     }
-}
-
-internal inline int32 TruncateReal32ToInt32(real32 Real32) {
-    return (int32)Real32;
-}
-
-internal inline int32 FloorReal32ToInt32(real32 Real32) {
-    return (int32)floorf(Real32);
 }
 
 struct tile_map {
