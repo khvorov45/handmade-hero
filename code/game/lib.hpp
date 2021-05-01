@@ -51,7 +51,7 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 #else
 #endif
 
-struct canonical_position {
+struct world_position {
 #if 1
     int32 TileMapX;
     int32 TileMapY;
@@ -75,7 +75,7 @@ struct game_state {
     int32 PlayerTileMapX;
     int32 PlayerTileMapY;
 #endif
-    canonical_position PlayerP;
+    world_position PlayerP;
 };
 
 struct game_memory {
