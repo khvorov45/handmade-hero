@@ -51,17 +51,17 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 #else
 #endif
 
-struct world_position {
-#if 1
-    int32 TileMapX;
-    int32 TileMapY;
+struct tile_chunk_position {
+    uint32 TileChunkX;
+    uint32 TileChunkY;
 
-    int32 TileX;
-    int32 TileY;
-#else
-    uint32 _TileX;
-    uint32 _TileY;
-#endif
+    uint32 RelTileX;
+    uint32 RelTileY;
+};
+
+struct world_position {
+    uint32 AbsTileX;
+    uint32 AbsTileY;
 
     real32 XTileRel;
     real32 YTileRel;
