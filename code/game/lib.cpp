@@ -173,7 +173,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     world World;
     World.ChunkShift = 8;
-    World.ChunkMask = 0xFF;
+    World.ChunkMask = (1 << World.ChunkShift) - 1;
     World.ChunkDim = 256;
 
     World.TileSideInMeters = 1.4f;
