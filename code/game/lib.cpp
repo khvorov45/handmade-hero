@@ -279,8 +279,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Color = 0.0f;
             }
 
-            real32 MinX = CenterX + ((real32)(RelColumn)) * World.TileSideInPixels;
-            real32 MinY = CenterY - ((real32)(RelRow)) * World.TileSideInPixels;
+            real32 MinX = CenterX - World.MetersToPixels * GameState->PlayerP.XTileRel + ((real32)(RelColumn)) * World.TileSideInPixels;
+            real32 MinY = CenterY + World.MetersToPixels * GameState->PlayerP.YTileRel - ((real32)(RelRow)) * World.TileSideInPixels;
             real32 MaxX = MinX + World.TileSideInPixels;
             real32 MaxY = MinY - World.TileSideInPixels;
 
@@ -292,8 +292,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 PlayerG = 1;
     real32 PlayerB = 0;
 
-    real32 PlayerMinX = CenterX + World.MetersToPixels * GameState->PlayerP.XTileRel - World.MetersToPixels * 0.5f * PlayerWidth;
-    real32 PlayerMinY = CenterY - World.MetersToPixels * GameState->PlayerP.YTileRel - World.MetersToPixels * PlayerHeight;
+    real32 PlayerMinX = CenterX - World.MetersToPixels * 0.5f * PlayerWidth;
+    real32 PlayerMinY = CenterY - World.MetersToPixels * PlayerHeight;
     DrawRectangle(
         Buffer,
         PlayerMinX, PlayerMinY,
