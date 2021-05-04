@@ -1,4 +1,5 @@
 #include "tile.cpp"
+#include "world.cpp"
 
 struct game_state {
 #if 0
@@ -8,5 +9,6 @@ struct game_state {
     int32 PlayerTileMapX;
     int32 PlayerTileMapY;
 #endif
+    world* World;
     tile_map_position PlayerP;
 };
