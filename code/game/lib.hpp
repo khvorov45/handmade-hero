@@ -65,6 +65,7 @@ struct world_position {
     uint32 AbsTileX;
     uint32 AbsTileY;
 
+    //* Offset from the center
     real32 XTileRel;
     real32 YTileRel;
 };

@@ -98,21 +98,21 @@ internal uint32 GetTileChunkValue(
     return GetTileChunkValueUnchecked(World, TileChunk, TestTileX, TestTileY);
 }
 
-internal inline void CanonicalizeCoord(world* World, uint32* Tile, real32* TileRel) {
-    int32 Offset = FloorReal32ToInt32((*TileRel) / World->TileSideInMeters);
+internal inline void RecanonicalizeCoord(world* World, uint32* Tile, real32* TileRel) {
+    int32 Offset = RoundReal32ToInt32((*TileRel) / World->TileSideInMeters);
 
     *Tile += Offset;
     *TileRel -= Offset * World->TileSideInMeters;
 
-    Assert(*TileRel >= 0);
-    Assert(*TileRel <= World->TileSideInMeters); //! Sometimes it's right on
+    Assert(*TileRel >= -0.5f * World->TileSideInMeters);
+    Assert(*TileRel <= 0.5f * World->TileSideInMeters); //! Sometimes it's right on
 }
 
 internal inline world_position RecanonicalizePosition(world* World, world_position Pos) {
     world_position Result = Pos;
 
-    CanonicalizeCoord(World, &Result.AbsTileX, &Result.XTileRel);
-    CanonicalizeCoord(World, &Result.AbsTileY, &Result.YTileRel);
+    RecanonicalizeCoord(World, &Result.AbsTileX, &Result.XTileRel);
+    RecanonicalizeCoord(World, &Result.AbsTileY, &Result.YTileRel);
 
     return Result;
 }
@@ -252,8 +252,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     DrawRectangle(Buffer, 0, 0, (real32)Buffer->Width, (real32)Buffer->Height, 1.0f, 0.0f, 1.0f);
 
-    real32 CenterX = (real32)Buffer->Width * 0.5f;
-    real32 CenterY = (real32)Buffer->Height * 0.5f;
+    real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
+    real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
 
     for (int32 RelRow = -10; RelRow < 10; ++RelRow) {
         for (int32 RelColumn = -20; RelColumn < 20; ++RelColumn) {
@@ -271,12 +271,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Color = 0.0f;
             }
 
-            real32 MinX = CenterX - World.MetersToPixels * GameState->PlayerP.XTileRel + ((real32)(RelColumn)) * World.TileSideInPixels;
-            real32 MinY = CenterY + World.MetersToPixels * GameState->PlayerP.YTileRel - ((real32)(RelRow)) * World.TileSideInPixels;
-            real32 MaxX = MinX + World.TileSideInPixels;
-            real32 MaxY = MinY - World.TileSideInPixels;
+            real32 CenX = ScreenCenterX - World.MetersToPixels * GameState->PlayerP.XTileRel + ((real32)(RelColumn)) * World.TileSideInPixels;
+            real32 CenY = ScreenCenterY + World.MetersToPixels * GameState->PlayerP.YTileRel - ((real32)(RelRow)) * World.TileSideInPixels;
 
-            DrawRectangle(Buffer, MinX, MaxY, MaxX, MinY, Color, Color, Color);
+            real32 MinX = CenX - 0.5f * World.TileSideInPixels;
+            real32 MinY = CenY - 0.5f * World.TileSideInPixels;
+
+            real32 MaxX = MinX + World.TileSideInPixels;
+            real32 MaxY = MinY + World.TileSideInPixels;
+
+            DrawRectangle(Buffer, MinX, MinY, MaxX, MaxY, Color, Color, Color);
         }
     }
 
@@ -284,8 +288,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 PlayerG = 1;
     real32 PlayerB = 0;
 
-    real32 PlayerMinX = CenterX - World.MetersToPixels * 0.5f * PlayerWidth;
-    real32 PlayerMinY = CenterY - World.MetersToPixels * PlayerHeight;
+    real32 PlayerMinX = ScreenCenterX - World.MetersToPixels * 0.5f * PlayerWidth;
+    real32 PlayerMinY = ScreenCenterY - World.MetersToPixels * PlayerHeight;
     DrawRectangle(
         Buffer,
         PlayerMinX, PlayerMinY,

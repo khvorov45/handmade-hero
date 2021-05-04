@@ -5,11 +5,11 @@
 #include "math.h"
 
 internal inline int32 RoundReal32ToInt32(real32 X) {
-    return (int32)(X + 0.5f);
+    return (int32)roundf(X);
 }
 
 internal inline uint32 RoundReal32ToUint32(real32 X) {
-    return (uint32)(X + 0.5f);
+    return (uint32)roundf(X);
 }
 
 internal inline int32 TruncateReal32ToInt32(real32 Real32) {
