@@ -2,7 +2,7 @@
 #define HANDMADE_TILE_CPP
 
 #include "../types.h"
-#include "lib.hpp"
+#include "../util.h"
 
 struct tile_map_position {
     //* High bits - tile chunk index
