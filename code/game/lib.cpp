@@ -98,14 +98,6 @@ internal uint32 GetTileChunkValue(
     return GetTileChunkValueUnchecked(World, TileChunk, TestTileX, TestTileY);
 }
 
-struct raw_position {
-    int32 TileMapX;
-    int32 TileMapY;
-
-    real32 XTilemapRel;
-    real32 YTilemapRel;
-};
-
 internal inline void CanonicalizeCoord(world* World, uint32* Tile, real32* TileRel) {
     int32 Offset = FloorReal32ToInt32((*TileRel) / World->TileSideInMeters);
 
