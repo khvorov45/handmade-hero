@@ -1,3 +1,6 @@
+#if !defined(HANDMADE_UTIL_H)
+#define HANDMADE_UTIL_H
+
 #define Pi32 3.14159265358979323846264338327950f
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
@@ -11,4 +14,11 @@
 #define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #else
 #define Assert(Expression)
+#endif
+
+inline uint32 SafeTruncateUint64(uint64 Value) {
+    Assert(Value <= 0xFFFFFFFF);
+    return (uint32)(Value);
+}
+
 #endif
