@@ -60,6 +60,8 @@ struct tile_chunk_position {
 };
 
 struct world_position {
+    //* High bits - tile chunk index
+    //* Low bits - tile location in the chunk
     uint32 AbsTileX;
     uint32 AbsTileY;
 
