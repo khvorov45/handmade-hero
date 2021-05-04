@@ -51,36 +51,6 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 #else
 #endif
 
-struct tile_chunk_position {
-    uint32 TileChunkX;
-    uint32 TileChunkY;
-
-    uint32 RelTileX;
-    uint32 RelTileY;
-};
-
-struct world_position {
-    //* High bits - tile chunk index
-    //* Low bits - tile location in the chunk
-    uint32 AbsTileX;
-    uint32 AbsTileY;
-
-    //* Offset from the center
-    real32 XTileRel;
-    real32 YTileRel;
-};
-
-struct game_state {
-#if 0
-    real32 PlayerX;
-    real32 PlayerY;
-
-    int32 PlayerTileMapX;
-    int32 PlayerTileMapY;
-#endif
-    world_position PlayerP;
-};
-
 struct game_memory {
     bool32 IsInitialized;
     uint64 PermanentStorageSize;
