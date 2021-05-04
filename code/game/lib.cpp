@@ -211,7 +211,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         ++ControllerIndex) {
         game_controller_input* Controller = &(Input->Controllers[ControllerIndex]);
 
-        real32 PlayerSpeed = 3.0f * Input->dtForFrame;
+        real32 PlayerSpeed = 3.0f;
+        if (Controller->ActionUp.EndedDown) {
+            PlayerSpeed = 10.0f;
+        }
 
         real32 dPlayerX = 0;
         real32 dPlayerY = 0;
@@ -231,8 +234,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         world_position NewPlayerP = GameState->PlayerP;
 
-        NewPlayerP.XTileRel += dPlayerX * PlayerSpeed;
-        NewPlayerP.YTileRel += dPlayerY * PlayerSpeed;
+        NewPlayerP.XTileRel += dPlayerX * PlayerSpeed * Input->dtForFrame;;
+        NewPlayerP.YTileRel += dPlayerY * PlayerSpeed * Input->dtForFrame;;
         NewPlayerP = RecanonicalizePosition(&World, NewPlayerP);
 
         world_position PlayerLeft = NewPlayerP;
