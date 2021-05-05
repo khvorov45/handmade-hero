@@ -113,9 +113,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                         uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
                         uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
+
+                        uint32 TileValue = 0;
+                        if (TileX == 0 || TileX == TilesPerWidth - 1) {
+                            if (TileY != TilesPerHeight / 2) {
+                                TileValue = 1;
+                            }
+                        }
+                        if (TileY == 0 || TileY == TilesPerHeight - 1) {
+                            if (TileX != TilesPerWidth / 2) {
+                                TileValue = 1;
+                            }
+                        }
+
                         SetTileValue(
                             &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY,
-                            (TileX == TileY && (TileY % 2 == 0) ? 1 : 0)
+                            TileValue
                         );
                     }
                 }
