@@ -2,6 +2,7 @@
 #include "tile.cpp"
 #include "world.cpp"
 #include "state.cpp"
+#include "random.cpp"
 #include <math.h>
 
 internal void GameOutputSound(game_sound_buffer* SoundBuffer) {
@@ -101,37 +102,45 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 
         TileMap->TileSideInMeters = 1.4f;
-        TileMap->TileSideInPixels = 60;
+        TileMap->TileSideInPixels = 6;
 
         TileMap->MetersToPixels = (real32)TileMap->TileSideInPixels / (real32)TileMap->TileSideInMeters;
 
         uint32 TilesPerWidth = 17;
         uint32 TilesPerHeight = 9;
-        for (uint32 ScreenY = 0; ScreenY < 32; ++ScreenY) {
-            for (uint32 ScreenX = 0; ScreenX < 32; ++ScreenX) {
-                for (uint32 TileY = 0; TileY < TilesPerHeight; ++TileY) {
-                    for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
-                        uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
-                        uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
+        uint32 ScreenX = 0;
+        uint32 ScreenY = 0;
+        uint32 RandomNumberIndex = 0;
+        for (uint32 ScreenIndex = 0; ScreenIndex < 100; ++ScreenIndex) {
+            for (uint32 TileY = 0; TileY < TilesPerHeight; ++TileY) {
+                for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
+                    uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
+                    uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
 
-                        uint32 TileValue = 0;
-                        if (TileX == 0 || TileX == TilesPerWidth - 1) {
-                            if (TileY != TilesPerHeight / 2) {
-                                TileValue = 1;
-                            }
+                    uint32 TileValue = 1;
+                    if (TileX == 0 || TileX == TilesPerWidth - 1) {
+                        if (TileY != TilesPerHeight / 2) {
+                            TileValue = 2;
                         }
-                        if (TileY == 0 || TileY == TilesPerHeight - 1) {
-                            if (TileX != TilesPerWidth / 2) {
-                                TileValue = 1;
-                            }
-                        }
-
-                        SetTileValue(
-                            &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY,
-                            TileValue
-                        );
                     }
+                    if (TileY == 0 || TileY == TilesPerHeight - 1) {
+                        if (TileX != TilesPerWidth / 2) {
+                            TileValue = 2;
+                        }
+                    }
+
+                    SetTileValue(
+                        &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY,
+                        TileValue
+                    );
                 }
+            }
+            Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+            uint32 RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
+            if (RandomChoice == 0) {
+                ScreenX += 1;
+            } else {
+                ScreenY += 1;
             }
         }
 
@@ -201,15 +210,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
     real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
 
-    for (int32 RelRow = -10; RelRow < 10; ++RelRow) {
-        for (int32 RelColumn = -20; RelColumn < 20; ++RelColumn) {
+    for (int32 RelRow = -100; RelRow < 100; ++RelRow) {
+        for (int32 RelColumn = -200; RelColumn < 200; ++RelColumn) {
 
             uint32 Column = RelColumn + GameState->PlayerP.AbsTileX;
             uint32 Row = RelRow + GameState->PlayerP.AbsTileY;
 
             uint32 TileId = GetTileValue(TileMap, Column, Row);
+
+            if (TileId == 0) {
+                continue;
+            }
+
             real32 Color = 0.5f;
-            if (TileId == 1) {
+            if (TileId == 2) {
                 Color = 1.0f;
             }
 

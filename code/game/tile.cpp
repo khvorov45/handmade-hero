@@ -111,7 +111,7 @@ internal uint32 GetTileValue(tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY
 
 internal bool32 IsTileMapPointEmpty(tile_map* TileMap, tile_map_position CanonicalPos) {
     uint32 TileValue = GetTileValue(TileMap, CanonicalPos.AbsTileX, CanonicalPos.AbsTileY);
-    return TileValue == 0;
+    return TileValue == 1;
 }
 
 internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32* TileRel) {
