@@ -3,6 +3,7 @@
 
 #include "../types.h"
 #include "../util.h"
+#include "memory.cpp"
 
 struct tile_map_position {
     //* High bits - tile chunk index
@@ -37,8 +38,8 @@ struct tile_map {
 
     real32 MetersToPixels;
 
-    int32 TileChunkCountX;
-    int32 TileChunkCountY;
+    uint32 TileChunkCountX;
+    uint32 TileChunkCountY;
 
     tile_chunk* TileChunks;
 };
@@ -50,7 +51,16 @@ internal inline uint32 GetTileChunkValueUnchecked(tile_map* TileMap, tile_chunk*
     return TileChunk->Tiles[TileY * TileMap->ChunkDim + TileX];
 }
 
-internal inline tile_chunk* GetTileChunk(tile_map* TileMap, int32 TileChunkX, int32 TileChunkY) {
+internal inline void SetTileChunkValueUnchecked(
+    tile_map* TileMap, tile_chunk* TileChunk, uint32 TileX, uint32 TileY, uint32 TileValue
+) {
+    Assert(TileChunk != 0);
+    Assert(TileX < TileMap->ChunkDim);
+    Assert(TileY < TileMap->ChunkDim);
+    TileChunk->Tiles[TileY * TileMap->ChunkDim + TileX] = TileValue;
+}
+
+internal inline tile_chunk* GetTileChunk(tile_map* TileMap, uint32 TileChunkX, uint32 TileChunkY) {
     tile_chunk* TileChunk = 0;
     if ((TileChunkX >= 0) && (TileChunkX < TileMap->TileChunkCountX) &&
         (TileChunkY >= 0) && (TileChunkY < TileMap->TileChunkCountY)) {
@@ -69,6 +79,18 @@ internal uint32 GetTileChunkValue(
     }
 
     return GetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
+}
+
+internal void SetTileChunkValue(
+    tile_map* TileMap,
+    tile_chunk* TileChunk,
+    uint32 TestTileX, uint32 TestTileY, uint32 TileValue
+) {
+    if (TileChunk == 0) {
+        return;
+    }
+
+    return SetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY, TileValue);
 }
 
 internal inline tile_chunk_position GetChunkPositionFor(tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY) {
@@ -110,6 +132,15 @@ internal inline tile_map_position RecanonicalizePosition(tile_map* TileMap, tile
     RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.YTileRel);
 
     return Result;
+}
+
+internal void SetTileValue(
+    memory_arena* Arena, tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 TileValue
+) {
+    tile_chunk_position ChunkPos = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY);
+    tile_chunk* TileChunk = GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY);
+    Assert(TileChunk != 0);
+    SetTileChunkValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY, TileValue);
 }
 
 #endif

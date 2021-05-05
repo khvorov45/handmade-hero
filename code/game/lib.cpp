@@ -72,20 +72,38 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->PlayerP.AbsTileY = 3;
         GameState->PlayerP.XTileRel = 5.0f;
         GameState->PlayerP.YTileRel = 5.5f;
+        InitializeArena(
+            &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
+            (uint8*)Memory->PermanentStorage + sizeof(game_state)
+        );
 
-        GameState->World = ;
+        GameState->World = PushStruct(&GameState->WorldArena, world);
         world* World = GameState->World;
-        World->TileMap = ;
+        World->TileMap = PushStruct(&GameState->WorldArena, tile_map);
         tile_map* TileMap = World->TileMap;
 
         TileMap->ChunkShift = 8;
         TileMap->ChunkMask = (1 << TileMap->ChunkShift) - 1;
         TileMap->ChunkDim = 256;
 
+        TileMap->TileChunkCountX = 4;
+        TileMap->TileChunkCountY = 4;
+
+        TileMap->TileChunks = PushArray(
+            &GameState->WorldArena, TileMap->TileChunkCountX * TileMap->TileChunkCountY, tile_chunk
+        );
+
+        for (uint32 TileChunkY = 0; TileChunkY < TileMap->TileChunkCountY; ++TileChunkY) {
+            for (uint32 TileChunkX = 0; TileChunkX < TileMap->TileChunkCountX; ++TileChunkX) {
+                TileMap->TileChunks[TileChunkY * TileMap->TileChunkCountX + TileChunkX].Tiles =
+                    PushArray(&GameState->WorldArena, TileMap->ChunkDim * TileMap->ChunkDim, uint32);
+            }
+        }
+
         TileMap->TileSideInMeters = 1.4f;
         TileMap->TileSideInPixels = 60;
 
-        TileMap->MetersToPixels = TileMap->TileSideInPixels / (real32)TileMap->TileSideInMeters;
+        TileMap->MetersToPixels = (real32)TileMap->TileSideInPixels / (real32)TileMap->TileSideInMeters;
 
         uint32 TilesPerWidth = 17;
         uint32 TilesPerHeight = 9;
@@ -95,7 +113,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                         uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
                         uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
-                        SetTileValue(&World->TileMap, AbsTileX, AbsTileY, 0);
+                        SetTileValue(&GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY, 0);
                     }
                 }
             }
