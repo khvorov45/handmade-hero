@@ -84,7 +84,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         TileMap->ChunkShift = 8;
         TileMap->ChunkMask = (1 << TileMap->ChunkShift) - 1;
-        TileMap->ChunkDim = 256;
+        TileMap->ChunkDim = (1 << TileMap->ChunkShift);
 
         TileMap->TileChunkCountX = 4;
         TileMap->TileChunkCountY = 4;
@@ -113,7 +113,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                         uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
                         uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
-                        SetTileValue(&GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY, 0);
+                        SetTileValue(
+                            &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY,
+                            (TileX == TileY && (TileY % 2 == 0) ? 1 : 0)
+                        );
                     }
                 }
             }
