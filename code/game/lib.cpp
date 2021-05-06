@@ -106,19 +106,34 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         uint32 TilesPerHeight = 9;
         uint32 ScreenX = 0;
         uint32 ScreenY = 0;
+        uint32 AbsTileZ = 0;
         uint32 RandomNumberIndex = 0;
 
         bool32 DoorLeft = false;
         bool32 DoorRight = false;
         bool32 DoorTop = false;
         bool32 DoorBottom = false;
+        bool32 DoorUp = false;
+        bool32 DoorDown = false;
 
         for (uint32 ScreenIndex = 0; ScreenIndex < 100; ++ScreenIndex) {
 
             Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
-            uint32 RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
 
-            if (RandomChoice == 0) {
+            uint32 RandomChoice;
+            if (DoorUp || DoorDown) {
+                RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
+            } else {
+                RandomChoice = RandomNumberTable[RandomNumberIndex++] % 3;
+            }
+
+            if (RandomChoice == 2) {
+                if (AbsTileZ == 0) {
+                    DoorUp = true;
+                } else {
+                    DoorDown = true;
+                }
+            } else if (RandomChoice == 1) {
                 DoorRight = true;
             } else {
                 DoorTop = true;
@@ -128,7 +143,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                     uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
                     uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
-                    uint32 AbsTileZ = 0;
 
                     uint32 TileValue = 1;
                     if (TileX == 0 && (!DoorLeft || TileY != TilesPerHeight / 2)) {
@@ -143,6 +157,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     if (TileY == TilesPerHeight - 1 && (!DoorTop || TileX != TilesPerWidth / 2)) {
                         TileValue = 2;
                     }
+                    if (TileX == 10 && TileY == 6) {
+                        if (DoorUp) {
+                            TileValue = 3;
+                        }
+                        if (DoorDown) {
+                            TileValue = 4;
+                        }
+                    }
 
                     SetTileValue(
                         &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY, AbsTileZ,
@@ -154,14 +176,32 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DoorLeft = DoorRight;
             DoorBottom = DoorTop;
 
+            if (DoorUp) {
+                DoorUp = false;
+                DoorDown = true;
+            } else if (DoorDown) {
+                DoorUp = true;
+                DoorDown = false;
+            } else {
+                DoorUp = false;
+                DoorDown = false;
+            }
+
             DoorRight = false;
             DoorTop = false;
 
-            if (RandomChoice == 0) {
+            if (RandomChoice == 2) {
+                if (AbsTileZ == 0) {
+                    AbsTileZ = 1;
+                } else {
+                    AbsTileZ = 0;
+                }
+            } else if (RandomChoice == 1) {
                 ScreenX += 1;
             } else {
                 ScreenY += 1;
             }
+
         }
 
         Memory->IsInitialized = true;
@@ -248,6 +288,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             real32 Color = 0.5f;
             if (TileId == 2) {
                 Color = 1.0f;
+            }
+
+            if (TileId > 2) {
+                Color = 0.25f;
             }
 
             if (Row == GameState->PlayerP.AbsTileY && Column == GameState->PlayerP.AbsTileX) {
