@@ -95,9 +95,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         );
 
         TileMap->TileSideInMeters = 1.4f;
-        TileMap->TileSideInPixels = 60;
-
-        TileMap->MetersToPixels = (real32)TileMap->TileSideInPixels / (real32)TileMap->TileSideInMeters;
 
         uint32 TilesPerWidth = 17;
         uint32 TilesPerHeight = 9;
@@ -166,9 +163,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     world* World = GameState->World;
     tile_map* TileMap = World->TileMap;
 
+    uint32 TileSideInPixels = 60;
+    real32 MetersToPixels = (real32)TileSideInPixels / (real32)TileMap->TileSideInMeters;
+
 #define TILES_PER_CHUNK_COUNT 256
 
-    real32 LowerLeftX = -(real32)TileMap->TileSideInPixels / 2;
+    real32 LowerLeftX = -(real32)TileSideInPixels / 2;
     real32 LowerLeftY = (real32)Buffer->Height;
 
     real32 PlayerHeight = 1.4f;
@@ -247,14 +247,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Color = 0.0f;
             }
 
-            real32 CenX = ScreenCenterX - TileMap->MetersToPixels * GameState->PlayerP.XTileRel + ((real32)(RelColumn)) * TileMap->TileSideInPixels;
-            real32 CenY = ScreenCenterY + TileMap->MetersToPixels * GameState->PlayerP.YTileRel - ((real32)(RelRow)) * TileMap->TileSideInPixels;
+            real32 CenX = ScreenCenterX - MetersToPixels * GameState->PlayerP.XTileRel + ((real32)(RelColumn)) * TileSideInPixels;
+            real32 CenY = ScreenCenterY + MetersToPixels * GameState->PlayerP.YTileRel - ((real32)(RelRow)) * TileSideInPixels;
 
-            real32 MinX = CenX - 0.5f * TileMap->TileSideInPixels;
-            real32 MinY = CenY - 0.5f * TileMap->TileSideInPixels;
+            real32 MinX = CenX - 0.5f * TileSideInPixels;
+            real32 MinY = CenY - 0.5f * TileSideInPixels;
 
-            real32 MaxX = MinX + TileMap->TileSideInPixels;
-            real32 MaxY = MinY + TileMap->TileSideInPixels;
+            real32 MaxX = MinX + TileSideInPixels;
+            real32 MaxY = MinY + TileSideInPixels;
 
             DrawRectangle(Buffer, MinX, MinY, MaxX, MaxY, Color, Color, Color);
         }
@@ -264,12 +264,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 PlayerG = 1;
     real32 PlayerB = 0;
 
-    real32 PlayerMinX = ScreenCenterX - TileMap->MetersToPixels * 0.5f * PlayerWidth;
-    real32 PlayerMinY = ScreenCenterY - TileMap->MetersToPixels * PlayerHeight;
+    real32 PlayerMinX = ScreenCenterX - MetersToPixels * 0.5f * PlayerWidth;
+    real32 PlayerMinY = ScreenCenterY - MetersToPixels * PlayerHeight;
     DrawRectangle(
         Buffer,
         PlayerMinX, PlayerMinY,
-        PlayerMinX + TileMap->MetersToPixels * PlayerWidth, PlayerMinY + TileMap->MetersToPixels * PlayerHeight,
+        PlayerMinX + MetersToPixels * PlayerWidth, PlayerMinY + MetersToPixels * PlayerHeight,
         PlayerR, PlayerG, PlayerB
     );
 }
