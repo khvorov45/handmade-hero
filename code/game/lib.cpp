@@ -95,7 +95,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         );
 
         TileMap->TileSideInMeters = 1.4f;
-        TileMap->TileSideInPixels = 6;
+        TileMap->TileSideInPixels = 60;
 
         TileMap->MetersToPixels = (real32)TileMap->TileSideInPixels / (real32)TileMap->TileSideInMeters;
 
@@ -226,8 +226,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
     real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
 
-    for (int32 RelRow = -100; RelRow < 100; ++RelRow) {
-        for (int32 RelColumn = -200; RelColumn < 200; ++RelColumn) {
+    for (int32 RelRow = -10; RelRow < 10; ++RelRow) {
+        for (int32 RelColumn = -20; RelColumn < 20; ++RelColumn) {
 
             uint32 Column = RelColumn + GameState->PlayerP.AbsTileX;
             uint32 Row = RelRow + GameState->PlayerP.AbsTileY;
