@@ -104,22 +104,40 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         uint32 ScreenX = 0;
         uint32 ScreenY = 0;
         uint32 RandomNumberIndex = 0;
+
+        bool32 DoorLeft = false;
+        bool32 DoorRight = false;
+        bool32 DoorTop = false;
+        bool32 DoorBottom = false;
+
         for (uint32 ScreenIndex = 0; ScreenIndex < 100; ++ScreenIndex) {
+
+            Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+            uint32 RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
+
+            if (RandomChoice == 0) {
+                DoorRight = true;
+            } else {
+                DoorTop = true;
+            }
+
             for (uint32 TileY = 0; TileY < TilesPerHeight; ++TileY) {
                 for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                     uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
                     uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
 
                     uint32 TileValue = 1;
-                    if (TileX == 0 || TileX == TilesPerWidth - 1) {
-                        if (TileY != TilesPerHeight / 2) {
-                            TileValue = 2;
-                        }
+                    if (TileX == 0 && (!DoorLeft || TileY != TilesPerHeight / 2)) {
+                        TileValue = 2;
                     }
-                    if (TileY == 0 || TileY == TilesPerHeight - 1) {
-                        if (TileX != TilesPerWidth / 2) {
-                            TileValue = 2;
-                        }
+                    if (TileX == TilesPerWidth - 1 && (!DoorRight || TileY != TilesPerHeight / 2)) {
+                        TileValue = 2;
+                    }
+                    if (TileY == 0 && (!DoorBottom || TileX != TilesPerWidth / 2)) {
+                        TileValue = 2;
+                    }
+                    if (TileY == TilesPerHeight - 1 && (!DoorTop || TileX != TilesPerWidth / 2)) {
+                        TileValue = 2;
                     }
 
                     SetTileValue(
@@ -128,8 +146,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     );
                 }
             }
-            Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
-            uint32 RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
+
+            DoorLeft = DoorRight;
+            DoorBottom = DoorTop;
+
+            DoorRight = false;
+            DoorTop = false;
+
             if (RandomChoice == 0) {
                 ScreenX += 1;
             } else {
