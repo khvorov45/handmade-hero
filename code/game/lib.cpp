@@ -96,8 +96,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         for (uint32 TileChunkY = 0; TileChunkY < TileMap->TileChunkCountY; ++TileChunkY) {
             for (uint32 TileChunkX = 0; TileChunkX < TileMap->TileChunkCountX; ++TileChunkX) {
-                TileMap->TileChunks[TileChunkY * TileMap->TileChunkCountX + TileChunkX].Tiles =
-                    PushArray(&GameState->WorldArena, TileMap->ChunkDim * TileMap->ChunkDim, uint32);
+                uint32 TileChunkIndex = TileChunkY * TileMap->TileChunkCountX + TileChunkX;
+                uint32 TileCount = TileMap->ChunkDim * TileMap->ChunkDim;
+                TileMap->TileChunks[TileChunkIndex].Tiles =
+                    PushArray(&GameState->WorldArena, TileCount, uint32);
+                for (uint32 TileIndex = 0; TileIndex < TileCount; ++TileIndex) {
+                    TileMap->TileChunks[TileChunkIndex].Tiles[TileIndex] = 1;
+                }
             }
         }
 
