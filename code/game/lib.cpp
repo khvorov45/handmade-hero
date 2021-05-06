@@ -71,8 +71,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     if (!Memory->IsInitialized) {
         GameState->PlayerP.AbsTileX = 3;
         GameState->PlayerP.AbsTileY = 3;
+        GameState->PlayerP.AbsTileZ = 0;
+
         GameState->PlayerP.XTileRel = 5.0f;
         GameState->PlayerP.YTileRel = 5.5f;
+
         InitializeArena(
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
             (uint8*)Memory->PermanentStorage + sizeof(game_state)
@@ -89,9 +92,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         TileMap->TileChunkCountX = 128;
         TileMap->TileChunkCountY = 128;
+        TileMap->TileChunkCountZ = 2;
 
         TileMap->TileChunks = PushArray(
-            &GameState->WorldArena, TileMap->TileChunkCountX * TileMap->TileChunkCountY, tile_chunk
+            &GameState->WorldArena,
+            TileMap->TileChunkCountX * TileMap->TileChunkCountY * TileMap->TileChunkCountZ,
+            tile_chunk
         );
 
         TileMap->TileSideInMeters = 1.4f;
@@ -122,6 +128,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                     uint32 AbsTileX = ScreenX * TilesPerWidth + TileX;
                     uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
+                    uint32 AbsTileZ = 0;
 
                     uint32 TileValue = 1;
                     if (TileX == 0 && (!DoorLeft || TileY != TilesPerHeight / 2)) {
@@ -138,7 +145,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 
                     SetTileValue(
-                        &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY,
+                        &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY, AbsTileZ,
                         TileValue
                     );
                 }
@@ -232,7 +239,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             uint32 Column = RelColumn + GameState->PlayerP.AbsTileX;
             uint32 Row = RelRow + GameState->PlayerP.AbsTileY;
 
-            uint32 TileId = GetTileValue(TileMap, Column, Row);
+            uint32 TileId = GetTileValue(TileMap, Column, Row, GameState->PlayerP.AbsTileZ);
 
             if (TileId == 0) {
                 continue;
