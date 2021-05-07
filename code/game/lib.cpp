@@ -54,6 +54,15 @@ internal void DrawRectangle(
     }
 }
 
+internal void DebugLoadBMP(
+    thread_context* Thread,
+    debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
+    char* Filename
+) {
+    debug_read_file_result Result = DEBUGPlatformReadEntireFile(Thread, Filename);
+
+}
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
