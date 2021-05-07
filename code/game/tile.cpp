@@ -13,8 +13,8 @@ struct tile_map_position {
     uint32 AbsTileZ;
 
     //* Offset from the center
-    real32 XTileRel;
-    real32 YTileRel;
+    real32 OffsetX;
+    real32 OffsetY;
 };
 
 struct tile_chunk {
@@ -135,8 +135,8 @@ internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32
 internal inline tile_map_position RecanonicalizePosition(tile_map* TileMap, tile_map_position Pos) {
     tile_map_position Result = Pos;
 
-    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.XTileRel);
-    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.YTileRel);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.OffsetX);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.OffsetY);
 
     return Result;
 }

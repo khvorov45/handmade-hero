@@ -73,8 +73,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->PlayerP.AbsTileY = 3;
         GameState->PlayerP.AbsTileZ = 0;
 
-        GameState->PlayerP.XTileRel = 5.0f;
-        GameState->PlayerP.YTileRel = 5.5f;
+        GameState->PlayerP.OffsetX = 5.0f;
+        GameState->PlayerP.OffsetY = 5.5f;
 
         InitializeArena(
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
@@ -249,16 +249,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         tile_map_position NewPlayerP = GameState->PlayerP;
 
-        NewPlayerP.XTileRel += dPlayerX * PlayerSpeed * Input->dtForFrame;;
-        NewPlayerP.YTileRel += dPlayerY * PlayerSpeed * Input->dtForFrame;;
+        NewPlayerP.OffsetX += dPlayerX * PlayerSpeed * Input->dtForFrame;;
+        NewPlayerP.OffsetY += dPlayerY * PlayerSpeed * Input->dtForFrame;;
         NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
 
         tile_map_position PlayerLeft = NewPlayerP;
-        PlayerLeft.XTileRel -= 0.5f * PlayerWidth;
+        PlayerLeft.OffsetX -= 0.5f * PlayerWidth;
         PlayerLeft = RecanonicalizePosition(TileMap, PlayerLeft);
 
         tile_map_position PlayerRight = NewPlayerP;
-        PlayerRight.XTileRel += 0.5f * PlayerWidth;
+        PlayerRight.OffsetX += 0.5f * PlayerWidth;
         PlayerRight = RecanonicalizePosition(TileMap, PlayerRight);
 
         if (IsTileMapPointEmpty(TileMap, NewPlayerP) &&
@@ -306,8 +306,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Color = 0.0f;
             }
 
-            real32 CenX = ScreenCenterX - MetersToPixels * GameState->PlayerP.XTileRel + ((real32)(RelColumn)) * TileSideInPixels;
-            real32 CenY = ScreenCenterY + MetersToPixels * GameState->PlayerP.YTileRel - ((real32)(RelRow)) * TileSideInPixels;
+            real32 CenX = ScreenCenterX - MetersToPixels * GameState->PlayerP.OffsetX + ((real32)(RelColumn)) * TileSideInPixels;
+            real32 CenY = ScreenCenterY + MetersToPixels * GameState->PlayerP.OffsetY - ((real32)(RelRow)) * TileSideInPixels;
 
             real32 MinX = CenX - 0.5f * TileSideInPixels;
             real32 MinY = CenY - 0.5f * TileSideInPixels;
