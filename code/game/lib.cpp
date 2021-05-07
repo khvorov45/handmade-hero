@@ -127,7 +127,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 RandomChoice = RandomNumberTable[RandomNumberIndex++] % 3;
             }
 
+            bool32 CreatedZDoor = false;
+
             if (RandomChoice == 2) {
+                CreatedZDoor = true;
                 if (AbsTileZ == 0) {
                     DoorUp = true;
                 } else {
@@ -176,19 +179,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DoorLeft = DoorRight;
             DoorBottom = DoorTop;
 
-            if (DoorUp) {
-                DoorUp = false;
-                DoorDown = true;
-            } else if (DoorDown) {
-                DoorUp = true;
-                DoorDown = false;
+            DoorRight = false;
+            DoorTop = false;
+
+            if (CreatedZDoor) {
+                DoorUp = !DoorUp;
+                DoorDown = !DoorDown;
             } else {
                 DoorUp = false;
                 DoorDown = false;
             }
-
-            DoorRight = false;
-            DoorTop = false;
 
             if (RandomChoice == 2) {
                 if (AbsTileZ == 0) {
