@@ -112,9 +112,13 @@ internal uint32 GetTileValue(tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY
     return TileValue;
 }
 
+internal uint32 GetTileValue(tile_map* TileMap, tile_map_position Pos) {
+    return GetTileValue(TileMap, Pos.AbsTileX, Pos.AbsTileY, Pos.AbsTileZ);
+}
+
 internal bool32 IsTileMapPointEmpty(tile_map* TileMap, tile_map_position CanonicalPos) {
     uint32 TileValue = GetTileValue(TileMap, CanonicalPos.AbsTileX, CanonicalPos.AbsTileY, CanonicalPos.AbsTileZ);
-    return TileValue == 1;
+    return TileValue == 1 || TileValue == 3 || TileValue == 4;
 }
 
 internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32* TileRel) {
@@ -151,6 +155,12 @@ internal void SetTileValue(
         }
     }
     SetTileChunkValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY, TileValue);
+}
+
+internal bool32 AreOnSameTile(tile_map_position* Pos1, tile_map_position* Pos2) {
+    return Pos1->AbsTileX == Pos2->AbsTileX &&
+        Pos1->AbsTileY == Pos2->AbsTileY &&
+        Pos1->AbsTileZ == Pos2->AbsTileZ;
 }
 
 #endif
