@@ -54,13 +54,33 @@ internal void DrawRectangle(
     }
 }
 
-internal void DebugLoadBMP(
+#pragma pack(push, 1)
+struct bitmap_header {
+    uint16 FileType;
+    uint32 FileSize;
+    uint16 Reserved1;
+    uint16 Reserved2;
+    uint32 BitmapOffset;
+    uint32 Size;
+    int32 Width;
+    int32 Height;
+    uint16 Planes;
+    uint16 BitsPerPixel;
+};
+#pragma pack(pop)
+
+internal uint32* DEBUGLoadBMP(
     thread_context* Thread,
     debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
     char* Filename
 ) {
-    debug_read_file_result Result = DEBUGPlatformReadEntireFile(Thread, Filename);
-
+    debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Thread, Filename);
+    if (ReadResult.Size == 0) {
+        return 0;
+    }
+    bitmap_header* Header = (bitmap_header*)(ReadResult.Contents);
+    uint32* Pixels = (uint32*)((uint8*)ReadResult.Contents + Header->BitmapOffset);
+    return Pixels;
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -78,6 +98,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
 
     if (!Memory->IsInitialized) {
+        GameState->PixelPointer =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
+
         GameState->PlayerP.AbsTileX = 3;
         GameState->PlayerP.AbsTileY = 3;
         GameState->PlayerP.AbsTileZ = 0;
@@ -340,4 +363,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         PlayerMinX + MetersToPixels * PlayerWidth, PlayerMinY + MetersToPixels * PlayerHeight,
         PlayerR, PlayerG, PlayerB
     );
+
+    uint32* Source = GameState->PixelPointer;
+    uint32* Dest = (uint32*)Buffer->Memory;
+    for (int32 Y = 0; Y < Buffer->Height; ++Y) {
+        for (int32 X = 0; X < Buffer->Width; ++X) {
+            *Dest++ = *Source++;
+        }
+    }
 }
