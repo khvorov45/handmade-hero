@@ -54,35 +54,6 @@ internal void DrawRectangle(
     }
 }
 
-#pragma pack(push, 1)
-struct bitmap_header {
-    uint16 FileType;
-    uint32 FileSize;
-    uint16 Reserved1;
-    uint16 Reserved2;
-    uint32 BitmapOffset;
-    uint32 Size;
-    int32 Width;
-    int32 Height;
-    uint16 Planes;
-    uint16 BitsPerPixel;
-};
-#pragma pack(pop)
-
-internal uint32* DEBUGLoadBMP(
-    thread_context* Thread,
-    debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
-    char* Filename
-) {
-    debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Thread, Filename);
-    if (ReadResult.Size == 0) {
-        return 0;
-    }
-    bitmap_header* Header = (bitmap_header*)(ReadResult.Contents);
-    uint32* Pixels = (uint32*)((uint8*)ReadResult.Contents + Header->BitmapOffset);
-    return Pixels;
-}
-
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
@@ -98,8 +69,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
 
     if (!Memory->IsInitialized) {
-        GameState->PixelPointer =
-            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
+        GameState->Backdrop = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
 
         GameState->PlayerP.AbsTileX = 3;
         GameState->PlayerP.AbsTileY = 3;
@@ -308,8 +278,33 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
     }
 
+    //* Clear screen
     DrawRectangle(Buffer, 0, 0, (real32)Buffer->Width, (real32)Buffer->Height, 1.0f, 0.0f, 1.0f);
 
+    //* Draw backdrop
+    int32 PixelWidth = GameState->Backdrop.Width;
+    int32 PixelHeight = GameState->Backdrop.Height;
+    int32 BlitWidth = PixelWidth;
+    int32 BlitHeight = PixelHeight;
+    if (BlitWidth > Buffer->Width) {
+        BlitWidth = Buffer->Width;
+    }
+    if (BlitHeight > Buffer->Height) {
+        BlitHeight = Buffer->Height;
+    }
+    uint32* SourceRow = GameState->Backdrop.Pixels + PixelWidth * (PixelHeight - 1);
+    uint8* DestRow = (uint8*)Buffer->Memory;
+    for (int32 Y = 0; Y < BlitHeight; ++Y) {
+        uint32* Dest = (uint32*)DestRow;
+        uint32* Source = SourceRow;
+        for (int32 X = 0; X < BlitWidth; ++X) {
+            *Dest++ = *Source++;
+        }
+        DestRow += Buffer->Pitch;
+        SourceRow -= PixelWidth;
+    }
+
+    //* Draw world
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
     real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
 
@@ -321,7 +316,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             uint32 TileId = GetTileValue(TileMap, Column, Row, GameState->PlayerP.AbsTileZ);
 
-            if (TileId == 0) {
+            if (TileId == 0 || TileId == 1) {
                 continue;
             }
 
@@ -351,6 +346,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
     }
 
+    //* Draw player
     real32 PlayerR = 1;
     real32 PlayerG = 1;
     real32 PlayerB = 0;
@@ -363,12 +359,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         PlayerMinX + MetersToPixels * PlayerWidth, PlayerMinY + MetersToPixels * PlayerHeight,
         PlayerR, PlayerG, PlayerB
     );
-
-    uint32* Source = GameState->PixelPointer;
-    uint32* Dest = (uint32*)Buffer->Memory;
-    for (int32 Y = 0; Y < Buffer->Height; ++Y) {
-        for (int32 X = 0; X < Buffer->Width; ++X) {
-            *Dest++ = *Source++;
-        }
-    }
 }
