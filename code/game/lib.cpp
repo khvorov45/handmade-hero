@@ -54,6 +54,41 @@ internal void DrawRectangle(
     }
 }
 
+internal void DrawBMP(game_offscreen_buffer* Buffer, loaded_bmp BMP, real32 RealStartX, real32 RealStartY) {
+    int32 StartX = RoundReal32ToInt32(RealStartX);
+    int32 StartY = RoundReal32ToInt32(RealStartY);
+
+    int32 EndX = StartX + BMP.Width;
+    int32 EndY = StartY + BMP.Height;
+
+    if (StartX < 0) {
+        StartX = 0;
+    }
+    if (StartY < 0) {
+        StartY = 0;
+    }
+
+    if (EndX > Buffer->Width) {
+        EndX = Buffer->Width;
+    }
+    if (EndY > Buffer->Height) {
+        EndY = Buffer->Height;
+    }
+
+    // TODO change SourceRow based on clipping
+    uint32* SourceRow = BMP.Pixels + BMP.Width * (BMP.Height - 1);
+    uint8* DestRow = (uint8*)Buffer->Memory + StartY * Buffer->Pitch + StartX * Buffer->BytesPerPixel;
+    for (int32 Y = StartY; Y < EndY; ++Y) {
+        uint32* Dest = (uint32*)DestRow;
+        uint32* Source = SourceRow;
+        for (int32 X = StartX; X < EndX; ++X) {
+            *Dest++ = *Source++;
+        }
+        DestRow += Buffer->Pitch;
+        SourceRow -= BMP.Width;
+    }
+}
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
@@ -69,7 +104,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
 
     if (!Memory->IsInitialized) {
-        GameState->Backdrop = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
+        GameState->Backdrop =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
+        GameState->HeroHead =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_head.bmp");
+        GameState->HeroCape =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_cape.bmp");
+        GameState->HeroTorso =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_torso.bmp");
 
         GameState->PlayerP.AbsTileX = 3;
         GameState->PlayerP.AbsTileY = 3;
@@ -282,27 +324,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     DrawRectangle(Buffer, 0, 0, (real32)Buffer->Width, (real32)Buffer->Height, 1.0f, 0.0f, 1.0f);
 
     //* Draw backdrop
-    int32 PixelWidth = GameState->Backdrop.Width;
-    int32 PixelHeight = GameState->Backdrop.Height;
-    int32 BlitWidth = PixelWidth;
-    int32 BlitHeight = PixelHeight;
-    if (BlitWidth > Buffer->Width) {
-        BlitWidth = Buffer->Width;
-    }
-    if (BlitHeight > Buffer->Height) {
-        BlitHeight = Buffer->Height;
-    }
-    uint32* SourceRow = GameState->Backdrop.Pixels + PixelWidth * (PixelHeight - 1);
-    uint8* DestRow = (uint8*)Buffer->Memory;
-    for (int32 Y = 0; Y < BlitHeight; ++Y) {
-        uint32* Dest = (uint32*)DestRow;
-        uint32* Source = SourceRow;
-        for (int32 X = 0; X < BlitWidth; ++X) {
-            *Dest++ = *Source++;
-        }
-        DestRow += Buffer->Pitch;
-        SourceRow -= PixelWidth;
-    }
+    DrawBMP(Buffer, GameState->Backdrop, 0.0f, 0.0f);
 
     //* Draw world
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
@@ -359,4 +381,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         PlayerMinX + MetersToPixels * PlayerWidth, PlayerMinY + MetersToPixels * PlayerHeight,
         PlayerR, PlayerG, PlayerB
     );
+    DrawBMP(Buffer, GameState->HeroHead, PlayerMinX, PlayerMinY);
+
 }

@@ -8,4 +8,7 @@ struct game_state {
     world* World;
     tile_map_position PlayerP;
     loaded_bmp Backdrop;
+    loaded_bmp HeroHead;
+    loaded_bmp HeroCape;
+    loaded_bmp HeroTorso;
 };
