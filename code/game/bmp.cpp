@@ -16,6 +16,15 @@ struct bitmap_header {
     int32 Height;
     uint16 Planes;
     uint16 BitsPerPixel;
+    uint32 Compression;
+    uint32 SizeOfBitmap;
+    int32 HorzResolution;
+    int32 VertResolution;
+    uint32 ColorsUsed;
+    uint32 ColorsImportant;
+    uint32 RedMask;
+    uint32 GreenMask;
+    uint32 BlueMask;
 };
 #pragma pack(pop)
 
@@ -47,8 +56,13 @@ internal loaded_bmp DEBUGLoadBMP(
     */
     uint32* Pixels = (uint32*)((uint8*)ReadResult.Contents + Header->BitmapOffset);
     uint32* Pixel = Pixels;
+    uint32 AlphaMask = ~(Header->RedMask | Header->GreenMask | Header->BlueMask);
     for (int32 Y = 0; Y < Header->Height; ++Y) {
         for (int32 X = 0; X < Header->Width; ++X) {
+            uint32 Red = (*Pixel & Header->RedMask);
+            uint32 Green = (*Pixel & Header->GreenMask);
+            uint32 Blue = (*Pixel & Header->BlueMask);
+            uint32 Alpha = (*Pixel & AlphaMask);
             *Pixel++ = (*Pixel >> 8) | (*Pixel << 24);
         }
     }
