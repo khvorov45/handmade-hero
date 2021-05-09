@@ -4,6 +4,10 @@
 #include "types.h"
 #include "math.h"
 
+#if COMPILER_MSVC
+#include <intrin.h>
+#endif
+
 internal inline int32 RoundReal32ToInt32(real32 X) {
     return (int32)roundf(X);
 }
@@ -37,8 +41,12 @@ struct bit_scan_result {
     uint32 Index;
 };
 
-internal bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
+internal inline bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
     bit_scan_result Result = {};
+
+#if COMPILER_MSVC
+    Result.Found = _BitScanForward((unsigned long*)&Result.Index, Value);
+#else
     for (uint32 Test = 0; Test < 32; ++Test) {
         if (Value & (1 << Test)) {
             Result.Index = Test;
@@ -46,6 +54,7 @@ internal bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
             break;
         }
     }
+#endif
     return Result;
 }
 

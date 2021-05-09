@@ -1,6 +1,13 @@
 #if !defined(HANDMADE_H)
 #define HANDMADE_H
 
+//* Compilers
+#if !defined(COMPILER_MSVC) && !defined(COMPILER_LLVM)
+#if _MSC_VER
+#define COMPILER_MSVC 1
+#endif
+#endif
+
 /**
  * HANDMADE_INTERNAL:
  *  0 - Public release
