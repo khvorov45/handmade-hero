@@ -46,6 +46,9 @@ internal loaded_bmp DEBUGLoadBMP(
         return Result;
     }
     bitmap_header* Header = (bitmap_header*)(ReadResult.Contents);
+
+    Assert(Header->Compression == 3);
+
     Result.Height = Header->Height;
     Result.Width = Header->Width;
 
