@@ -54,7 +54,14 @@ internal void DrawRectangle(
     }
 }
 
-internal void DrawBMP(game_offscreen_buffer* Buffer, loaded_bmp BMP, real32 RealStartX, real32 RealStartY) {
+internal void DrawBMP(
+    game_offscreen_buffer* Buffer, loaded_bmp BMP,
+    real32 RealStartX, real32 RealStartY,
+    int32 AlignX = 0, int32 AlignY = 0
+) {
+    RealStartX -= (real32)AlignX;
+    RealStartY -= (real32)AlignY;
+
     int32 StartX = RoundReal32ToInt32(RealStartX);
     int32 StartY = RoundReal32ToInt32(RealStartY);
 
@@ -125,33 +132,47 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
 
-        GameState->HeroBitmaps[0].Head =
+        hero_bitmaps* Bitmap;
+
+        Bitmap = &GameState->HeroBitmaps[0];
+        Bitmap->Head =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_head.bmp");
-        GameState->HeroBitmaps[0].Cape =
+        Bitmap->Cape =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_cape.bmp");
-        GameState->HeroBitmaps[0].Torso =
+        Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_torso.bmp");
+        Bitmap->AlignX = 72;
+        Bitmap->AlignY = 182;
 
-        GameState->HeroBitmaps[1].Head =
+        ++Bitmap;
+        Bitmap->Head =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_head.bmp");
-        GameState->HeroBitmaps[1].Cape =
+        Bitmap->Cape =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_cape.bmp");
-        GameState->HeroBitmaps[1].Torso =
+        Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_torso.bmp");
+        Bitmap->AlignX = 72;
+        Bitmap->AlignY = 182;
 
-        GameState->HeroBitmaps[2].Head =
+        ++Bitmap;
+        Bitmap->Head =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_head.bmp");
-        GameState->HeroBitmaps[2].Cape =
+        Bitmap->Cape =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_cape.bmp");
-        GameState->HeroBitmaps[2].Torso =
+        Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_torso.bmp");
+        Bitmap->AlignX = 72;
+        Bitmap->AlignY = 182;
 
-        GameState->HeroBitmaps[3].Head =
+        ++Bitmap;
+        Bitmap->Head =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_head.bmp");
-        GameState->HeroBitmaps[3].Cape =
+        Bitmap->Cape =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_cape.bmp");
-        GameState->HeroBitmaps[3].Torso =
+        Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_torso.bmp");
+        Bitmap->AlignX = 72;
+        Bitmap->AlignY = 182;
 
         GameState->PlayerP.AbsTileX = 3;
         GameState->PlayerP.AbsTileY = 3;
@@ -417,8 +438,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 PlayerG = 1;
     real32 PlayerB = 0;
 
-    real32 PlayerMinX = ScreenCenterX - MetersToPixels * 0.5f * PlayerWidth;
-    real32 PlayerMinY = ScreenCenterY - MetersToPixels * PlayerHeight;
+    real32 PlayerGroundX = ScreenCenterX;
+    real32 PlayerGroundY = ScreenCenterY;
+
+    real32 PlayerMinX = PlayerGroundX - MetersToPixels * 0.5f * PlayerWidth;
+    real32 PlayerMinY = PlayerGroundY - MetersToPixels * PlayerHeight;
     DrawRectangle(
         Buffer,
         PlayerMinX, PlayerMinY,
@@ -426,7 +450,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         PlayerR, PlayerG, PlayerB
     );
     hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[GameState->HeroFacingDirection];
-    DrawBMP(Buffer, HeroBitmaps->Head, PlayerMinX, PlayerMinY);
-    DrawBMP(Buffer, HeroBitmaps->Torso, PlayerMinX, PlayerMinY);
-    DrawBMP(Buffer, HeroBitmaps->Cape, PlayerMinX, PlayerMinY);
+    DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+    DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+    DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
 }

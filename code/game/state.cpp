@@ -4,6 +4,8 @@
 #include "bmp.cpp"
 
 struct hero_bitmaps {
+    int32 AlignX;
+    int32 AlignY;
     loaded_bmp Head;
     loaded_bmp Cape;
     loaded_bmp Torso;
