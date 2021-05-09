@@ -82,7 +82,25 @@ internal void DrawBMP(game_offscreen_buffer* Buffer, loaded_bmp BMP, real32 Real
         uint32* Dest = (uint32*)DestRow;
         uint32* Source = SourceRow;
         for (int32 X = StartX; X < EndX; ++X) {
-            *Dest++ = *Source++;
+
+            real32 A = (real32)((*Source >> 24)) / 255.0f;
+
+            real32 SR = (real32)((*Source >> 16) & 0xFF);
+            real32 SG = (real32)((*Source >> 8) & 0xFF);
+            real32 SB = (real32)((*Source) & 0xFF);
+
+            real32 DR = (real32)((*Dest >> 16) & 0xFF);
+            real32 DG = (real32)((*Dest >> 8) & 0xFF);
+            real32 DB = (real32)((*Dest) & 0xFF);
+
+            real32 RR = (1.0f - A) * DR + A * SR;
+            real32 RG = (1.0f - A) * DG + A * SG;
+            real32 RB = (1.0f - A) * DB + A * SB;
+
+            *Dest = (RoundReal32ToUint32(RR) << 16) | (RoundReal32ToUint32(RG) << 8) | (RoundReal32ToUint32(RB));
+
+            ++Dest;
+            ++Source;
         }
         DestRow += Buffer->Pitch;
         SourceRow -= BMP.Width;
