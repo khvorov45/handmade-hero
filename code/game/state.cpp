@@ -14,6 +14,7 @@ struct hero_bitmaps {
 struct game_state {
     memory_arena WorldArena;
     world* World;
+    tile_map_position CameraP;
     tile_map_position PlayerP;
     loaded_bmp Backdrop;
     uint32 HeroFacingDirection;

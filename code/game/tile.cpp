@@ -163,4 +163,24 @@ internal bool32 AreOnSameTile(tile_map_position* Pos1, tile_map_position* Pos2) 
         Pos1->AbsTileZ == Pos2->AbsTileZ;
 }
 
+struct tile_map_difference {
+    real32 dX;
+    real32 dY;
+    real32 dZ;
+};
+
+tile_map_difference Subtract(tile_map* TileMap, tile_map_position* A, tile_map_position* B) {
+    tile_map_difference Result = {};
+
+    real32 dTileX = TileMap->TileSideInMeters * ((real32)A->AbsTileX - (real32)B->AbsTileX);
+    real32 dTileY = TileMap->TileSideInMeters * ((real32)A->AbsTileY - (real32)B->AbsTileY);
+    real32 dTileZ = TileMap->TileSideInMeters * ((real32)A->AbsTileZ - (real32)B->AbsTileZ);
+
+    Result.dX = dTileX + A->OffsetX - B->OffsetX;
+    Result.dY = dTileY + A->OffsetY - B->OffsetY;
+    Result.dZ = dTileZ;
+
+    return Result;
+}
+
 #endif

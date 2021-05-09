@@ -174,6 +174,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Bitmap->AlignX = 72;
         Bitmap->AlignY = 182;
 
+        GameState->CameraP.AbsTileX = 17 / 2;
+        GameState->CameraP.AbsTileY = 9 / 2;
+        GameState->CameraP.AbsTileZ = 0;
+
         GameState->PlayerP.AbsTileX = 3;
         GameState->PlayerP.AbsTileY = 3;
         GameState->PlayerP.AbsTileZ = 0;
@@ -398,10 +402,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     for (int32 RelRow = -10; RelRow < 10; ++RelRow) {
         for (int32 RelColumn = -20; RelColumn < 20; ++RelColumn) {
 
-            uint32 Column = RelColumn + GameState->PlayerP.AbsTileX;
-            uint32 Row = RelRow + GameState->PlayerP.AbsTileY;
+            uint32 Column = RelColumn + GameState->CameraP.AbsTileX;
+            uint32 Row = RelRow + GameState->CameraP.AbsTileY;
 
-            uint32 TileId = GetTileValue(TileMap, Column, Row, GameState->PlayerP.AbsTileZ);
+            uint32 TileId = GetTileValue(TileMap, Column, Row, GameState->CameraP.AbsTileZ);
 
             if (TileId == 0 || TileId == 1) {
                 continue;
@@ -416,12 +420,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Color = 0.25f;
             }
 
-            if (Row == GameState->PlayerP.AbsTileY && Column == GameState->PlayerP.AbsTileX) {
+            if (Row == GameState->CameraP.AbsTileY && Column == GameState->CameraP.AbsTileX) {
                 Color = 0.0f;
             }
 
-            real32 CenX = ScreenCenterX - MetersToPixels * GameState->PlayerP.OffsetX + ((real32)(RelColumn)) * TileSideInPixels;
-            real32 CenY = ScreenCenterY + MetersToPixels * GameState->PlayerP.OffsetY - ((real32)(RelRow)) * TileSideInPixels;
+            real32 CenX = ScreenCenterX - MetersToPixels * GameState->CameraP.OffsetX + ((real32)(RelColumn)) * TileSideInPixels;
+            real32 CenY = ScreenCenterY + MetersToPixels * GameState->CameraP.OffsetY - ((real32)(RelRow)) * TileSideInPixels;
 
             real32 MinX = CenX - 0.5f * TileSideInPixels;
             real32 MinY = CenY - 0.5f * TileSideInPixels;
@@ -434,12 +438,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     //* Draw player
+    tile_map_difference Diff = Subtract(GameState->World->TileMap, &GameState->PlayerP, &GameState->CameraP);
+
     real32 PlayerR = 1;
     real32 PlayerG = 1;
     real32 PlayerB = 0;
 
-    real32 PlayerGroundX = ScreenCenterX;
-    real32 PlayerGroundY = ScreenCenterY;
+    real32 PlayerGroundX = ScreenCenterX + Diff.dX * MetersToPixels;
+    real32 PlayerGroundY = ScreenCenterY - Diff.dY * MetersToPixels;
 
     real32 PlayerMinX = PlayerGroundX - MetersToPixels * 0.5f * PlayerWidth;
     real32 PlayerMinY = PlayerGroundY - MetersToPixels * PlayerHeight;
