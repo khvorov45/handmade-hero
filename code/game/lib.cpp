@@ -389,6 +389,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 
         GameState->CameraP.AbsTileZ = GameState->PlayerP.AbsTileZ;
+
+        tile_map_difference Diff = Subtract(GameState->World->TileMap, &GameState->PlayerP, &GameState->CameraP);
+        if (Diff.dX > 9.0f * TileMap->TileSideInMeters) {
+            GameState->CameraP.AbsTileX += 17;
+        } else if (Diff.dX < -9.0f * TileMap->TileSideInMeters) {
+            GameState->CameraP.AbsTileX -= 17;
+        }
+        if (Diff.dY > 5.0f * TileMap->TileSideInMeters) {
+            GameState->CameraP.AbsTileY += 9;
+        } else if (Diff.dY < -5.0f * TileMap->TileSideInMeters) {
+            GameState->CameraP.AbsTileY -= 9;
+        }
     }
 
     //* Clear screen
