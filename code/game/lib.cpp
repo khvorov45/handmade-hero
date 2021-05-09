@@ -124,11 +124,33 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     if (!Memory->IsInitialized) {
         GameState->Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
-        GameState->HeroHead =
+
+        GameState->HeroBitmaps[0].Head =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_head.bmp");
+        GameState->HeroBitmaps[0].Cape =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_cape.bmp");
+        GameState->HeroBitmaps[0].Torso =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_torso.bmp");
+
+        GameState->HeroBitmaps[1].Head =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_head.bmp");
+        GameState->HeroBitmaps[1].Cape =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_cape.bmp");
+        GameState->HeroBitmaps[1].Torso =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_torso.bmp");
+
+        GameState->HeroBitmaps[2].Head =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_head.bmp");
+        GameState->HeroBitmaps[2].Cape =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_cape.bmp");
+        GameState->HeroBitmaps[2].Torso =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_torso.bmp");
+
+        GameState->HeroBitmaps[3].Head =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_head.bmp");
-        GameState->HeroCape =
+        GameState->HeroBitmaps[3].Cape =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_cape.bmp");
-        GameState->HeroTorso =
+        GameState->HeroBitmaps[3].Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_torso.bmp");
 
         GameState->PlayerP.AbsTileX = 3;
@@ -297,15 +319,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         real32 dPlayerY = 0;
 
         if (Controller->MoveUp.EndedDown) {
+            GameState->HeroFacingDirection = 1;
             dPlayerY = 1;
         }
         if (Controller->MoveDown.EndedDown) {
+            GameState->HeroFacingDirection = 3;
             dPlayerY = -1;
         }
         if (Controller->MoveLeft.EndedDown) {
+            GameState->HeroFacingDirection = 2;
             dPlayerX = -1;
         }
         if (Controller->MoveRight.EndedDown) {
+            GameState->HeroFacingDirection = 0;
             dPlayerX = 1;
         }
 
@@ -399,6 +425,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         PlayerMinX + MetersToPixels * PlayerWidth, PlayerMinY + MetersToPixels * PlayerHeight,
         PlayerR, PlayerG, PlayerB
     );
-    DrawBMP(Buffer, GameState->HeroHead, PlayerMinX, PlayerMinY);
-
+    hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[GameState->HeroFacingDirection];
+    DrawBMP(Buffer, HeroBitmaps->Head, PlayerMinX, PlayerMinY);
+    DrawBMP(Buffer, HeroBitmaps->Torso, PlayerMinX, PlayerMinY);
+    DrawBMP(Buffer, HeroBitmaps->Cape, PlayerMinX, PlayerMinY);
 }

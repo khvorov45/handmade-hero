@@ -3,12 +3,17 @@
 #include "memory.cpp"
 #include "bmp.cpp"
 
+struct hero_bitmaps {
+    loaded_bmp Head;
+    loaded_bmp Cape;
+    loaded_bmp Torso;
+};
+
 struct game_state {
     memory_arena WorldArena;
     world* World;
     tile_map_position PlayerP;
     loaded_bmp Backdrop;
-    loaded_bmp HeroHead;
-    loaded_bmp HeroCape;
-    loaded_bmp HeroTorso;
+    uint32 HeroFacingDirection;
+    hero_bitmaps HeroBitmaps[4];
 };
