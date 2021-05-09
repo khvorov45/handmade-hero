@@ -32,4 +32,21 @@ internal inline real32 ATan2(real32 Y, real32 X) {
     return atan2f(Y, X);
 }
 
+struct bit_scan_result {
+    bool32 Found;
+    uint32 Index;
+};
+
+internal bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
+    bit_scan_result Result = {};
+    for (uint32 Test = 0; Test < 32; ++Test) {
+        if (Value & (1 << Test)) {
+            Result.Index = Test;
+            Result.Found = true;
+            break;
+        }
+    }
+    return Result;
+}
+
 #endif

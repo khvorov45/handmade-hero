@@ -2,6 +2,7 @@
 #define HANDMADE_BMP_CPP
 
 #include "../types.h"
+#include "../intrinsics.h"
 #include "lib.hpp"
 
 #pragma pack(push, 1)
@@ -27,23 +28,6 @@ struct bitmap_header {
     uint32 BlueMask;
 };
 #pragma pack(pop)
-
-struct bit_scan_result {
-    bool32 Found;
-    uint32 Index;
-};
-
-internal bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
-    bit_scan_result Result = {};
-    for (uint32 Test = 0; Test < 32; ++Test) {
-        if (Value & (1 << Test)) {
-            Result.Index = Test;
-            Result.Found = true;
-            break;
-        }
-    }
-    return Result;
-}
 
 struct loaded_bmp {
     uint32* Pixels;
