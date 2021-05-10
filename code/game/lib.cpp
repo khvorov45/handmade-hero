@@ -68,10 +68,15 @@ internal void DrawBMP(
     int32 EndX = StartX + BMP.Width;
     int32 EndY = StartY + BMP.Height;
 
+    int32 SourceOffsetX = 0;
     if (StartX < 0) {
+        SourceOffsetX = -StartX;
         StartX = 0;
     }
+
+    int32 SourceOffsetY = 0;
     if (StartY < 0) {
+        SourceOffsetY = -StartY;
         StartY = 0;
     }
 
@@ -82,8 +87,7 @@ internal void DrawBMP(
         EndY = Buffer->Height;
     }
 
-    // TODO change SourceRow based on clipping
-    uint32* SourceRow = BMP.Pixels + BMP.Width * (BMP.Height - 1);
+    uint32* SourceRow = BMP.Pixels + BMP.Width * (BMP.Height - 1) - SourceOffsetY * BMP.Width + SourceOffsetX;
     uint8* DestRow = (uint8*)Buffer->Memory + StartY * Buffer->Pitch + StartX * Buffer->BytesPerPixel;
     for (int32 Y = StartY; Y < EndY; ++Y) {
         uint32* Dest = (uint32*)DestRow;
