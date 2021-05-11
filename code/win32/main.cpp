@@ -96,6 +96,38 @@ global_variable int64 GlobalPerfCounterFrequency;
 global_variable int64 GlobalPause;
 global_variable bool32 DEBUGGlobalShowCursor;
 
+WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };
+
+internal void ToggleFullscreen(HWND Window) {
+    // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
+    DWORD Style = GetWindowLong(Window, GWL_STYLE);
+    if (Style & WS_OVERLAPPEDWINDOW) {
+        MONITORINFO MonitorInfo = { sizeof(MonitorInfo) };
+        if (GetWindowPlacement(Window, &GlobalWindowPosition) &&
+            GetMonitorInfo(MonitorFromWindow(Window, MONITOR_DEFAULTTOPRIMARY), &MonitorInfo)) {
+            SetWindowLong(
+                Window, GWL_STYLE,
+                Style & ~WS_OVERLAPPEDWINDOW
+            );
+            SetWindowPos(
+                Window, HWND_TOP,
+                MonitorInfo.rcMonitor.left, MonitorInfo.rcMonitor.top,
+                MonitorInfo.rcMonitor.right - MonitorInfo.rcMonitor.left,
+                MonitorInfo.rcMonitor.bottom - MonitorInfo.rcMonitor.top,
+                SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+            );
+        }
+    } else {
+        SetWindowLong(Window, GWL_STYLE, Style | WS_OVERLAPPEDWINDOW);
+        SetWindowPlacement(Window, &GlobalWindowPosition);
+        SetWindowPos(
+            Window, NULL, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+            SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+        );
+    }
+}
+
 void CatStrings(
     size_t SourceACount, char* SourceA,
     size_t SourceBCount, char* SourceB,
@@ -679,10 +711,12 @@ internal void Win32ProcessPendingMessages(win32_state* Win32State, game_controll
                 }
             }
 #endif
-
             bool32 AltIsDown = (Message.lParam & (1 << 29)) != 0;
             if (AltIsDown && VKCode == VK_F4) {
                 GlobalRunning = false;
+            }
+            if (AltIsDown && VKCode == VK_RETURN && IsDown) {
+                ToggleFullscreen(Message.hwnd);
             }
         }
         break;
