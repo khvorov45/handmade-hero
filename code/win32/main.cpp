@@ -94,6 +94,7 @@ global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 global_variable int64 GlobalPerfCounterFrequency;
 global_variable int64 GlobalPause;
+global_variable bool32 DEBUGGlobalShowCursor;
 
 void CatStrings(
     size_t SourceACount, char* SourceA,
@@ -378,6 +379,13 @@ Win32MainWindowCallback(HWND Window,
     LRESULT Result = 0;
 
     switch (Message) {
+    case WM_SETCURSOR: {
+        if (DEBUGGlobalShowCursor) {
+            Result = DefWindowProcA(Window, Message, WParam, LParam);
+        } else {
+            SetCursor(0);
+        }
+    } break;
     case WM_SIZE:
     {
     }
@@ -796,6 +804,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     Win32LoadXInput();
 
+#if HANDMADE_INTERNAL
+    DEBUGGlobalShowCursor = true;
+#endif
     WNDCLASSA WindowClass = {};
 
     Win32ResizeDIBSection(&GlobalBackBuffer, 960, 540);
@@ -804,6 +815,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
     WindowClass.lpszClassName = "HandmadeHeroWindowClass";
+    WindowClass.hCursor = LoadCursor(0, IDC_ARROW);
 
     RegisterClassA(&WindowClass);
 
