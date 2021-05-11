@@ -386,21 +386,31 @@ internal void Win32DisplayBufferInWindow(
     int WindowWidth, int WindowHeight,
     win32_offscreen_buffer* Buffer
 ) {
-    int32 OffsetX = 10;
-    int32 OffsetY = 10;
+    if (WindowWidth >= Buffer->Width * 2 && WindowHeight >= Buffer->Height * 2) {
+        StretchDIBits(
+            DeviceContext,
+            0, 0, Buffer->Width * 2, Buffer->Height * 2,
+            0, 0, Buffer->Width, Buffer->Height,
+            Buffer->Memory, &Buffer->Info,
+            DIB_RGB_COLORS, SRCCOPY
+        );
+    } else {
+        int32 OffsetX = 10;
+        int32 OffsetY = 10;
 
-    PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
-    PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
-    PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
-    PatBlt(DeviceContext, 0, OffsetY + Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
+        PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
+        PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
+        PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
+        PatBlt(DeviceContext, 0, OffsetY + Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
 
-    StretchDIBits(
-        DeviceContext,
-        OffsetX, OffsetY, Buffer->Width, Buffer->Height,
-        0, 0, Buffer->Width, Buffer->Height,
-        Buffer->Memory, &Buffer->Info,
-        DIB_RGB_COLORS, SRCCOPY
-    );
+        StretchDIBits(
+            DeviceContext,
+            OffsetX, OffsetY, Buffer->Width, Buffer->Height,
+            0, 0, Buffer->Width, Buffer->Height,
+            Buffer->Memory, &Buffer->Info,
+            DIB_RGB_COLORS, SRCCOPY
+        );
+    }
 }
 
 LRESULT CALLBACK
