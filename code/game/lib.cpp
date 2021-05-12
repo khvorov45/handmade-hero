@@ -366,8 +366,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         tile_map_position NewPlayerP = GameState->PlayerP;
 
-        NewPlayerP.OffsetX += dPlayerX * PlayerSpeed * Input->dtForFrame;;
-        NewPlayerP.OffsetY += dPlayerY * PlayerSpeed * Input->dtForFrame;;
+        NewPlayerP.OffsetX += dPlayerX * PlayerSpeed * Input->dtForFrame;
+        NewPlayerP.OffsetY += dPlayerY * PlayerSpeed * Input->dtForFrame;
         NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
 
         tile_map_position PlayerLeft = NewPlayerP;
