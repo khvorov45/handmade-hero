@@ -4,8 +4,10 @@
 #include "../types.h"
 
 struct v2 {
-    real32 X, Y;
-    real32& operator[](int Index) { return (&X)[Index]; };
+    union {
+        struct { real32 X, Y; };
+        real32 E[2];
+    };
     inline v2& operator*=(real32 A);
     inline v2& operator+=(v2 A);
 };
