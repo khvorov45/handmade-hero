@@ -3,12 +3,11 @@
 
 #include "../types.h"
 
-struct v2 {
-    union {
-        struct { real32 X, Y; };
-        real32 E[2];
-    };
+union v2 {
+    struct { real32 X, Y; };
+    real32 E[2];
 };
+
 
 inline v2 V2(real32 X, real32 Y) {
     v2 Result;
