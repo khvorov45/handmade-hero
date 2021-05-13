@@ -8,8 +8,6 @@ struct v2 {
         struct { real32 X, Y; };
         real32 E[2];
     };
-    inline v2& operator*=(real32 A);
-    inline v2& operator+=(v2 A);
 };
 
 inline v2 V2(real32 X, real32 Y) {
@@ -37,9 +35,9 @@ inline v2 operator*(v2 B, real32 A) {
     return A * B;
 }
 
-inline v2& v2::operator*=(real32 A) {
-    *this = *this * A;
-    return *this;
+inline v2& operator*=(v2& A, real32 B) {
+    A = A * B;
+    return A;
 }
 
 inline v2 operator+(v2 A, v2 B) {
@@ -49,9 +47,9 @@ inline v2 operator+(v2 A, v2 B) {
     return Result;
 }
 
-inline v2& v2::operator+=(v2 A) {
-    *this = *this + A;
-    return *this;
+inline v2& operator+=(v2& A, v2 B) {
+    A = A + B;
+    return A;
 }
 
 inline v2 operator-(v2 A, v2 B) {
