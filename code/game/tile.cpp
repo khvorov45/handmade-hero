@@ -4,6 +4,7 @@
 #include "../types.h"
 #include "../util.h"
 #include "memory.cpp"
+#include "math.cpp"
 
 struct tile_map_position {
     //* High bits - tile chunk index
@@ -13,8 +14,7 @@ struct tile_map_position {
     uint32 AbsTileZ;
 
     //* Offset from the center
-    real32 OffsetX;
-    real32 OffsetY;
+    v2 Offset;
 };
 
 struct tile_chunk {
@@ -135,8 +135,8 @@ internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32
 internal inline tile_map_position RecanonicalizePosition(tile_map* TileMap, tile_map_position Pos) {
     tile_map_position Result = Pos;
 
-    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.OffsetX);
-    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.OffsetY);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset.X);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset.Y);
 
     return Result;
 }
@@ -164,20 +164,19 @@ internal bool32 AreOnSameTile(tile_map_position* Pos1, tile_map_position* Pos2) 
 }
 
 struct tile_map_difference {
-    real32 dX;
-    real32 dY;
+    v2 dXY;
     real32 dZ;
 };
 
 tile_map_difference Subtract(tile_map* TileMap, tile_map_position* A, tile_map_position* B) {
     tile_map_difference Result = {};
 
-    real32 dTileX = TileMap->TileSideInMeters * ((real32)A->AbsTileX - (real32)B->AbsTileX);
-    real32 dTileY = TileMap->TileSideInMeters * ((real32)A->AbsTileY - (real32)B->AbsTileY);
+    v2 dTileXY = { (real32)A->AbsTileX - (real32)B->AbsTileX, (real32)A->AbsTileY - (real32)B->AbsTileY };
+
     real32 dTileZ = TileMap->TileSideInMeters * ((real32)A->AbsTileZ - (real32)B->AbsTileZ);
 
-    Result.dX = dTileX + A->OffsetX - B->OffsetX;
-    Result.dY = dTileY + A->OffsetY - B->OffsetY;
+    Result.dXY = TileMap->TileSideInMeters * dTileXY + (A->Offset - B->Offset);
+
     Result.dZ = dTileZ;
 
     return Result;
