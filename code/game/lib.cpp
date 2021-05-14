@@ -340,33 +340,42 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         ++ControllerIndex) {
         game_controller_input* Controller = &(Input->Controllers[ControllerIndex]);
 
-        real32 PlayerSpeed = 3.0f;
+        real32 PlayerAcceleration = 3.0f;
         if (Controller->ActionUp.EndedDown) {
-            PlayerSpeed = 10.0f;
+            PlayerAcceleration = 10.0f;
         }
 
-        v2 dPlayer = {};
+        v2 ddPlayer = {};
 
         if (Controller->MoveUp.EndedDown) {
             GameState->HeroFacingDirection = 1;
-            dPlayer.Y = 1;
+            ddPlayer.Y = 1;
         }
         if (Controller->MoveDown.EndedDown) {
             GameState->HeroFacingDirection = 3;
-            dPlayer.Y = -1;
+            ddPlayer.Y = -1;
         }
         if (Controller->MoveLeft.EndedDown) {
             GameState->HeroFacingDirection = 2;
-            dPlayer.X = -1;
+            ddPlayer.X = -1;
         }
         if (Controller->MoveRight.EndedDown) {
             GameState->HeroFacingDirection = 0;
-            dPlayer.X = 1;
+            ddPlayer.X = 1;
         }
+
+        if (ddPlayer.X != 0 && ddPlayer.Y != 0) {
+            ddPlayer *= 0.707106f;
+        }
+
+        ddPlayer *= PlayerAcceleration;
 
         tile_map_position NewPlayerP = GameState->PlayerP;
 
-        NewPlayerP.Offset += dPlayer * PlayerSpeed * Input->dtForFrame;
+        NewPlayerP.Offset +=
+            0.5f * ddPlayer * Square(Input->dtForFrame) +
+            GameState->dPlayerP * Input->dtForFrame;
+        GameState->dPlayerP += ddPlayer * Input->dtForFrame;
         NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
 
         tile_map_position PlayerLeft = NewPlayerP;

@@ -2,6 +2,7 @@
 #include "world.cpp"
 #include "memory.cpp"
 #include "bmp.cpp"
+#include "math.cpp"
 
 struct hero_bitmaps {
     int32 AlignX;
@@ -16,6 +17,7 @@ struct game_state {
     world* World;
     tile_map_position CameraP;
     tile_map_position PlayerP;
+    v2 dPlayerP;
     loaded_bmp Backdrop;
     uint32 HeroFacingDirection;
     hero_bitmaps HeroBitmaps[4];
