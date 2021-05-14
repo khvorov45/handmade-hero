@@ -340,9 +340,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         ++ControllerIndex) {
         game_controller_input* Controller = &(Input->Controllers[ControllerIndex]);
 
-        real32 PlayerAcceleration = 3.0f;
+        real32 PlayerAcceleration = 10.0f;
         if (Controller->ActionUp.EndedDown) {
-            PlayerAcceleration = 10.0f;
+            PlayerAcceleration = 50.0f;
         }
 
         v2 ddPlayer = {};
@@ -370,12 +370,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         ddPlayer *= PlayerAcceleration;
 
+        ddPlayer += -1.5f * GameState->dPlayerP;
+
         tile_map_position NewPlayerP = GameState->PlayerP;
 
         NewPlayerP.Offset +=
             0.5f * ddPlayer * Square(Input->dtForFrame) +
             GameState->dPlayerP * Input->dtForFrame;
         GameState->dPlayerP += ddPlayer * Input->dtForFrame;
+
+
         NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
 
         tile_map_position PlayerLeft = NewPlayerP;
