@@ -62,4 +62,8 @@ inline real32 Square(real32 A) {
     return A * A;
 }
 
+inline real32 Inner(v2 A, v2 B) {
+    return A.X * B.X + A.Y * B.Y;
+}
+
 #endif
