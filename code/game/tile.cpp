@@ -116,9 +116,13 @@ internal uint32 GetTileValue(tile_map* TileMap, tile_map_position Pos) {
     return GetTileValue(TileMap, Pos.AbsTileX, Pos.AbsTileY, Pos.AbsTileZ);
 }
 
+internal bool32 IsTileValueEmpty(uint32 TileValue) {
+    return TileValue == 1 || TileValue == 3 || TileValue == 4;
+}
+
 internal bool32 IsTileMapPointEmpty(tile_map* TileMap, tile_map_position CanonicalPos) {
     uint32 TileValue = GetTileValue(TileMap, CanonicalPos.AbsTileX, CanonicalPos.AbsTileY, CanonicalPos.AbsTileZ);
-    return TileValue == 1 || TileValue == 3 || TileValue == 4;
+    return IsTileValueEmpty(TileValue);
 }
 
 internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32* TileRel) {
@@ -180,6 +184,15 @@ tile_map_difference Subtract(tile_map* TileMap, tile_map_position* A, tile_map_p
     Result.dZ = dTileZ;
 
     return Result;
+}
+
+internal tile_map_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+    tile_map_position Pos;
+    Pos.AbsTileX = AbsTileX;
+    Pos.AbsTileY = AbsTileY;
+    Pos.AbsTileZ = AbsTileZ;
+    Pos.Offset = { 0.0f, 0.0f };
+    return Pos;
 }
 
 #endif
