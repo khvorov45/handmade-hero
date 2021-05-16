@@ -36,6 +36,10 @@ internal inline real32 ATan2(real32 Y, real32 X) {
     return atan2f(Y, X);
 }
 
+internal inline real32 AbsoluteValue(real32 X) {
+    return (real32)fabs((real64)X);
+}
+
 struct bit_scan_result {
     bool32 Found;
     uint32 Index;
