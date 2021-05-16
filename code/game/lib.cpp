@@ -487,7 +487,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 GameState->PlayerIndexForController[ControllerIndex] = Index;
                 ControllingEntity = GetEntity(GameState, Index);
                 InitPlayer(ControllingEntity);
-                GameState->CameraFollowingEntityIndex = Index;
+                if (GameState->CameraFollowingEntityIndex == 0) {
+                    GameState->CameraFollowingEntityIndex = Index;
+                }
             }
             continue;
         }
