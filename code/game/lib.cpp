@@ -218,13 +218,14 @@ internal void MovePlayer(game_state* GameState, entity* Entity, real32 dt, v2 dd
         Entity->dP = Entity->dP - 1 * Inner(Entity->dP, r) * r;
     }
 #else
-    uint32 MinTileX = 0;
-    uint32 MinTileY = 0;
-    uint32 OnePastMaxTileX = 0;
-    uint32 OnePastMaxTileY = 0;
-    uint32 AbsTileZ = GameState->PlayerP.AbsTileZ;
-    tile_map_position BestPlayerP = GameState->PlayerP;
-    real32 BestDistanceSq = LengthSq(PlayerDelta);
+    uint32 MinTileX = Minimum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX);
+    uint32 MinTileY = Minimum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY);
+    uint32 OnePastMaxTileX = Maximum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX) + 1;
+    uint32 OnePastMaxTileY = Maximum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY) + 1;
+
+    uint32 AbsTileZ = Entity->P.AbsTileZ;
+    real32 tMin = 1.0f;
+
     for (uint32 AbsTileY = MinTileY; AbsTileY != OnePastMaxTileY; AbsTileY++) {
         for (uint32 AbsTileX = MinTileX; AbsTileX != OnePastMaxTileX; AbsTileX++) {
             tile_map_position TestTileP = CenteredTilePoint(AbsTileX, AbsTileY, AbsTileZ);
@@ -232,13 +233,13 @@ internal void MovePlayer(game_state* GameState, entity* Entity, real32 dt, v2 dd
             if (IsTileValueEmpty(TileValue)) {
                 v2 MinCorner = -0.5f * v2{ TileMap->TileSideInMeters, TileMap->TileSideInMeters };
                 v2 MaxCorner = 0.5f * v2{ TileMap->TileSideInMeters, TileMap->TileSideInMeters };
+
                 tile_map_difference RelNewPlayerP = Subtract(TileMap, &TestTileP, &NewPlayerP);
-                v2 TestP = ClosestPointInRectangle(MinCorner, MaxCorner, RelNewPlayerP);
-                TestDistanceSq = ;
-                if (BestDistanceSq > TestDistanceSq) {
-                    BestPlayerP = TestP;
-                    BestDistanceSq = TestDistanceSq;
-                }
+                v2 Rel = RelNewPlayerP.dXY;
+
+                tResult = (WallX - Rel.X) / PlayerDelta.X;
+
+                TestWall(MinCorner.X, MinCorner.Y, MaxCorner.X, MaxCorner.Y, Rel.X, Rel.Y);
             }
         }
     }

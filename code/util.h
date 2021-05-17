@@ -10,6 +10,9 @@
 #define Gigabytes(n) (Megabytes(n) * 1024)
 #define Terabytes(n) (Gigabytes(n) * 1024)
 
+#define Minimum(A, B) ((A) < (B) ? (A) : (B))
+#define Maximum(A, B) ((A) > (B) ? (A) : (B))
+
 #if HANDMADE_SLOW
 #define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #else
