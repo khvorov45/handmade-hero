@@ -155,8 +155,9 @@ internal void MovePlayer(game_state* GameState, entity* Entity, real32 dt, v2 dd
 
     tile_map* TileMap = GameState->World->TileMap;
 
-    if (ddPlayer.X != 0 && ddPlayer.Y != 0) {
-        ddPlayer *= 0.707106f;
+    real32 ddPlayerLengthSq = LengthSq(ddPlayer);
+    if (ddPlayerLengthSq > 1.0f) {
+        ddPlayer *= 1.0f / SquareRoot(ddPlayerLengthSq);
     }
 
     real32 PlayerAcceleration = 50.0f;

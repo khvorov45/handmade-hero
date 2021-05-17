@@ -37,7 +37,7 @@ internal inline real32 ATan2(real32 Y, real32 X) {
 }
 
 internal inline real32 AbsoluteValue(real32 X) {
-    return (real32)fabs((real64)X);
+    return fabsf(X);
 }
 
 struct bit_scan_result {
@@ -60,6 +60,10 @@ internal inline bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
     }
 #endif
     return Result;
+}
+
+internal inline real32 SquareRoot(real32 X) {
+    return sqrtf(X);
 }
 
 #endif
