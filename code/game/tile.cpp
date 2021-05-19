@@ -14,7 +14,7 @@ struct tile_map_position {
     uint32 AbsTileZ;
 
     //* Offset from the center
-    v2 Offset;
+    v2 Offset_;
 };
 
 struct tile_chunk {
@@ -139,8 +139,8 @@ internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32
 internal inline tile_map_position RecanonicalizePosition(tile_map* TileMap, tile_map_position Pos) {
     tile_map_position Result = Pos;
 
-    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset.X);
-    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset.Y);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset_.X);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset_.Y);
 
     return Result;
 }
@@ -179,7 +179,7 @@ tile_map_difference Subtract(tile_map* TileMap, tile_map_position* A, tile_map_p
 
     real32 dTileZ = TileMap->TileSideInMeters * ((real32)A->AbsTileZ - (real32)B->AbsTileZ);
 
-    Result.dXY = TileMap->TileSideInMeters * dTileXY + (A->Offset - B->Offset);
+    Result.dXY = TileMap->TileSideInMeters * dTileXY + (A->Offset_ - B->Offset_);
 
     Result.dZ = dTileZ;
 
@@ -191,8 +191,14 @@ internal tile_map_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, u
     Pos.AbsTileX = AbsTileX;
     Pos.AbsTileY = AbsTileY;
     Pos.AbsTileZ = AbsTileZ;
-    Pos.Offset = { 0.0f, 0.0f };
+    Pos.Offset_ = { 0.0f, 0.0f };
     return Pos;
+}
+
+inline tile_map_position Offset(tile_map* TileMap, tile_map_position P, v2 Offset) {
+    P.Offset_ += Offset;
+    P = RecanonicalizePosition(TileMap, P);
+    return P;
 }
 
 #endif

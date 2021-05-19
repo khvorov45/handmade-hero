@@ -66,4 +66,8 @@ internal inline real32 SquareRoot(real32 X) {
     return sqrtf(X);
 }
 
+internal inline int32 SignOf(int32 X) {
+    return X >= 0 ? 1 : -1;
+}
+
 #endif
