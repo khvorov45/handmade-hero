@@ -24,6 +24,10 @@ internal inline int32 FloorReal32ToInt32(real32 Real32) {
     return (int32)floorf(Real32);
 }
 
+internal inline int32 CeilReal32ToUint32(real32 Real32) {
+    return (uint32)ceilf(Real32);
+}
+
 internal inline real32 Sin(real32 Angle) {
     return sinf(Angle);
 }

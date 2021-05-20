@@ -129,8 +129,8 @@ internal void InitPlayer(entity* Entity) {
     Entity->P.Offset_.X = 0.0f;
     Entity->P.Offset_.Y = 0.0f;
 
-    Entity->Height = 1.4f;
-    Entity->Width = 0.75f * Entity->Height;
+    Entity->Height = 0.5f;
+    Entity->Width = 1.0f;
 }
 
 internal entity* GetEntity(game_state* GameState, uint32 Index) {
@@ -151,20 +151,23 @@ internal uint32 AddEntity(game_state* GameState) {
     return EntityIndex;
 }
 
-internal void TestWall(
+internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
     real32* tMin, real32 MinY, real32 MaxY
 ) {
+    bool32 Hit = false;
     if (PlayerDeltaX != 0.0f) {
         real32 tResult = (WallX - RelX) / PlayerDeltaX;
         real32 Y = RelY + tResult * PlayerDeltaY;
         if (tResult > 0.0f && *tMin > tResult) {
             if (Y >= MinY && Y <= MaxY) {
+                Hit = true;
                 real32 tEpsilon = 0.0001f;
                 *tMin = Maximum(0.0f, tResult - tEpsilon);
             }
         }
     }
+    return Hit;
 }
 
 
@@ -233,58 +236,71 @@ internal void MovePlayer(game_state* GameState, entity* Entity, real32 dt, v2 dd
         Entity->dP = Entity->dP - 1 * Inner(Entity->dP, r) * r;
     }
 #else
-
-#if 0
     uint32 MinTileX = Minimum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX);
     uint32 MinTileY = Minimum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY);
-    uint32 OnePastMaxTileX = Maximum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX) + 1;
-    uint32 OnePastMaxTileY = Maximum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY) + 1;
-#else
-    uint32 StartTileX = OldPlayerP.AbsTileX;
-    uint32 StartTileY = OldPlayerP.AbsTileY;
-    uint32 EndTileX = NewPlayerP.AbsTileX;
-    uint32 EndTileY = NewPlayerP.AbsTileY;
+    uint32 MaxTileX = Maximum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX);
+    uint32 MaxTileY = Maximum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY);
 
-    int32 DeltaX = SignOf(EndTileX - StartTileX);
-    int32 DeltaY = SignOf(EndTileY - StartTileY);
-#endif
+    uint32 EntityTileWidth = CeilReal32ToUint32(Entity->Width / TileMap->TileSideInMeters);
+    uint32 EntityTileHeight = CeilReal32ToUint32(Entity->Height / TileMap->TileSideInMeters);
+
+    MinTileX -= EntityTileWidth;
+    MinTileY -= EntityTileHeight;
+    MaxTileX += EntityTileWidth;
+    MaxTileY += EntityTileHeight;
+
     uint32 AbsTileZ = Entity->P.AbsTileZ;
-    real32 tMin = 1.0f;
 
-    uint32 AbsTileY = StartTileY;
-    for (;;) {
-        uint32 AbsTileX = StartTileX;
-        for (;;) {
-            tile_map_position TestTileP = CenteredTilePoint(AbsTileX, AbsTileY, AbsTileZ);
-            uint32 TileValue = GetTileValue(TileMap, TestTileP);
-            if (!IsTileValueEmpty(TileValue)) {
-                v2 MinCorner = -0.5f * v2{ TileMap->TileSideInMeters, TileMap->TileSideInMeters };
-                v2 MaxCorner = 0.5f * v2{ TileMap->TileSideInMeters, TileMap->TileSideInMeters };
+    real32 tRemaining = 1.0f;
+    for (uint32 Iteration = 0; Iteration < 4 && tRemaining > 0.0f; ++Iteration) {
+        real32 tMin = 1.0f;
+        v2 WallNormal = {};
 
-                // Need to actually add the corners to the center coordinate
+        Assert(MaxTileX - MinTileX <= 32);
+        Assert(MaxTileY - MinTileY <= 32);
 
-                tile_map_difference RelOldPlayerP = Subtract(TileMap, &OldPlayerP, &TestTileP);
-                v2 Rel = RelOldPlayerP.dXY;
+        for (uint32 AbsTileY = MinTileY; AbsTileY <= MaxTileY; ++AbsTileY) {
+            for (uint32 AbsTileX = MinTileX; AbsTileX <= MaxTileX; ++AbsTileX) {
 
-                TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y);
-                TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y);
-                TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X);
-                TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X);
-            }
-            if (AbsTileX == EndTileX) {
-                break;
-            } else {
-                AbsTileX += DeltaX;
+                tile_map_position TestTileP = CenteredTilePoint(AbsTileX, AbsTileY, AbsTileZ);
+                uint32 TileValue = GetTileValue(TileMap, TestTileP);
+                if (!IsTileValueEmpty(TileValue)) {
+
+                    real32 DiameterW = TileMap->TileSideInMeters + Entity->Width;
+                    real32 DiameterH = TileMap->TileSideInMeters + Entity->Height;
+
+                    v2 MinCorner = -0.5f * v2{ DiameterW, DiameterH };
+                    v2 MaxCorner = 0.5f * v2{ DiameterW, DiameterH };
+
+                    // Need to actually add the corners to the center coordinate
+
+                    tile_map_difference RelOldPlayerP = Subtract(TileMap, &Entity->P, &TestTileP);
+                    v2 Rel = RelOldPlayerP.dXY;
+
+                    if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y)) {
+                        WallNormal = { -1, 0 };
+                    }
+                    if (TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y)) {
+                        WallNormal = { 1, 0 };
+                    }
+                    if (TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X)) {
+                        WallNormal = { 0, -1 };
+                    }
+                    if (TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X)) {
+                        WallNormal = { 0, 1 };
+                    }
+                }
             }
         }
-        if (AbsTileY == EndTileY) {
-            break;
-        } else {
-            AbsTileY += DeltaY;
-        }
+
+        Entity->P = Offset(TileMap, Entity->P, tMin * PlayerDelta);
+
+        Entity->dP = Entity->dP - Inner(Entity->dP, WallNormal) * WallNormal;
+
+        PlayerDelta = PlayerDelta - Inner(PlayerDelta, WallNormal) * WallNormal;
+
+        tRemaining -= tMin * tRemaining;
     }
-
-    Entity->P = Offset(TileMap, OldPlayerP, tMin * PlayerDelta);
 #endif
     if (!AreOnSameTile(&OldPlayerP, &Entity->P)) {
         uint32 NewTileValue = GetTileValue(TileMap, Entity->P);
@@ -643,7 +659,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         real32 PlayerGroundX = ScreenCenterX + Diff.dXY.X * MetersToPixels;
         real32 PlayerGroundY = ScreenCenterY - Diff.dXY.Y * MetersToPixels;
 
-        v2 PlayerLeftTop = { PlayerGroundX - MetersToPixels * 0.5f * Entity->Width, PlayerGroundY - MetersToPixels * Entity->Height };
+        v2 PlayerLeftTop = { PlayerGroundX - MetersToPixels * 0.5f * Entity->Width, PlayerGroundY - 0.5f * MetersToPixels * Entity->Height };
 
         v2 PlayerWidthHeight = { Entity->Width, Entity->Height };
         DrawRectangle(
