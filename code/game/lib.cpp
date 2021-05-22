@@ -560,6 +560,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Controller->MoveRight.EndedDown) {
                 ddPlayer.X = 1;
             }
+            if (Controller->ActionUp.EndedDown) {
+                ControllingEntity.High->dZ = 3.0f;
+            }
         }
 
         MovePlayer(GameState, ControllingEntity, Input->dtForFrame, ddPlayer);
@@ -646,12 +649,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             HighEntity->P += EntityOffsetForFrame;
 
+            real32 dt = Input->dtForFrame;
+            real32 ddZ = -9.8f;
+            HighEntity->Z += 0.5f * ddZ * Square(dt) + HighEntity->dZ * dt;
+            HighEntity->dZ = ddZ * dt + HighEntity->dZ;
+            if (HighEntity->Z < 0) {
+                HighEntity->Z = 0;
+            }
+
             real32 PlayerR = 1;
             real32 PlayerG = 1;
             real32 PlayerB = 0;
 
             real32 PlayerGroundX = ScreenCenterX + HighEntity->P.X * MetersToPixels;
             real32 PlayerGroundY = ScreenCenterY - HighEntity->P.Y * MetersToPixels;
+
+            real32 Z = -HighEntity->Z * MetersToPixels;
 
             v2 PlayerLeftTop = {
                 PlayerGroundX - MetersToPixels * 0.5f * DormantEntity->Width,
@@ -666,9 +679,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PlayerR, PlayerG, PlayerB
             );
             hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[HighEntity->FacingDirection];
-            DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
-            DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
-            DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+            DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+            DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+            DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
         }
     }
 }

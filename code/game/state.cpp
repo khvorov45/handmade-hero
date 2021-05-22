@@ -18,6 +18,9 @@ struct high_entity {
     v2 dP;
     uint32 AbsTileZ;
     uint32 FacingDirection;
+
+    real32 Z;
+    real32 dZ;
 };
 
 struct low_entity {};
