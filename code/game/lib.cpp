@@ -255,8 +255,10 @@ internal void MovePlayer(game_state* GameState, entity Entity, real32 dt, v2 ddP
     v2 NewPlayerP = OldPlayerP + PlayerDelta;
     Entity.High->dP += ddPlayer * dt;
 
-    real32 tRemaining = 1.0f;
-    for (uint32 Iteration = 0; Iteration < 4 && tRemaining > 0.0f; ++Iteration) {
+    for (uint32 Iteration = 0; Iteration < 4; ++Iteration) {
+
+        v2 DesiredPosition = Entity.High->P + PlayerDelta;
+
         real32 tMin = 1.0f;
         v2 WallNormal = {};
         uint32 HitEntityIndex = 0;
@@ -298,8 +300,8 @@ internal void MovePlayer(game_state* GameState, entity Entity, real32 dt, v2 ddP
         Entity.High->P += tMin * PlayerDelta;
         if (HitEntityIndex != 0) {
             Entity.High->dP = Entity.High->dP - Inner(Entity.High->dP, WallNormal) * WallNormal;
+            PlayerDelta = DesiredPosition - Entity.High->P;
             PlayerDelta = PlayerDelta - Inner(PlayerDelta, WallNormal) * WallNormal;
-            tRemaining -= tMin * tRemaining;
 
             entity HitEntity = GetEntity(GameState, EntityResidence_Dormant, HitEntityIndex);
             Entity.High->AbsTileZ += HitEntity.Dormant->dAbsTileZ;
@@ -658,7 +660,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 #endif
         SetCamera(GameState, NewCameraP);
-    }
+        }
 
     //* Clear screen
     DrawRectangle(Buffer, { 0, 0 }, { (real32)Buffer->Width, (real32)Buffer->Height }, 1.0f, 0.0f, 1.0f);
@@ -762,4 +764,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
         }
     }
-}
+    }
