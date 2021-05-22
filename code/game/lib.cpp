@@ -58,7 +58,8 @@ internal void DrawRectangle(
 internal void DrawBMP(
     game_offscreen_buffer* Buffer, loaded_bmp BMP,
     real32 RealStartX, real32 RealStartY,
-    int32 AlignX = 0, int32 AlignY = 0
+    int32 AlignX = 0, int32 AlignY = 0,
+    real32 CAlpha = 1.0f
 ) {
     RealStartX -= (real32)AlignX;
     RealStartY -= (real32)AlignY;
@@ -95,7 +96,7 @@ internal void DrawBMP(
         uint32* Source = SourceRow;
         for (int32 X = StartX; X < EndX; ++X) {
 
-            real32 A = (real32)((*Source >> 24)) / 255.0f;
+            real32 A = (real32)((*Source >> 24)) / 255.0f * CAlpha;
 
             real32 SR = (real32)((*Source >> 16) & 0xFF);
             real32 SG = (real32)((*Source >> 8) & 0xFF);
@@ -338,6 +339,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         GameState->Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
+        GameState->HeroShadow =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_shadow.bmp");
 
         hero_bitmaps* Bitmap;
 
@@ -679,6 +682,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PlayerR, PlayerG, PlayerB
             );
             hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[HighEntity->FacingDirection];
+            DrawBMP(Buffer, GameState->HeroShadow, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY, Maximum(0.0f, 1.0f - HighEntity->Z));
             DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
