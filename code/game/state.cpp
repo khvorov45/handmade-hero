@@ -16,6 +16,7 @@ struct high_entity {
     bool32 Exists;
     v2 P; //* Relative to the camera
     v2 dP;
+    uint32 AbsTileZ;
     uint32 FacingDirection;
 };
 
@@ -25,6 +26,8 @@ struct dormant_entity {
     tile_map_position P;
     real32 Width;
     real32 Height;
+    int32 dAbsTileZ; //* Stairs
+    bool32 Collides;
 };
 
 struct entity {

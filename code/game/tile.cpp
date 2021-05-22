@@ -132,13 +132,14 @@ internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32
     *TileRel -= Offset * TileMap->TileSideInMeters;
 
     //! Sometimes it's right on
-    Assert(*TileRel >= -0.5f * TileMap->TileSideInMeters);
-    Assert(*TileRel <= 0.5f * TileMap->TileSideInMeters);
+    Assert(*TileRel > -0.5f * TileMap->TileSideInMeters);
+    Assert(*TileRel < 0.5f * TileMap->TileSideInMeters);
 }
 
-internal inline tile_map_position RecanonicalizePosition(tile_map* TileMap, tile_map_position Pos) {
-    tile_map_position Result = Pos;
+internal inline tile_map_position MapIntoTileSpace(tile_map* TileMap, tile_map_position BasePos, v2 Offset) {
+    tile_map_position Result = BasePos;
 
+    Result.Offset_ += Offset;
     RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset_.X);
     RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset_.Y);
 
@@ -193,12 +194,6 @@ internal tile_map_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, u
     Pos.AbsTileZ = AbsTileZ;
     Pos.Offset_ = { 0.0f, 0.0f };
     return Pos;
-}
-
-inline tile_map_position Offset(tile_map* TileMap, tile_map_position P, v2 Offset) {
-    P.Offset_ += Offset;
-    P = RecanonicalizePosition(TileMap, P);
-    return P;
 }
 
 #endif
