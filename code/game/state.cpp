@@ -21,6 +21,8 @@ struct high_entity {
 
     real32 Z;
     real32 dZ;
+
+    uint32 LowEntityIndex;
 };
 
 enum entity_type {
@@ -36,18 +38,14 @@ struct low_entity {
     real32 Height;
     int32 dAbsTileZ; //* Stairs
     bool32 Collides;
+
+    uint32 HighEntityIndex;
 };
 
 struct entity {
-    uint32 Residence;
+    uint32 LowIndex;
     low_entity* Low;
     high_entity* High;
-};
-
-enum entity_residence {
-    EntityResidence_Nonexistant,
-    EntityResidence_Low,
-    EntityResidence_High
 };
 
 struct game_state {
@@ -58,10 +56,10 @@ struct game_state {
 
     uint32 PlayerIndexForController[ArrayCount(((game_input*)0)->Controllers)];
 
-    uint32 EntityCount;
-    entity_residence EntityResidence[256];
-    high_entity HighEntities[256];
-    low_entity LowEntities[256];
+    uint32 HighEntityCount;
+    high_entity HighEntities_[256];
+    uint32 LowEntityCount;
+    low_entity LowEntities_[4096];
 
     loaded_bmp Backdrop;
     hero_bitmaps HeroBitmaps[4];

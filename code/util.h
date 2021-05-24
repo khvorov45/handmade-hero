@@ -19,6 +19,8 @@
 #define Assert(Expression)
 #endif
 
+#define InvalidCodePath Assert(!"InvalidCodePath");
+
 inline uint32 SafeTruncateUint64(uint64 Value) {
     Assert(Value <= 0xFFFFFFFF);
     return (uint32)(Value);
