@@ -23,15 +23,13 @@ struct high_entity {
     real32 dZ;
 };
 
-struct low_entity {};
-
 enum entity_type {
     EntityType_Null,
     EntityType_Hero,
     EntityType_Wall
 };
 
-struct dormant_entity {
+struct low_entity {
     entity_type Type;
     tile_map_position P;
     real32 Width;
@@ -43,13 +41,11 @@ struct dormant_entity {
 struct entity {
     uint32 Residence;
     low_entity* Low;
-    dormant_entity* Dormant;
     high_entity* High;
 };
 
 enum entity_residence {
     EntityResidence_Nonexistant,
-    EntityResidence_Dormant,
     EntityResidence_Low,
     EntityResidence_High
 };
@@ -66,7 +62,6 @@ struct game_state {
     entity_residence EntityResidence[256];
     high_entity HighEntities[256];
     low_entity LowEntities[256];
-    dormant_entity DormantEntities[256];
 
     loaded_bmp Backdrop;
     hero_bitmaps HeroBitmaps[4];
