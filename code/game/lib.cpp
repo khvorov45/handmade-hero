@@ -377,15 +377,14 @@ internal void SetCamera(game_state* GameState, tile_map_position NewCameraP) {
     rectangle2 CameraBounds =
         RectCenterDim({ 0, 0 }, TileMap->TileSideInMeters * v2{ (real32)TileSpanX, (real32)TileSpanY });
 
-    for (uint32 EntityIndex = 0; EntityIndex < ArrayCount(GameState->HighEntities); ++EntityIndex) {
-        if (GameState->EntityResidence[EntityIndex] == EntityResidence_High) {
-            high_entity* High = GameState->HighEntities + EntityIndex;
-            High->P += EntityOffsetForFrame;
+    for (uint32 EntityIndex = 0; EntityIndex < ArrayCount(GameState->HighEntities_); ++EntityIndex) {
+        high_entity* High = GameState->HighEntities_ + EntityIndex;
+        High->P += EntityOffsetForFrame;
 
-            if (!IsInRectangle(CameraBounds, High->P)) {
-                ChangeEntityResidence(GameState, EntityIndex, EntityResidence_Low);
-            }
+        if (!IsInRectangle(CameraBounds, High->P)) {
+            ChangeEntityResidence(GameState, EntityIndex, EntityResidence_Low);
         }
+
     }
 
     uint32 MinTileX = NewCameraP.AbsTileX - TileSpanX / 2;
