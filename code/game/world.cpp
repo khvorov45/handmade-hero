@@ -44,12 +44,11 @@ struct world_chunk_position {
 };
 
 struct world {
-    uint32 ChunkShift;
-    uint32 ChunkMask;
-    int32 ChunkDim;
-
     real32 TileSideInMeters;
 
+    uint32 WorldChunkShift;
+    uint32 WorldChunkMask;
+    int32 WorldChunkDim;
     world_chunk WorldChunkHash[4096];
 };
 
@@ -118,7 +117,7 @@ internal inline world_chunk* GetTileChunk(
         }
 
         if (Arena != 0 && Chunk->TileChunkX == TILE_CHUNK_UNINIT) {
-            uint32 TileCount = TileMap->ChunkDim * TileMap->ChunkDim;
+            uint32 TileCount = TileMap->WorldChunkDim * TileMap->WorldChunkDim;
 
             Chunk->TileChunkX = TileChunkX;
             Chunk->TileChunkY = TileChunkY;
@@ -150,11 +149,11 @@ internal void SetTileValue(
 
 internal inline world_chunk_position GetChunkPositionFor(world* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_chunk_position Result;
-    Result.TileChunkX = AbsTileX >> TileMap->ChunkShift;
-    Result.TileChunkY = AbsTileY >> TileMap->ChunkShift;
+    Result.TileChunkX = AbsTileX >> TileMap->WorldChunkShift;
+    Result.TileChunkY = AbsTileY >> TileMap->WorldChunkShift;
     Result.TileChunkZ = AbsTileZ;
-    Result.RelTileX = AbsTileX & TileMap->ChunkMask;
-    Result.RelTileY = AbsTileY & TileMap->ChunkMask;
+    Result.RelTileX = AbsTileX & TileMap->WorldChunkMask;
+    Result.RelTileY = AbsTileY & TileMap->WorldChunkMask;
     return Result;
 }
 
@@ -251,9 +250,9 @@ internal tile_map_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, u
 }
 
 internal void InitializeTileMap(world* TileMap, real32 TileSideInMeters) {
-    TileMap->ChunkShift = 4;
-    TileMap->ChunkMask = (1 << TileMap->ChunkShift) - 1;
-    TileMap->ChunkDim = (1 << TileMap->ChunkShift);
+    TileMap->WorldChunkShift = 4;
+    TileMap->WorldChunkMask = (1 << TileMap->WorldChunkShift) - 1;
+    TileMap->WorldChunkDim = (1 << TileMap->WorldChunkShift);
 
     TileMap->TileSideInMeters = TileSideInMeters;
 
