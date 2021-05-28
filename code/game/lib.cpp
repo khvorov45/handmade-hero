@@ -395,10 +395,10 @@ internal void SetCamera(game_state* GameState, tile_map_position NewCameraP) {
 
     OffsetAndCheckFrequencyByArea(GameState, EntityOffsetForFrame, CameraBounds);
 
-    uint32 MinTileX = NewCameraP.AbsTileX - TileSpanX / 2;
-    uint32 MaxTileX = NewCameraP.AbsTileY + TileSpanX / 2;
-    uint32 MinTileY = NewCameraP.AbsTileY - TileSpanY / 2;
-    uint32 MaxTileY = NewCameraP.AbsTileY + TileSpanY / 2;
+    int32 MinTileX = NewCameraP.AbsTileX - TileSpanX / 2;
+    int32 MaxTileX = NewCameraP.AbsTileY + TileSpanX / 2;
+    int32 MinTileY = NewCameraP.AbsTileY - TileSpanY / 2;
+    int32 MaxTileY = NewCameraP.AbsTileY + TileSpanY / 2;
 
     for (uint32 EntityIndex = 1; EntityIndex < GameState->LowEntityCount; ++EntityIndex) {
         low_entity* Low = GameState->LowEntities_ + EntityIndex;
@@ -494,9 +494,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         uint32 TilesPerWidth = 17;
         uint32 TilesPerHeight = 9;
 
-        uint32 ScreenBaseX = (INT16_MAX / TilesPerWidth) / 2;
-        uint32 ScreenBaseY = (INT16_MAX / TilesPerHeight) / 2;
-        uint32 ScreenBaseZ = INT16_MAX / 2;
+        uint32 ScreenBaseX = 0;
+        uint32 ScreenBaseY = 0;
+        uint32 ScreenBaseZ = 0;
 
         uint32 ScreenX = ScreenBaseX;
         uint32 ScreenY = ScreenBaseY;
@@ -795,5 +795,5 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PlayerR, PlayerG, PlayerB
             );
         }
-        }
     }
+}

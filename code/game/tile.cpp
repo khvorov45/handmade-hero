@@ -10,18 +10,18 @@
 struct tile_map_position {
     //* High bits - tile chunk index
     //* Low bits - tile location in the chunk
-    uint32 AbsTileX;
-    uint32 AbsTileY;
-    uint32 AbsTileZ;
+    int32 AbsTileX;
+    int32 AbsTileY;
+    int32 AbsTileZ;
 
     //* Offset from the center
     v2 Offset_;
 };
 
 struct tile_chunk {
-    uint32 TileChunkX;
-    uint32 TileChunkY;
-    uint32 TileChunkZ;
+    int32 TileChunkX;
+    int32 TileChunkY;
+    int32 TileChunkZ;
 
     uint32* Tiles;
 
@@ -29,25 +29,27 @@ struct tile_chunk {
 };
 
 struct tile_chunk_position {
-    uint32 TileChunkX;
-    uint32 TileChunkY;
-    uint32 TileChunkZ;
+    int32 TileChunkX;
+    int32 TileChunkY;
+    int32 TileChunkZ;
 
-    uint32 RelTileX;
-    uint32 RelTileY;
+    int32 RelTileX;
+    int32 RelTileY;
 };
 
 struct tile_map {
     uint32 ChunkShift;
     uint32 ChunkMask;
-    uint32 ChunkDim;
+    int32 ChunkDim;
 
     real32 TileSideInMeters;
 
     tile_chunk TileChunkHash[4096];
 };
 
-internal inline uint32 GetTileChunkValueUnchecked(tile_map* TileMap, tile_chunk* TileChunk, uint32 TileX, uint32 TileY) {
+internal inline uint32 GetTileChunkValueUnchecked(
+    tile_map* TileMap, tile_chunk* TileChunk, int32 TileX, int32 TileY
+) {
     Assert(TileChunk != 0);
     Assert(TileX < TileMap->ChunkDim);
     Assert(TileY < TileMap->ChunkDim);
@@ -55,7 +57,7 @@ internal inline uint32 GetTileChunkValueUnchecked(tile_map* TileMap, tile_chunk*
 }
 
 internal inline void SetTileChunkValueUnchecked(
-    tile_map* TileMap, tile_chunk* TileChunk, uint32 TileX, uint32 TileY, uint32 TileValue
+    tile_map* TileMap, tile_chunk* TileChunk, int32 TileX, int32 TileY, uint32 TileValue
 ) {
     Assert(TileChunk != 0);
     Assert(TileX < TileMap->ChunkDim);
@@ -64,19 +66,19 @@ internal inline void SetTileChunkValueUnchecked(
 }
 
 internal inline tile_chunk* GetTileChunk(
-    tile_map* TileMap, uint32 TileChunkX, uint32 TileChunkY, uint32 TileChunkZ,
+    tile_map* TileMap, int32 TileChunkX, int32 TileChunkY, int32 TileChunkZ,
     memory_arena* Arena = 0
 ) {
 
-#define TILE_CHUNK_SAFE_MARGIN 256
+#define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
 
-    Assert(TileChunkX > TILE_CHUNK_SAFE_MARGIN);
-    Assert(TileChunkY > TILE_CHUNK_SAFE_MARGIN);
-    Assert(TileChunkZ > TILE_CHUNK_SAFE_MARGIN);
+    Assert(TileChunkX > -TILE_CHUNK_SAFE_MARGIN);
+    Assert(TileChunkY > -TILE_CHUNK_SAFE_MARGIN);
+    Assert(TileChunkZ > -TILE_CHUNK_SAFE_MARGIN);
 
-    Assert(TileChunkX < UINT32_MAX - TILE_CHUNK_SAFE_MARGIN);
-    Assert(TileChunkY < UINT32_MAX - TILE_CHUNK_SAFE_MARGIN);
-    Assert(TileChunkZ < UINT32_MAX - TILE_CHUNK_SAFE_MARGIN);
+    Assert(TileChunkX < TILE_CHUNK_SAFE_MARGIN);
+    Assert(TileChunkY < TILE_CHUNK_SAFE_MARGIN);
+    Assert(TileChunkZ < TILE_CHUNK_SAFE_MARGIN);
 
     uint32 HashValue = 19 * TileChunkX + 7 * TileChunkY + 3 * TileChunkZ;
     uint32 HashSlot = HashValue & (ArrayCount(TileMap->TileChunkHash) - 1);
@@ -172,7 +174,7 @@ internal bool32 IsTileMapPointEmpty(tile_map* TileMap, tile_map_position Canonic
     return IsTileValueEmpty(TileValue);
 }
 
-internal inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32* TileRel) {
+internal inline void RecanonicalizeCoord(tile_map* TileMap, int32* Tile, real32* TileRel) {
     int32 Offset = RoundReal32ToInt32((*TileRel) / TileMap->TileSideInMeters);
 
     *Tile += Offset;
