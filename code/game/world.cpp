@@ -34,6 +34,7 @@ struct world_chunk {
     world_chunk* NextInHash;
 };
 
+#if 0
 struct world_chunk_position {
     int32 TileChunkX;
     int32 TileChunkY;
@@ -42,6 +43,7 @@ struct world_chunk_position {
     int32 RelTileX;
     int32 RelTileY;
 };
+#endif
 
 struct world {
     real32 TileSideInMeters;
@@ -145,7 +147,6 @@ internal void SetTileValue(
 
     return SetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY, TileValue);
 }
-#endif
 
 internal inline world_chunk_position GetChunkPositionFor(world* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_chunk_position Result;
@@ -157,7 +158,6 @@ internal inline world_chunk_position GetChunkPositionFor(world* TileMap, uint32 
     return Result;
 }
 
-#if 0
 internal uint32 GetTileValue(world* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_chunk_position ChunkPos = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
     world_chunk* TileChunk = GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ);
