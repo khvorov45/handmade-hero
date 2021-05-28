@@ -129,7 +129,8 @@ internal high_entity* MakeEntityHigFrequency(game_state* GameState, uint32 LowIn
             uint32 HighIndex = GameState->HighEntityCount++;
             EntityHigh = &GameState->HighEntities_[HighIndex];
 
-            tile_map_difference Diff = Subtract(GameState->World->TileMap, &EntityLow->P, &GameState->CameraP);
+            tile_map_difference Diff =
+                Subtract(GameState->World, &EntityLow->P, &GameState->CameraP);
             EntityHigh->P = Diff.dXY;
             EntityHigh->dP = { 0.0f, 0.0f };
             EntityHigh->AbsTileZ = EntityLow->P.AbsTileZ;
@@ -246,7 +247,7 @@ internal uint32 AddWall(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY,
     EntityLow->P.AbsTileY = AbsTileY;
     EntityLow->P.AbsTileZ = AbsTileZ;
 
-    real32 TileSide = GameState->World->TileMap->TileSideInMeters;
+    real32 TileSide = GameState->World->TileSideInMeters;
 
     EntityLow->Height = TileSide;
     EntityLow->Width = TileSide;
@@ -278,7 +279,7 @@ internal bool32 TestWall(
 
 internal void MovePlayer(game_state* GameState, entity Entity, real32 dt, v2 ddPlayer) {
 
-    tile_map* TileMap = GameState->World->TileMap;
+    world* TileMap = GameState->World;
 
     real32 ddPlayerLengthSq = LengthSq(ddPlayer);
     if (ddPlayerLengthSq > 1.0f) {
@@ -375,12 +376,12 @@ internal void MovePlayer(game_state* GameState, entity Entity, real32 dt, v2 ddP
         }
     }
 
-    Entity.Low->P = MapIntoTileSpace(GameState->World->TileMap, GameState->CameraP, Entity.High->P);
+    Entity.Low->P = MapIntoTileSpace(GameState->World, GameState->CameraP, Entity.High->P);
 }
 
 internal void SetCamera(game_state* GameState, tile_map_position NewCameraP) {
 
-    tile_map* TileMap = GameState->World->TileMap;
+    world* TileMap = GameState->World;
     tile_map_difference dCameraP = Subtract(TileMap, &NewCameraP, &GameState->CameraP);
 
     GameState->CameraP = NewCameraP;
@@ -487,9 +488,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         );
 
         GameState->World = PushStruct(&GameState->WorldArena, world);
-        world* World = GameState->World;
-        World->TileMap = PushStruct(&GameState->WorldArena, tile_map);
-        tile_map* TileMap = World->TileMap;
+        world* TileMap = GameState->World;
         InitializeTileMap(TileMap, 1.4f);
 
         uint32 TilesPerWidth = 17;
@@ -616,7 +615,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     world* World = GameState->World;
-    tile_map* TileMap = World->TileMap;
+    world* TileMap = World;
 
     uint32 TileSideInPixels = 60;
     real32 MetersToPixels = (real32)TileSideInPixels / (real32)TileMap->TileSideInMeters;
