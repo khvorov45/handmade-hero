@@ -48,7 +48,7 @@ struct entity {
 };
 
 struct low_entity_chunk_reference {
-    tile_chunk* TileChunk;
+    world_chunk* TileChunk;
     uint32 EntityIndexInChunk;
 };
 
