@@ -1,6 +1,7 @@
 #if !defined(HANDMADE_TILE_CPP)
 #define HANDMADE_TILE_CPP
 
+#include "../intrinsics.H"
 #include "../types.h"
 #include "../util.h"
 #include "memory.cpp"
