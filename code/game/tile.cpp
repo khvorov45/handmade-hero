@@ -65,13 +65,13 @@ internal inline void SetTileChunkValueUnchecked(
     TileChunk->Tiles[TileY * TileMap->ChunkDim + TileX] = TileValue;
 }
 
+#define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
+#define TILE_CHUNK_UNINIT INT32_MAX
+
 internal inline tile_chunk* GetTileChunk(
     tile_map* TileMap, int32 TileChunkX, int32 TileChunkY, int32 TileChunkZ,
     memory_arena* Arena = 0
 ) {
-
-#define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
-
     Assert(TileChunkX > -TILE_CHUNK_SAFE_MARGIN);
     Assert(TileChunkY > -TILE_CHUNK_SAFE_MARGIN);
     Assert(TileChunkZ > -TILE_CHUNK_SAFE_MARGIN);
@@ -93,13 +93,13 @@ internal inline tile_chunk* GetTileChunk(
             break;
         }
 
-        if (Arena != 0 && Chunk->Tiles != 0 && Chunk->NextInHash == 0) {
+        if (Arena != 0 && Chunk->TileChunkX != TILE_CHUNK_UNINIT && Chunk->NextInHash == 0) {
             Chunk->NextInHash = PushStruct(Arena, tile_chunk);
             Chunk = Chunk->NextInHash;
-            Chunk->Tiles = 0;
+            Chunk->TileChunkX = TILE_CHUNK_UNINIT;
         }
 
-        if (Arena != 0 && Chunk->Tiles == 0) {
+        if (Arena != 0 && Chunk->TileChunkX == TILE_CHUNK_UNINIT) {
             uint32 TileCount = TileMap->ChunkDim * TileMap->ChunkDim;
 
             Chunk->TileChunkX = TileChunkX;
@@ -248,7 +248,7 @@ internal void InitializeTileMap(tile_map* TileMap, real32 TileSideInMeters) {
     TileMap->TileSideInMeters = TileSideInMeters;
 
     for (uint32 TileChunkIndex = 0; TileChunkIndex < ArrayCount(TileMap->TileChunkHash); ++TileChunkIndex) {
-        TileMap->TileChunkHash[TileChunkIndex].Tiles = 0;
+        TileMap->TileChunkHash[TileChunkIndex].TileChunkX = TILE_CHUNK_UNINIT;
     }
 }
 
