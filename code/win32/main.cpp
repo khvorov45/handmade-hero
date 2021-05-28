@@ -931,7 +931,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     game_memory GameMemory;
     GameMemory.IsInitialized = false;
-    GameMemory.PermanentStorageSize = Megabytes(64);
+    GameMemory.PermanentStorageSize = Megabytes(256);
     GameMemory.TransientStorageSize = Gigabytes(1);
 
     Win32State.TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;

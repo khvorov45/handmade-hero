@@ -18,12 +18,18 @@ struct tile_map_position {
     v2 Offset_;
 };
 
+struct tile_entity_block {
+    uint32 EntityCount;
+    uint32 LowEntityIndex[16];
+    tile_entity_block* Next;
+};
+
 struct tile_chunk {
     int32 TileChunkX;
     int32 TileChunkY;
     int32 TileChunkZ;
 
-    uint32* Tiles;
+    tile_entity_block FirstBlock;
 
     tile_chunk* NextInHash;
 };
@@ -47,6 +53,7 @@ struct tile_map {
     tile_chunk TileChunkHash[4096];
 };
 
+#if 0
 internal inline uint32 GetTileChunkValueUnchecked(
     tile_map* TileMap, tile_chunk* TileChunk, int32 TileX, int32 TileY
 ) {
@@ -64,6 +71,18 @@ internal inline void SetTileChunkValueUnchecked(
     Assert(TileY < TileMap->ChunkDim);
     TileChunk->Tiles[TileY * TileMap->ChunkDim + TileX] = TileValue;
 }
+internal uint32 GetTileChunkValue(
+    tile_map* TileMap,
+    tile_chunk* TileChunk,
+    uint32 TestTileX, uint32 TestTileY
+) {
+    if (TileChunk == 0 || TileChunk->Tiles == 0) {
+        return 0;
+    }
+
+    return GetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
+}
+#endif
 
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
 #define TILE_CHUNK_UNINIT INT32_MAX
@@ -106,10 +125,6 @@ internal inline tile_chunk* GetTileChunk(
             Chunk->TileChunkY = TileChunkY;
             Chunk->TileChunkZ = TileChunkZ;
 
-            Chunk->Tiles = PushArray(Arena, TileCount, uint32);
-            for (uint32 TileIndex = 0; TileIndex < TileCount; ++TileIndex) {
-                Chunk->Tiles[TileIndex] = 1;
-            }
             Chunk->NextInHash = 0;
             break;
         }
@@ -119,18 +134,7 @@ internal inline tile_chunk* GetTileChunk(
     return Chunk;
 }
 
-internal uint32 GetTileChunkValue(
-    tile_map* TileMap,
-    tile_chunk* TileChunk,
-    uint32 TestTileX, uint32 TestTileY
-) {
-    if (TileChunk == 0 || TileChunk->Tiles == 0) {
-        return 0;
-    }
-
-    return GetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
-}
-
+#if 0
 internal void SetTileValue(
     tile_map* TileMap,
     tile_chunk* TileChunk,
@@ -143,6 +147,7 @@ internal void SetTileValue(
 
     return SetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY, TileValue);
 }
+#endif
 
 internal inline tile_chunk_position GetChunkPositionFor(tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     tile_chunk_position Result;
@@ -154,6 +159,7 @@ internal inline tile_chunk_position GetChunkPositionFor(tile_map* TileMap, uint3
     return Result;
 }
 
+#if 0
 internal uint32 GetTileValue(tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     tile_chunk_position ChunkPos = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
     tile_chunk* TileChunk = GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ);
@@ -164,15 +170,18 @@ internal uint32 GetTileValue(tile_map* TileMap, uint32 AbsTileX, uint32 AbsTileY
 internal uint32 GetTileValue(tile_map* TileMap, tile_map_position Pos) {
     return GetTileValue(TileMap, Pos.AbsTileX, Pos.AbsTileY, Pos.AbsTileZ);
 }
+#endif
 
 internal bool32 IsTileValueEmpty(uint32 TileValue) {
     return TileValue == 1 || TileValue == 3 || TileValue == 4;
 }
 
+#if 0
 internal bool32 IsTileMapPointEmpty(tile_map* TileMap, tile_map_position CanonicalPos) {
     uint32 TileValue = GetTileValue(TileMap, CanonicalPos.AbsTileX, CanonicalPos.AbsTileY, CanonicalPos.AbsTileZ);
     return IsTileValueEmpty(TileValue);
 }
+#endif
 
 internal inline void RecanonicalizeCoord(tile_map* TileMap, int32* Tile, real32* TileRel) {
     int32 Offset = RoundReal32ToInt32((*TileRel) / TileMap->TileSideInMeters);
@@ -195,6 +204,7 @@ internal inline tile_map_position MapIntoTileSpace(tile_map* TileMap, tile_map_p
     return Result;
 }
 
+#if 0
 internal void SetTileValue(
     memory_arena* Arena, tile_map* TileMap,
     uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ,
@@ -205,6 +215,7 @@ internal void SetTileValue(
         GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ, Arena);
     SetTileValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY, TileValue);
 }
+#endif
 
 internal bool32 AreOnSameTile(tile_map_position* Pos1, tile_map_position* Pos2) {
     return Pos1->AbsTileX == Pos2->AbsTileX &&

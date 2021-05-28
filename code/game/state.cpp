@@ -48,6 +48,11 @@ struct entity {
     high_entity* High;
 };
 
+struct low_entity_chunk_reference {
+    tile_chunk* TileChunk;
+    uint32 EntityIndexInChunk;
+};
+
 struct game_state {
     memory_arena WorldArena;
     world* World;
@@ -58,8 +63,9 @@ struct game_state {
 
     uint32 HighEntityCount;
     high_entity HighEntities_[256];
+
     uint32 LowEntityCount;
-    low_entity LowEntities_[4096];
+    low_entity LowEntities_[1000000];
 
     loaded_bmp Backdrop;
     hero_bitmaps HeroBitmaps[4];

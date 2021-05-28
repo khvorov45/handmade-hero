@@ -566,10 +566,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         }
                     }
 
-                    SetTileValue(
-                        &GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY, AbsTileZ,
-                        TileValue
-                    );
                     if (TileValue == 2) {
                         AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
                     }
@@ -603,6 +599,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
 
         }
+
+#if 0
+        while (GameState->LowEntityCount < (ArrayCount(GameState->LowEntities_) - 16)) {
+            uint32 Coordinate = 1024 + GameState->LowEntityCount;
+            AddWall(GameState, Coordinate, Coordinate, Coordinate);
+        }
+#endif
 
         tile_map_position NewCameraP = {};
         NewCameraP.AbsTileX = ScreenBaseX * TilesPerWidth + 17 / 2;
@@ -685,16 +688,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             NewCameraP.AbsTileY -= 9;
         }
 #else
-        if (CameraFollowingEntity.High->P.X > 1.0f * TileMap->TileSideInMeters) {
-            NewCameraP.AbsTileX += 2;
-        } else if (CameraFollowingEntity.High->P.X < -1.0f * TileMap->TileSideInMeters) {
-            NewCameraP.AbsTileX -= 2;
-        }
-        if (CameraFollowingEntity.High->P.Y > 1.0f * TileMap->TileSideInMeters) {
-            NewCameraP.AbsTileY += 2;
-        } else if (CameraFollowingEntity.High->P.Y < -1.0f * TileMap->TileSideInMeters) {
-            NewCameraP.AbsTileY -= 2;
-        }
+        NewCameraP = CameraFollowingEntity.Low->P;
 #endif
         SetCamera(GameState, NewCameraP);
     }
@@ -797,5 +791,5 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PlayerR, PlayerG, PlayerB
             );
         }
+        }
     }
-}
