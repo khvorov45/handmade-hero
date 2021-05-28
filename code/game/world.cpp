@@ -25,9 +25,9 @@ struct tile_entity_block {
 };
 
 struct world_chunk {
-    int32 TileChunkX;
-    int32 TileChunkY;
-    int32 TileChunkZ;
+    int32 ChunkX;
+    int32 ChunkY;
+    int32 ChunkZ;
 
     tile_entity_block FirstBlock;
 
@@ -104,24 +104,24 @@ internal inline world_chunk* GetTileChunk(
     world_chunk* Chunk = TileMap->WorldChunkHash + HashSlot;
 
     while (Chunk != 0) {
-        if ((TileChunkX == Chunk->TileChunkX) &&
-            (TileChunkY == Chunk->TileChunkY) &&
-            (TileChunkZ == Chunk->TileChunkY)) {
+        if ((TileChunkX == Chunk->ChunkX) &&
+            (TileChunkY == Chunk->ChunkY) &&
+            (TileChunkZ == Chunk->ChunkY)) {
             break;
         }
 
-        if (Arena != 0 && Chunk->TileChunkX != TILE_CHUNK_UNINIT && Chunk->NextInHash == 0) {
+        if (Arena != 0 && Chunk->ChunkX != TILE_CHUNK_UNINIT && Chunk->NextInHash == 0) {
             Chunk->NextInHash = PushStruct(Arena, world_chunk);
             Chunk = Chunk->NextInHash;
-            Chunk->TileChunkX = TILE_CHUNK_UNINIT;
+            Chunk->ChunkX = TILE_CHUNK_UNINIT;
         }
 
-        if (Arena != 0 && Chunk->TileChunkX == TILE_CHUNK_UNINIT) {
+        if (Arena != 0 && Chunk->ChunkX == TILE_CHUNK_UNINIT) {
             uint32 TileCount = TileMap->WorldChunkDim * TileMap->WorldChunkDim;
 
-            Chunk->TileChunkX = TileChunkX;
-            Chunk->TileChunkY = TileChunkY;
-            Chunk->TileChunkZ = TileChunkZ;
+            Chunk->ChunkX = TileChunkX;
+            Chunk->ChunkY = TileChunkY;
+            Chunk->ChunkZ = TileChunkZ;
 
             Chunk->NextInHash = 0;
             break;
@@ -257,7 +257,7 @@ internal void InitializeTileMap(world* TileMap, real32 TileSideInMeters) {
     TileMap->TileSideInMeters = TileSideInMeters;
 
     for (uint32 TileChunkIndex = 0; TileChunkIndex < ArrayCount(TileMap->WorldChunkHash); ++TileChunkIndex) {
-        TileMap->WorldChunkHash[TileChunkIndex].TileChunkX = TILE_CHUNK_UNINIT;
+        TileMap->WorldChunkHash[TileChunkIndex].ChunkX = TILE_CHUNK_UNINIT;
     }
 }
 
