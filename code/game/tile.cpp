@@ -53,6 +53,10 @@ struct tile_map {
     tile_chunk TileChunkHash[4096];
 };
 
+struct world {
+    tile_map* TileMap;
+};
+
 #if 0
 internal inline uint32 GetTileChunkValueUnchecked(
     tile_map* TileMap, tile_chunk* TileChunk, int32 TileX, int32 TileY

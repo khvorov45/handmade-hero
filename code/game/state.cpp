@@ -1,5 +1,4 @@
 #include "tile.cpp"
-#include "world.cpp"
 #include "memory.cpp"
 #include "bmp.cpp"
 #include "math.cpp"

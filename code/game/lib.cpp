@@ -1,6 +1,5 @@
 #include "lib.hpp"
 #include "tile.cpp"
-#include "world.cpp"
 #include "state.cpp"
 #include "random.cpp"
 #include "math.cpp"
@@ -614,7 +613,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         SetCamera(GameState, NewCameraP);
 
         Memory->IsInitialized = true;
-    }
+        }
 
     world* World = GameState->World;
     tile_map* TileMap = World->TileMap;
@@ -791,5 +790,5 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PlayerR, PlayerG, PlayerB
             );
         }
-        }
+    }
     }
