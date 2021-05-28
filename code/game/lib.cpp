@@ -166,11 +166,13 @@ internal void MakeEntityLowFrequency(game_state* GameState, uint32 LowIndex) {
     }
 }
 
-internal inline void OffsetAndCheckFrequencyByArea(game_state* GameState, v2 Offset, rectangle2 CameraBounds) {
+internal inline void OffsetAndCheckFrequencyByArea(
+    game_state* GameState, v2 Offset, rectangle2 HighFrequencyBounds
+) {
     for (uint32 EntityIndex = 1; EntityIndex < GameState->HighEntityCount;) {
         high_entity* High = GameState->HighEntities_ + EntityIndex;
         High->P += Offset;
-        if (IsInRectangle(CameraBounds, High->P)) {
+        if (IsInRectangle(HighFrequencyBounds, High->P)) {
             EntityIndex++;
         } else {
             MakeEntityLowFrequency(GameState, High->LowEntityIndex);
