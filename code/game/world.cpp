@@ -1,5 +1,5 @@
-#if !defined(HANDMADE_TILE_CPP)
-#define HANDMADE_TILE_CPP
+#if !defined(HANDMADE_WORLD_CPP)
+#define HANDMADE_WORLD_CPP
 
 #include "../intrinsics.H"
 #include "../types.h"
