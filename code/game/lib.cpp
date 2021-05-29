@@ -379,7 +379,7 @@ internal void MovePlayer(game_state* GameState, entity Entity, real32 dt, v2 ddP
     Entity.Low->P = MapIntoTileSpace(GameState->World, GameState->CameraP, Entity.High->P);
 }
 
-internal void SetCamera(game_state* GameState, tile_map_position NewCameraP) {
+internal void SetCamera(game_state* GameState, world_map_position NewCameraP) {
 
     world* TileMap = GameState->World;
     tile_map_difference dCameraP = Subtract(TileMap, &NewCameraP, &GameState->CameraP);
@@ -605,7 +605,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 #endif
 
-        tile_map_position NewCameraP = {};
+        world_map_position NewCameraP = {};
         NewCameraP.AbsTileX = ScreenBaseX * TilesPerWidth + 17 / 2;
         NewCameraP.AbsTileY = ScreenBaseY * TilesPerHeight + 9 / 2;
         NewCameraP.AbsTileZ = ScreenBaseZ;
@@ -670,7 +670,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     entity CameraFollowingEntity = GetHighEntity(GameState, GameState->CameraFollowingEntityIndex);
     if (CameraFollowingEntity.High != 0) {
 
-        tile_map_position NewCameraP = GameState->CameraP;
+        world_map_position NewCameraP = GameState->CameraP;
 
         NewCameraP.AbsTileZ = CameraFollowingEntity.Low->P.AbsTileZ;
 
