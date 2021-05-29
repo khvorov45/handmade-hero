@@ -18,10 +18,10 @@ struct tile_map_position {
     v2 Offset_;
 };
 
-struct tile_entity_block {
+struct world_entity_block {
     uint32 EntityCount;
     uint32 LowEntityIndex[16];
-    tile_entity_block* Next;
+    world_entity_block* Next;
 };
 
 struct world_chunk {
@@ -29,7 +29,7 @@ struct world_chunk {
     int32 ChunkY;
     int32 ChunkZ;
 
-    tile_entity_block FirstBlock;
+    world_entity_block FirstBlock;
 
     world_chunk* NextInHash;
 };
