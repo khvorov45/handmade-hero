@@ -18,6 +18,11 @@ struct world_map_position {
     v2 Offset_;
 };
 
+struct world_map_difference {
+    v2 dXY;
+    real32 dZ;
+};
+
 struct world_entity_block {
     uint32 EntityCount;
     uint32 LowEntityIndex[16];
@@ -221,13 +226,8 @@ internal bool32 AreOnSameTile(world_map_position* Pos1, world_map_position* Pos2
         Pos1->AbsTileZ == Pos2->AbsTileZ;
 }
 
-struct tile_map_difference {
-    v2 dXY;
-    real32 dZ;
-};
-
-tile_map_difference Subtract(world* TileMap, world_map_position* A, world_map_position* B) {
-    tile_map_difference Result = {};
+world_map_difference Subtract(world* TileMap, world_map_position* A, world_map_position* B) {
+    world_map_difference Result = {};
 
     v2 dTileXY = { (real32)A->AbsTileX - (real32)B->AbsTileX, (real32)A->AbsTileY - (real32)B->AbsTileY };
 

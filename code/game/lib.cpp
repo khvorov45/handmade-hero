@@ -129,7 +129,7 @@ internal high_entity* MakeEntityHigFrequency(game_state* GameState, uint32 LowIn
             uint32 HighIndex = GameState->HighEntityCount++;
             EntityHigh = &GameState->HighEntities_[HighIndex];
 
-            tile_map_difference Diff =
+            world_map_difference Diff =
                 Subtract(GameState->World, &EntityLow->P, &GameState->CameraP);
             EntityHigh->P = Diff.dXY;
             EntityHigh->dP = { 0.0f, 0.0f };
@@ -382,7 +382,7 @@ internal void MovePlayer(game_state* GameState, entity Entity, real32 dt, v2 ddP
 internal void SetCamera(game_state* GameState, world_map_position NewCameraP) {
 
     world* TileMap = GameState->World;
-    tile_map_difference dCameraP = Subtract(TileMap, &NewCameraP, &GameState->CameraP);
+    world_map_difference dCameraP = Subtract(TileMap, &NewCameraP, &GameState->CameraP);
 
     GameState->CameraP = NewCameraP;
 
