@@ -18,7 +18,7 @@ struct world_position {
     v2 Offset_;
 };
 
-struct world_map_difference {
+struct world_difference {
     v2 dXY;
     real32 dZ;
 };
@@ -226,8 +226,8 @@ internal bool32 AreOnSameTile(world_position* Pos1, world_position* Pos2) {
         Pos1->AbsTileZ == Pos2->AbsTileZ;
 }
 
-world_map_difference Subtract(world* TileMap, world_position* A, world_position* B) {
-    world_map_difference Result = {};
+world_difference Subtract(world* TileMap, world_position* A, world_position* B) {
+    world_difference Result = {};
 
     v2 dTileXY = { (real32)A->AbsTileX - (real32)B->AbsTileX, (real32)A->AbsTileY - (real32)B->AbsTileY };
 
