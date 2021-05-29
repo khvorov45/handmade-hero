@@ -60,7 +60,7 @@ struct world {
 };
 
 #if 0
-internal inline uint32 GetTileChunkValueUnchecked(
+internal inline uint32 GetWorldChunkValueUnchecked(
     world* TileMap, world_chunk* TileChunk, int32 TileX, int32 TileY
 ) {
     Assert(TileChunk != 0);
@@ -77,7 +77,7 @@ internal inline void SetTileChunkValueUnchecked(
     Assert(TileY < TileMap->ChunkDim);
     TileChunk->Tiles[TileY * TileMap->ChunkDim + TileX] = TileValue;
 }
-internal uint32 GetTileChunkValue(
+internal uint32 GetWorldChunkValue(
     world* TileMap,
     world_chunk* TileChunk,
     uint32 TestTileX, uint32 TestTileY
@@ -85,14 +85,14 @@ internal uint32 GetTileChunkValue(
     if (TileChunk == 0 || TileChunk->Tiles == 0) {
         return 0;
     }
-    return GetTileChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
+    return GetWorldChunkValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
 }
 #endif
 
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
 #define TILE_CHUNK_UNINIT INT32_MAX
 
-internal inline world_chunk* GetTileChunk(
+internal inline world_chunk* GetWorldChunk(
     world* TileMap, int32 TileChunkX, int32 TileChunkY, int32 TileChunkZ,
     memory_arena* Arena = 0
 ) {
@@ -165,8 +165,8 @@ internal inline world_chunk_position GetChunkPositionFor(world* TileMap, uint32 
 
 internal uint32 GetTileValue(world* TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_chunk_position ChunkPos = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
-    world_chunk* TileChunk = GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ);
-    uint32 TileValue = GetTileChunkValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY);
+    world_chunk* TileChunk = GetWorldChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ);
+    uint32 TileValue = GetWorldChunkValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY);
     return TileValue;
 }
 
@@ -215,7 +215,7 @@ internal void SetTileValue(
 ) {
     world_chunk_position ChunkPos = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
     world_chunk* TileChunk =
-        GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ, Arena);
+        GetWorldChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ, Arena);
     SetTileValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY, TileValue);
 }
 #endif
