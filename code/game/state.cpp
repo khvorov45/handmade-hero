@@ -32,7 +32,7 @@ enum entity_type {
 
 struct low_entity {
     entity_type Type;
-    world_map_position P;
+    world_position P;
     real32 Width;
     real32 Height;
     int32 dAbsTileZ; //* Stairs
@@ -56,7 +56,7 @@ struct game_state {
     memory_arena WorldArena;
     world* World;
     uint32 CameraFollowingEntityIndex;
-    world_map_position CameraP;
+    world_position CameraP;
 
     uint32 PlayerIndexForController[ArrayCount(((game_input*)0)->Controllers)];
 

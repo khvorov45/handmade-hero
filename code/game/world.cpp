@@ -7,7 +7,7 @@
 #include "memory.cpp"
 #include "math.cpp"
 
-struct world_map_position {
+struct world_position {
     //* High bits - tile chunk index
     //* Low bits - tile location in the chunk
     int32 AbsTileX;
@@ -170,7 +170,7 @@ internal uint32 GetTileValue(world* TileMap, uint32 AbsTileX, uint32 AbsTileY, u
     return TileValue;
 }
 
-internal uint32 GetTileValue(world* TileMap, world_map_position Pos) {
+internal uint32 GetTileValue(world* TileMap, world_position Pos) {
     return GetTileValue(TileMap, Pos.AbsTileX, Pos.AbsTileY, Pos.AbsTileZ);
 }
 #endif
@@ -180,7 +180,7 @@ internal bool32 IsTileValueEmpty(uint32 TileValue) {
 }
 
 #if 0
-internal bool32 IsTileMapPointEmpty(world* TileMap, world_map_position CanonicalPos) {
+internal bool32 IsTileMapPointEmpty(world* TileMap, world_position CanonicalPos) {
     uint32 TileValue = GetTileValue(TileMap, CanonicalPos.AbsTileX, CanonicalPos.AbsTileY, CanonicalPos.AbsTileZ);
     return IsTileValueEmpty(TileValue);
 }
@@ -197,8 +197,8 @@ internal inline void RecanonicalizeCoord(world* TileMap, int32* Tile, real32* Ti
     Assert(*TileRel < 0.5f * TileMap->TileSideInMeters);
 }
 
-internal inline world_map_position MapIntoTileSpace(world* TileMap, world_map_position BasePos, v2 Offset) {
-    world_map_position Result = BasePos;
+internal inline world_position MapIntoTileSpace(world* TileMap, world_position BasePos, v2 Offset) {
+    world_position Result = BasePos;
 
     Result.Offset_ += Offset;
     RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset_.X);
@@ -220,13 +220,13 @@ internal void SetTileValue(
 }
 #endif
 
-internal bool32 AreOnSameTile(world_map_position* Pos1, world_map_position* Pos2) {
+internal bool32 AreOnSameTile(world_position* Pos1, world_position* Pos2) {
     return Pos1->AbsTileX == Pos2->AbsTileX &&
         Pos1->AbsTileY == Pos2->AbsTileY &&
         Pos1->AbsTileZ == Pos2->AbsTileZ;
 }
 
-world_map_difference Subtract(world* TileMap, world_map_position* A, world_map_position* B) {
+world_map_difference Subtract(world* TileMap, world_position* A, world_position* B) {
     world_map_difference Result = {};
 
     v2 dTileXY = { (real32)A->AbsTileX - (real32)B->AbsTileX, (real32)A->AbsTileY - (real32)B->AbsTileY };
@@ -240,8 +240,8 @@ world_map_difference Subtract(world* TileMap, world_map_position* A, world_map_p
     return Result;
 }
 
-internal world_map_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
-    world_map_position Pos;
+internal world_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+    world_position Pos;
     Pos.AbsTileX = AbsTileX;
     Pos.AbsTileY = AbsTileY;
     Pos.AbsTileZ = AbsTileZ;
