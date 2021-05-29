@@ -489,7 +489,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         GameState->World = PushStruct(&GameState->WorldArena, world);
         world* TileMap = GameState->World;
-        InitializeTileMap(TileMap, 1.4f);
+        InitializeWorld(TileMap, 1.4f);
 
         uint32 TilesPerWidth = 17;
         uint32 TilesPerHeight = 9;
