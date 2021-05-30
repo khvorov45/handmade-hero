@@ -398,7 +398,7 @@ internal void SetCamera(game_state* GameState, world_position NewCameraP) {
     OffsetAndCheckFrequencyByArea(GameState, EntityOffsetForFrame, CameraBounds);
 
     int32 MinTileX = NewCameraP.AbsTileX - TileSpanX / 2;
-    int32 MaxTileX = NewCameraP.AbsTileY + TileSpanX / 2;
+    int32 MaxTileX = NewCameraP.AbsTileX + TileSpanX / 2;
     int32 MinTileY = NewCameraP.AbsTileY - TileSpanY / 2;
     int32 MaxTileY = NewCameraP.AbsTileY + TileSpanY / 2;
 
