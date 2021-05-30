@@ -15,7 +15,7 @@ struct high_entity {
     bool32 Exists;
     v2 P; //* Relative to the camera
     v2 dP;
-    uint32 AbsTileZ;
+    uint32 ChunkZ;
     uint32 FacingDirection;
 
     real32 Z;

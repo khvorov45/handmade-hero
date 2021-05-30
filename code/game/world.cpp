@@ -8,13 +8,11 @@
 #include "math.cpp"
 
 struct world_position {
-    //* High bits - tile chunk index
-    //* Low bits - tile location in the chunk
-    int32 AbsTileX;
-    int32 AbsTileY;
-    int32 AbsTileZ;
+    int32 ChunkX;
+    int32 ChunkY;
+    int32 ChunkZ;
 
-    //* Offset from the center
+    //* Offset from the chunk center
     v2 Offset_;
 };
 
@@ -52,11 +50,9 @@ struct world_chunk_position {
 
 struct world {
     real32 TileSideInMeters;
-
-    uint32 ChunkShift;
-    uint32 ChunkMask;
-    int32 ChunkDim;
+    real32 ChunkSideInMeters;
     world_chunk ChunkHash[4096];
+    world_entity_block* FirstFree;
 };
 
 #if 0
@@ -124,7 +120,6 @@ internal inline world_chunk* GetChunk(
         }
 
         if (Arena != 0 && Chunk->ChunkX == TILE_CHUNK_UNINIT) {
-            uint32 TileCount = World->ChunkDim * World->ChunkDim;
 
             Chunk->ChunkX = ChunkX;
             Chunk->ChunkY = ChunkY;
@@ -186,23 +181,33 @@ internal bool32 IsWorldPointEmpty(world* World, world_position CanonicalPos) {
 }
 #endif
 
+internal bool32 IsCanonical(world* World, real32 TileRel) {
+    //! Sometimes it's right on
+    bool32 Result = (TileRel >= -0.5f * World->ChunkSideInMeters)
+        && (TileRel <= 0.5f * World->ChunkSideInMeters);
+    return Result;
+}
+
+internal bool32 IsCanonical(world* World, v2 Offset) {
+    bool32 Result = IsCanonical(World, Offset.X) && IsCanonical(World, Offset.Y);
+    return Result;
+}
+
 internal inline void RecanonicalizeCoord(world* World, int32* Tile, real32* TileRel) {
-    int32 Offset = RoundReal32ToInt32((*TileRel) / World->TileSideInMeters);
+    int32 Offset = RoundReal32ToInt32((*TileRel) / World->ChunkSideInMeters);
 
     *Tile += Offset;
-    *TileRel -= Offset * World->TileSideInMeters;
+    *TileRel -= Offset * World->ChunkSideInMeters;
 
-    //! Sometimes it's right on
-    Assert(*TileRel > -0.5f * World->TileSideInMeters);
-    Assert(*TileRel < 0.5f * World->TileSideInMeters);
+    Assert(IsCanonical(World, *TileRel));
 }
 
 internal inline world_position MapIntoTileSpace(world* World, world_position BasePos, v2 Offset) {
     world_position Result = BasePos;
 
     Result.Offset_ += Offset;
-    RecanonicalizeCoord(World, &Result.AbsTileX, &Result.Offset_.X);
-    RecanonicalizeCoord(World, &Result.AbsTileY, &Result.Offset_.Y);
+    RecanonicalizeCoord(World, &Result.ChunkX, &Result.Offset_.X);
+    RecanonicalizeCoord(World, &Result.ChunkY, &Result.Offset_.Y);
 
     return Result;
 }
@@ -220,45 +225,117 @@ internal void SetTileValue(
 }
 #endif
 
-internal bool32 AreOnSameTile(world_position* Pos1, world_position* Pos2) {
-    return Pos1->AbsTileX == Pos2->AbsTileX &&
-        Pos1->AbsTileY == Pos2->AbsTileY &&
-        Pos1->AbsTileZ == Pos2->AbsTileZ;
+internal bool32 AreInSameChunk(world* World, world_position* Pos1, world_position* Pos2) {
+    Assert(IsCanonical(World, Pos1->Offset_));
+    Assert(IsCanonical(World, Pos2->Offset_));
+
+    return Pos1->ChunkX == Pos2->ChunkX &&
+        Pos1->ChunkY == Pos2->ChunkY &&
+        Pos1->ChunkZ == Pos2->ChunkZ;
 }
 
 world_difference Subtract(world* World, world_position* A, world_position* B) {
     world_difference Result = {};
 
-    v2 dTileXY = { (real32)A->AbsTileX - (real32)B->AbsTileX, (real32)A->AbsTileY - (real32)B->AbsTileY };
+    v2 dTileXY = { (real32)A->ChunkX - (real32)B->ChunkX, (real32)A->ChunkY - (real32)B->ChunkY };
 
-    real32 dTileZ = World->TileSideInMeters * ((real32)A->AbsTileZ - (real32)B->AbsTileZ);
+    real32 dTileZ = World->ChunkSideInMeters * ((real32)A->ChunkZ - (real32)B->ChunkZ);
 
-    Result.dXY = World->TileSideInMeters * dTileXY + (A->Offset_ - B->Offset_);
+    Result.dXY = World->ChunkSideInMeters * dTileXY + (A->Offset_ - B->Offset_);
 
     Result.dZ = dTileZ;
 
     return Result;
 }
 
-internal world_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+internal world_position CenteredChunkPoint(uint32 ChunkX, uint32 ChunkY, uint32 ChunkZ) {
     world_position Pos;
-    Pos.AbsTileX = AbsTileX;
-    Pos.AbsTileY = AbsTileY;
-    Pos.AbsTileZ = AbsTileZ;
+    Pos.ChunkX = ChunkX;
+    Pos.ChunkY = ChunkY;
+    Pos.ChunkZ = ChunkZ;
     Pos.Offset_ = { 0.0f, 0.0f };
     return Pos;
 }
 
+#define TILES_PER_CHUNK 16
+
 internal void InitializeWorld(world* World, real32 TileSideInMeters) {
-    World->ChunkShift = 4;
-    World->ChunkMask = (1 << World->ChunkShift) - 1;
-    World->ChunkDim = (1 << World->ChunkShift);
 
     World->TileSideInMeters = TileSideInMeters;
+    World->ChunkSideInMeters = (real32)TILES_PER_CHUNK * TileSideInMeters;
+    World->FirstFree = 0;
 
     for (uint32 ChunkIndex = 0; ChunkIndex < ArrayCount(World->ChunkHash); ++ChunkIndex) {
         World->ChunkHash[ChunkIndex].ChunkX = TILE_CHUNK_UNINIT;
+        World->ChunkHash[ChunkIndex].FirstBlock.EntityCount = 0;
     }
+}
+
+internal void ChangeEntityLocation(
+    memory_arena* Arena,
+    world* World, uint32 LowEntityIndex,
+    world_position* OldP, world_position* NewP
+) {
+    if (OldP && AreInSameChunk(World, OldP, NewP)) {
+        return;
+    }
+    if (OldP) {
+        world_chunk* Chunk = GetChunk(World, OldP->ChunkX, OldP->ChunkY, OldP->ChunkZ);
+        Assert(Chunk);
+        world_entity_block* FirstBlock = &Chunk->FirstBlock;
+        for (world_entity_block* Block = FirstBlock; Block; Block = Block->Next) {
+            for (uint32 Index = 0; Index < Block->EntityCount; ++Index) {
+                if (Block->LowEntityIndex[Index] == LowEntityIndex) {
+                    Block->LowEntityIndex[Index] =
+                        FirstBlock->LowEntityIndex[--FirstBlock->EntityCount];
+                    if (FirstBlock->EntityCount == 0) {
+                        if (FirstBlock->Next) {
+                            world_entity_block* NextBlock = FirstBlock->Next;
+                            *FirstBlock = *NextBlock;
+
+                            NextBlock->Next = World->FirstFree;
+                            World->FirstFree = NextBlock;
+                        }
+                    }
+                    Block = 0;
+                    break;
+                }
+            }
+        }
+    }
+    world_chunk* Chunk = GetChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
+    world_entity_block* Block = &Chunk->FirstBlock;
+    if (Block->EntityCount == ArrayCount(Block->LowEntityIndex)) {
+        world_entity_block* OldBlock = World->FirstFree;
+        if (OldBlock) {
+            World->FirstFree = OldBlock->Next;
+        } else {
+            OldBlock = PushStruct(Arena, world_entity_block);
+        }
+        *OldBlock = *Block;
+        Block->Next = OldBlock;
+        Block->EntityCount = 0;
+    }
+    Assert(Block->EntityCount < ArrayCount(Block->LowEntityIndex));
+    Block->LowEntityIndex[Block->EntityCount++] = LowEntityIndex;
+}
+
+inline world_position ChunkPositionFromTilePosition(
+    world* World,
+    int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ
+) {
+    world_position Result = {};
+
+    Result.ChunkX = AbsTileX / TILES_PER_CHUNK;
+    Result.ChunkY = AbsTileY / TILES_PER_CHUNK;
+    Result.ChunkZ = AbsTileZ / TILES_PER_CHUNK;
+
+    Result.Offset_.X =
+        (real32)(AbsTileX - Result.ChunkX * TILES_PER_CHUNK) * World->TileSideInMeters;
+    Result.Offset_.Y =
+        (real32)(AbsTileY - Result.ChunkY * TILES_PER_CHUNK) * World->TileSideInMeters;
+
+    return Result;
 }
 
 #endif
