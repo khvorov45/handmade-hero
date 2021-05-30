@@ -286,6 +286,7 @@ internal void ChangeEntityLocation(
         for (world_entity_block* Block = FirstBlock; Block; Block = Block->Next) {
             for (uint32 Index = 0; Index < Block->EntityCount; ++Index) {
                 if (Block->LowEntityIndex[Index] == LowEntityIndex) {
+                    Assert(FirstBlock->EntityCount > 0);
                     Block->LowEntityIndex[Index] =
                         FirstBlock->LowEntityIndex[--FirstBlock->EntityCount];
                     if (FirstBlock->EntityCount == 0) {
@@ -304,6 +305,7 @@ internal void ChangeEntityLocation(
         }
     }
     world_chunk* Chunk = GetChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
+    Assert(Chunk);
     world_entity_block* Block = &Chunk->FirstBlock;
     if (Block->EntityCount == ArrayCount(Block->LowEntityIndex)) {
         world_entity_block* OldBlock = World->FirstFree;
