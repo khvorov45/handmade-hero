@@ -202,7 +202,7 @@ internal inline void RecanonicalizeCoord(world* World, int32* Tile, real32* Tile
     Assert(IsCanonical(World, *TileRel));
 }
 
-internal inline world_position MapIntoTileSpace(world* World, world_position BasePos, v2 Offset) {
+internal inline world_position MapIntoChunkSpace(world* World, world_position BasePos, v2 Offset) {
     world_position Result = BasePos;
 
     Result.Offset_ += Offset;

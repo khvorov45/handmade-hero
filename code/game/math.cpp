@@ -110,4 +110,16 @@ inline bool32 IsInRectangle(rectangle2 Rectangle, v2 Test) {
     return Result;
 }
 
+inline v2 GetMinCorner(rectangle2 Rect) {
+    return Rect.Min;
+}
+
+inline v2 GetMaxCorner(rectangle2 Rect) {
+    return Rect.Max;
+}
+
+inline v2 GetCenter(rectangle2 Rect) {
+    return 0.5f * (Rect.Max + Rect.Min);
+}
+
 #endif
