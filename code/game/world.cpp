@@ -283,8 +283,9 @@ internal void ChangeEntityLocation(
         world_chunk* Chunk = GetChunk(World, OldP->ChunkX, OldP->ChunkY, OldP->ChunkZ);
         Assert(Chunk);
         world_entity_block* FirstBlock = &Chunk->FirstBlock;
-        for (world_entity_block* Block = FirstBlock; Block; Block = Block->Next) {
-            for (uint32 Index = 0; Index < Block->EntityCount; ++Index) {
+        bool32 Found = false;
+        for (world_entity_block* Block = FirstBlock; Block && !Found; Block = Block->Next) {
+            for (uint32 Index = 0; Index < Block->EntityCount && !Found; ++Index) {
                 if (Block->LowEntityIndex[Index] == LowEntityIndex) {
                     Assert(FirstBlock->EntityCount > 0);
                     Block->LowEntityIndex[Index] =
@@ -298,8 +299,7 @@ internal void ChangeEntityLocation(
                             World->FirstFree = NextBlock;
                         }
                     }
-                    Block = 0;
-                    break;
+                    Found = true;
                 }
             }
         }
