@@ -109,7 +109,7 @@ internal inline world_chunk* GetChunk(
     while (Chunk != 0) {
         if ((ChunkX == Chunk->ChunkX) &&
             (ChunkY == Chunk->ChunkY) &&
-            (ChunkZ == Chunk->ChunkY)) {
+            (ChunkZ == Chunk->ChunkZ)) {
             break;
         }
 
