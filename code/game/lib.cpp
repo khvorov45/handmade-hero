@@ -501,6 +501,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
         GameState->HeroShadow =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_shadow.bmp");
+        GameState->Tree =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tree00.bmp");
 
         hero_bitmaps* Bitmap;
 
@@ -756,11 +758,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     //* Clear screen
-    DrawRectangle(Buffer, { 0, 0 }, { (real32)Buffer->Width, (real32)Buffer->Height }, 1.0f, 0.0f, 1.0f);
+    DrawRectangle(
+        Buffer, { 0, 0 }, { (real32)Buffer->Width, (real32)Buffer->Height },
+        1.0f, 0.0f, 1.0f
+    );
 
     //* Draw backdrop
+#if 0
     DrawBMP(Buffer, GameState->Backdrop, 0.0f, 0.0f);
-
+#else
+    DrawRectangle(
+        Buffer, { 0, 0 }, { (real32)Buffer->Width, (real32)Buffer->Height },
+        0.5f, 0.5f, 0.5f
+    );
+#endif
     //* Draw world
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
     real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
@@ -852,6 +863,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PlayerLeftTop + PlayerWidthHeight * MetersToPixels,
                 PlayerR, PlayerG, PlayerB
             );
+            DrawBMP(Buffer, GameState->Tree, PlayerGroundX, PlayerGroundY, 40, 80);
         }
     }
 }
