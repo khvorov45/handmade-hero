@@ -242,9 +242,8 @@ struct add_low_entity_result {
     uint32 LowIndex;
 };
 
-internal add_low_entity_result AddLowEntity(
-    game_state* GameState, entity_type EntityType, world_position* Position
-) {
+internal add_low_entity_result
+AddLowEntity(game_state* GameState, entity_type EntityType, world_position* Position) {
 
     Assert(GameState->LowEntityCount < ArrayCount(GameState->LowEntities_));
 
@@ -266,7 +265,7 @@ internal add_low_entity_result AddLowEntity(
     return Result;
 }
 
-internal uint32 AddPlayer(game_state* GameState) {
+internal add_low_entity_result AddPlayer(game_state* GameState) {
 
     add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Hero, &GameState->CameraP);
 
@@ -279,10 +278,11 @@ internal uint32 AddPlayer(game_state* GameState) {
         GameState->CameraFollowingEntityIndex = Entity.LowIndex;
     }
 
-    return Entity.LowIndex;
+    return Entity;
 }
 
-internal uint32 AddWall(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+internal add_low_entity_result
+AddWall(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position EntityLowP =
         ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 
@@ -295,7 +295,7 @@ internal uint32 AddWall(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY,
 
     Entity.Low->Collides = true;
 
-    return Entity.LowIndex;
+    return Entity;
 }
 
 internal bool32 TestWall(
@@ -682,7 +682,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         SetCamera(GameState, NewCameraP);
 
         Memory->IsInitialized = true;
-        }
+    }
 
     world* World = GameState->World;
     world* TileMap = World;
@@ -704,8 +704,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         uint32 LowIndex = GameState->PlayerIndexForController[ControllerIndex];
         if (LowIndex == 0) {
             if (Controller->Start.EndedDown) {
-                uint32 Index = AddPlayer(GameState);
-                GameState->PlayerIndexForController[ControllerIndex] = Index;
+                add_low_entity_result PlayerEntity = AddPlayer(GameState);
+                GameState->PlayerIndexForController[ControllerIndex] = PlayerEntity.LowIndex;
             }
         } else {
 
@@ -759,7 +759,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         NewCameraP = CameraFollowingEntity.Low->P;
 #endif
         SetCamera(GameState, NewCameraP);
-        }
+    }
 
     //* Clear screen
     DrawRectangle(
@@ -869,5 +869,5 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             );
             DrawBMP(Buffer, GameState->Tree, PlayerGroundX, PlayerGroundY, 40, 80);
         }
-    }
+            }
         }
