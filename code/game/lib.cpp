@@ -298,6 +298,36 @@ AddWall(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ
     return Entity;
 }
 
+internal add_low_entity_result
+AddMonster(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+    world_position EntityLowP =
+        ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+
+    add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Monster, &EntityLowP);
+
+    Entity.Low->Height = 0.5f;
+    Entity.Low->Width = 1.0f;
+
+    Entity.Low->Collides = true;
+
+    return Entity;
+}
+
+internal add_low_entity_result
+AddFamiliar(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+    world_position EntityLowP =
+        ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+
+    add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Familiar, &EntityLowP);
+
+    Entity.Low->Height = 0.5f;
+    Entity.Low->Width = 1.0f;
+
+    Entity.Low->Collides = false;
+
+    return Entity;
+}
+
 internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
     real32* tMin, real32 MinY, real32 MaxY
@@ -673,11 +703,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 #endif
 
+        uint32 CameraTileX = ScreenBaseX * TilesPerWidth + 17 / 2;
+        uint32 CameraTileY = ScreenBaseY * TilesPerHeight + 9 / 2;
+        uint32 CameraTileZ = ScreenBaseZ;
+
+        AddMonster(GameState, CameraTileX + 2, CameraTileY + 2, CameraTileZ);
+        AddFamiliar(GameState, CameraTileX - 2, CameraTileY - 2, CameraTileZ);
+
         world_position NewCameraP = ChunkPositionFromTilePosition(
             GameState->World,
-            ScreenBaseX * TilesPerWidth + 17 / 2,
-            ScreenBaseY * TilesPerHeight + 9 / 2,
-            ScreenBaseZ
+            CameraTileX,
+            CameraTileY,
+            CameraTileZ
         );
         SetCamera(GameState, NewCameraP);
 
@@ -848,19 +885,24 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         };
 
         v2 PlayerWidthHeight = { LowEntity->Width, LowEntity->Height };
-        if (LowEntity->Type == EntityType_Hero) {
+        hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[HighEntity->FacingDirection];
+        switch (LowEntity->Type) {
+        case EntityType_Hero:
+        {
             DrawRectangle(
                 Buffer,
                 PlayerLeftTop,
                 PlayerLeftTop + PlayerWidthHeight * MetersToPixels,
                 PlayerR, PlayerG, PlayerB
             );
-            hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[HighEntity->FacingDirection];
             DrawBMP(Buffer, GameState->HeroShadow, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY, Maximum(0.0f, 1.0f - HighEntity->Z));
             DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
-        } else {
+        }
+        break;
+        case EntityType_Wall:
+        {
             DrawRectangle(
                 Buffer,
                 PlayerLeftTop,
@@ -869,5 +911,26 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             );
             DrawBMP(Buffer, GameState->Tree, PlayerGroundX, PlayerGroundY, 40, 80);
         }
-            }
+        break;
+        case EntityType_Familiar:
+        {
+            DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+            DrawBMP(Buffer, GameState->HeroShadow, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY, Maximum(0.0f, 1.0f - HighEntity->Z));
+
         }
+        break;
+        case EntityType_Monster:
+        {
+            DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
+            DrawBMP(Buffer, GameState->HeroShadow, PlayerGroundX, PlayerGroundY, HeroBitmaps->AlignX, HeroBitmaps->AlignY, Maximum(0.0f, 1.0f - HighEntity->Z));
+
+        }
+        break;
+        default:
+        {
+            InvalidCodePath;
+        }
+        break;
+        }
+    }
+}
