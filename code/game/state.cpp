@@ -27,7 +27,9 @@ struct high_entity {
 enum entity_type {
     EntityType_Null,
     EntityType_Hero,
-    EntityType_Wall
+    EntityType_Wall,
+    EntityType_Familiar,
+    EntityType_Monster
 };
 
 struct low_entity {

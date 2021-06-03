@@ -237,61 +237,65 @@ internal entity GetHighEntity(game_state* GameState, uint32 LowIndex) {
     return Result;
 }
 
-internal uint32 AddLowEntity(
+struct add_low_entity_result {
+    low_entity* Low;
+    uint32 LowIndex;
+};
+
+internal add_low_entity_result AddLowEntity(
     game_state* GameState, entity_type EntityType, world_position* Position
 ) {
 
     Assert(GameState->LowEntityCount < ArrayCount(GameState->LowEntities_));
 
-    uint32 EntityIndex = GameState->LowEntityCount++;
+    add_low_entity_result Result = {};
 
-    low_entity* EntityLow = GameState->LowEntities_ + EntityIndex;
-    *EntityLow = {};
-    EntityLow->Type = EntityType;
+    Result.LowIndex = GameState->LowEntityCount++;
+
+    Result.Low = GameState->LowEntities_ + Result.LowIndex;
+    *Result.Low = {};
+    Result.Low->Type = EntityType;
 
     if (Position) {
-        EntityLow->P = *Position;
-        ChangeEntityLocation(&GameState->WorldArena, GameState->World, EntityIndex, 0, Position);
+        Result.Low->P = *Position;
+        ChangeEntityLocation(
+            &GameState->WorldArena, GameState->World, Result.LowIndex, 0, Position
+        );
     }
 
-    return EntityIndex;
+    return Result;
 }
 
 internal uint32 AddPlayer(game_state* GameState) {
 
-    uint32 EntityIndex = AddLowEntity(GameState, EntityType_Hero, &GameState->CameraP);
+    add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Hero, &GameState->CameraP);
 
-    low_entity* EntityLow = GetLowEntity(GameState, EntityIndex);
+    Entity.Low->Height = 0.5f;
+    Entity.Low->Width = 1.0f;
 
-    EntityLow->Height = 0.5f;
-    EntityLow->Width = 1.0f;
-
-    EntityLow->Collides = true;
+    Entity.Low->Collides = true;
 
     if (GameState->CameraFollowingEntityIndex == 0) {
-        GameState->CameraFollowingEntityIndex = EntityIndex;
+        GameState->CameraFollowingEntityIndex = Entity.LowIndex;
     }
 
-    return EntityIndex;
+    return Entity.LowIndex;
 }
 
 internal uint32 AddWall(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position EntityLowP =
         ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 
-    uint32 EntityIndex = AddLowEntity(GameState, EntityType_Wall, &EntityLowP);
-
-    low_entity* EntityLow = GetLowEntity(GameState, EntityIndex);
-
+    add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Wall, &EntityLowP);
 
     real32 TileSide = GameState->World->TileSideInMeters;
 
-    EntityLow->Height = TileSide;
-    EntityLow->Width = TileSide;
+    Entity.Low->Height = TileSide;
+    Entity.Low->Width = TileSide;
 
-    EntityLow->Collides = true;
+    Entity.Low->Collides = true;
 
-    return EntityIndex;
+    return Entity.LowIndex;
 }
 
 internal bool32 TestWall(
@@ -678,7 +682,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         SetCamera(GameState, NewCameraP);
 
         Memory->IsInitialized = true;
-    }
+        }
 
     world* World = GameState->World;
     world* TileMap = World;
@@ -755,7 +759,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         NewCameraP = CameraFollowingEntity.Low->P;
 #endif
         SetCamera(GameState, NewCameraP);
-    }
+        }
 
     //* Clear screen
     DrawRectangle(
@@ -866,4 +870,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DrawBMP(Buffer, GameState->Tree, PlayerGroundX, PlayerGroundY, 40, 80);
         }
     }
-}
+        }
