@@ -817,46 +817,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
     real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
 
-#if 0
-    for (int32 RelRow = -10; RelRow < 10; ++RelRow) {
-        for (int32 RelColumn = -20; RelColumn < 20; ++RelColumn) {
-
-            uint32 Column = RelColumn + GameState->CameraP.AbsTileX;
-            uint32 Row = RelRow + GameState->CameraP.AbsTileY;
-
-            uint32 TileId = GetTileValue(TileMap, Column, Row, GameState->CameraP.AbsTileZ);
-
-            if (TileId == 0 || TileId == 1) {
-                continue;
-            }
-
-            real32 Color = 0.5f;
-            if (TileId == 2) {
-                Color = 1.0f;
-            }
-
-            if (TileId > 2) {
-                Color = 0.25f;
-            }
-
-            if (Row == GameState->CameraP.AbsTileY && Column == GameState->CameraP.AbsTileX) {
-                Color = 0.0f;
-            }
-
-            v2 Cen = {
-                ScreenCenterX - MetersToPixels * GameState->CameraP.Offset_.X + ((real32)(RelColumn)) * TileSideInPixels,
-                ScreenCenterY + MetersToPixels * GameState->CameraP.Offset_.Y - ((real32)(RelRow)) * TileSideInPixels
-            };
-            v2 TileSide = { (real32)TileSideInPixels, (real32)TileSideInPixels };
-
-            v2 Min = Cen - 0.5f * TileSide;
-            v2 Max = Min + TileSide;
-
-            DrawRectangle(Buffer, Min, Max, Color, Color, Color);
-        }
-    }
-#endif
-
     //* Draw entities
     for (uint32 HighEntityIndex = 1; HighEntityIndex < GameState->HighEntityCount; HighEntityIndex++) {
         high_entity* HighEntity = GameState->HighEntities_ + HighEntityIndex;
@@ -899,7 +859,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
-        }
+}
         break;
         case EntityType_Wall:
         {
