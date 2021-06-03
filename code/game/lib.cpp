@@ -813,11 +813,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         0.5f, 0.5f, 0.5f
     );
 #endif
-    //* Draw world
-    real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
-    real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
 
     //* Draw entities
+    real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
+    real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
     for (uint32 HighEntityIndex = 1; HighEntityIndex < GameState->HighEntityCount; HighEntityIndex++) {
         high_entity* HighEntity = GameState->HighEntities_ + HighEntityIndex;
         low_entity* LowEntity = GameState->LowEntities_ + HighEntity->LowEntityIndex;
@@ -859,7 +858,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DrawBMP(Buffer, HeroBitmaps->Head, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Torso, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
             DrawBMP(Buffer, HeroBitmaps->Cape, PlayerGroundX, PlayerGroundY + Z, HeroBitmaps->AlignX, HeroBitmaps->AlignY);
-}
+        }
         break;
         case EntityType_Wall:
         {
