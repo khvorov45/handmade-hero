@@ -332,6 +332,16 @@ inline world_position ChunkPositionFromTilePosition(
     Result.ChunkY = AbsTileY / TILES_PER_CHUNK;
     Result.ChunkZ = AbsTileZ / TILES_PER_CHUNK;
 
+    if (AbsTileX < 0) {
+        Result.ChunkX--;
+    }
+    if (AbsTileY < 0) {
+        Result.ChunkY--;
+    }
+    if (AbsTileZ < 0) {
+        Result.ChunkZ--;
+    }
+
     Result.Offset_.X =
         (real32)((AbsTileX - TILES_PER_CHUNK / 2) - Result.ChunkX * TILES_PER_CHUNK) * World->TileSideInMeters;
     Result.Offset_.Y =
