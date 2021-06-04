@@ -541,7 +541,7 @@ internal void UpdateFamiliar(game_state* GameState, entity Entity, real32 dt) {
         }
     }
     v2 ddP = {};
-    if (ClosestHero.High && ClosestHeroDSq > 0.0f) {
+    if (ClosestHero.High && ClosestHeroDSq > 0.1f) {
         real32 Acceleration = 0.3f;
         real32 OneOverLength = (Acceleration / SquareRoot(ClosestHeroDSq));
         ddP = (ClosestHero.High->P - Entity.High->P) * OneOverLength;
