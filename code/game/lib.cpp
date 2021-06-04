@@ -896,10 +896,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Familiar:
         {
+            Entity.High->tBob += dt;
+            real32 Pi2 = 2 * Pi32;
+            if (Entity.High->tBob > Pi2) {
+                Entity.High->tBob -= Pi2;
+            }
             UpdateFamiliar(GameState, Entity, dt);
             PushPiece(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
-            PushPiece(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0, HeroBitmaps->Align);
-
+            PushPiece(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 10.0f * Sin(4.0f * Entity.High->tBob), HeroBitmaps->Align);
         }
         break;
         case EntityType_Monster:
