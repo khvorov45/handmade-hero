@@ -4,8 +4,7 @@
 #include "math.cpp"
 
 struct hero_bitmaps {
-    int32 AlignX;
-    int32 AlignY;
+    v2 Align;
     loaded_bmp Head;
     loaded_bmp Cape;
     loaded_bmp Torso;
@@ -52,6 +51,18 @@ struct entity {
 struct low_entity_chunk_reference {
     world_chunk* TileChunk;
     uint32 EntityIndexInChunk;
+};
+
+struct entity_visible_piece {
+    loaded_bmp* Bitmap;
+    v2 Offset;
+    real32 OffsetZ;
+    real32 Alpha;
+};
+
+struct entity_visible_piece_group {
+    uint32 PieceCount;
+    entity_visible_piece Pieces[8];
 };
 
 struct game_state {
