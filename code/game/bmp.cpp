@@ -29,19 +29,19 @@ struct bitmap_header {
 };
 #pragma pack(pop)
 
-struct loaded_bmp {
+struct loaded_bitmap {
     uint32* Pixels;
     int32 Width;
     int32 Height;
 };
 
-internal loaded_bmp DEBUGLoadBMP(
+internal loaded_bitmap DEBUGLoadBMP(
     thread_context* Thread,
     debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
     char* Filename
 ) {
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Thread, Filename);
-    loaded_bmp Result = {};
+    loaded_bitmap Result = {};
     if (ReadResult.Size == 0) {
         return Result;
     }

@@ -55,7 +55,7 @@ internal void DrawRectangle(
 }
 
 internal void DrawBitmap(
-    game_offscreen_buffer* Buffer, loaded_bmp* BMP,
+    game_offscreen_buffer* Buffer, loaded_bitmap* BMP,
     real32 RealStartX, real32 RealStartY,
     real32 CAlpha = 1.0f
 ) {
@@ -513,7 +513,7 @@ internal void SetCamera(game_state* GameState, world_position NewCameraP) {
 
 internal inline void
 PushPiece(
-    entity_visible_piece_group* Group, loaded_bmp* Bitmap,
+    entity_visible_piece_group* Group, loaded_bitmap* Bitmap,
     v2 Offset, real32 OffsetZ, v2 Align, real32 Alpha = 1.0f
 ) {
     Assert(Group->PieceCount < ArrayCount(Group->Pieces));

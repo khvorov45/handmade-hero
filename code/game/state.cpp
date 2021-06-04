@@ -5,9 +5,9 @@
 
 struct hero_bitmaps {
     v2 Align;
-    loaded_bmp Head;
-    loaded_bmp Cape;
-    loaded_bmp Torso;
+    loaded_bitmap Head;
+    loaded_bitmap Cape;
+    loaded_bitmap Torso;
 };
 
 struct high_entity {
@@ -54,7 +54,7 @@ struct low_entity_chunk_reference {
 };
 
 struct entity_visible_piece {
-    loaded_bmp* Bitmap;
+    loaded_bitmap* Bitmap;
     v2 Offset;
     real32 OffsetZ;
     real32 Alpha;
@@ -79,9 +79,9 @@ struct game_state {
     uint32 LowEntityCount;
     low_entity LowEntities_[1000000];
 
-    loaded_bmp Backdrop;
+    loaded_bitmap Backdrop;
     hero_bitmaps HeroBitmaps[4];
-    loaded_bmp HeroShadow;
+    loaded_bitmap HeroShadow;
 
-    loaded_bmp Tree;
+    loaded_bitmap Tree;
 };
