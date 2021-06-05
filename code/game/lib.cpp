@@ -554,7 +554,8 @@ internal void UpdateMonster(game_state* GameState, entity Entity, real32 dt) {}
 internal inline void
 PushPiece(
     entity_visible_piece_group* Group, loaded_bitmap* Bitmap,
-    v2 Offset, real32 OffsetZ, v2 Align, real32 Alpha = 1.0f
+    v2 Offset, real32 OffsetZ, v2 Align, real32 Alpha = 1.0f,
+    real32 EntityZC = 1.0f
 ) {
     Assert(Group->PieceCount < ArrayCount(Group->Pieces));
     entity_visible_piece* Piece = Group->Pieces + Group->PieceCount++;
@@ -562,6 +563,7 @@ PushPiece(
     Piece->Bitmap = Bitmap;
     Piece->Offset = Offset - Align;
     Piece->OffsetZ = OffsetZ;
+    Piece->EntityZC = EntityZC;
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -883,7 +885,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         switch (LowEntity->Type) {
         case EntityType_Hero:
         {
-            PushPiece(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
+            PushPiece(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
             PushPiece(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0, HeroBitmaps->Align);
             PushPiece(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
             PushPiece(&PieceGroup, &HeroBitmaps->Cape, { 0, 0 }, 0, HeroBitmaps->Align);
@@ -901,9 +903,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Entity.High->tBob > Pi2) {
                 Entity.High->tBob -= Pi2;
             }
+            real32 BobSin = Sin(4.0f * Entity.High->tBob);
             UpdateFamiliar(GameState, Entity, dt);
-            PushPiece(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
-            PushPiece(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 10.0f * Sin(4.0f * Entity.High->tBob), HeroBitmaps->Align);
+            PushPiece(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha * 0.5f + BobSin * 0.2f);
+            PushPiece(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 10.0f * BobSin, HeroBitmaps->Align);
         }
         break;
         case EntityType_Monster:
@@ -936,7 +939,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Buffer,
                 Piece->Bitmap,
                 EntityGroudX + Piece->Offset.X,
-                EntityGroudY + Piece->Offset.Y + Piece->OffsetZ + Z,
+                EntityGroudY + Piece->Offset.Y + Piece->OffsetZ + Z * Piece->EntityZC,
                 Piece->Alpha
             );
         }

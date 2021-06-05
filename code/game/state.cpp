@@ -60,6 +60,7 @@ struct entity_visible_piece {
     v2 Offset;
     real32 OffsetZ;
     real32 Alpha;
+    real32 EntityZC;
 };
 
 struct entity_visible_piece_group {
