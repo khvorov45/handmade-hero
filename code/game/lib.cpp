@@ -525,7 +525,7 @@ internal entity EntityFromHighIndex(game_state* GameState, uint32 HighEntityInde
 
 internal void UpdateFamiliar(game_state* GameState, entity Entity, real32 dt) {
     entity ClosestHero = {};
-    real32 ClosestHeroDSq = 50.0f;
+    real32 ClosestHeroDSq = Square(15.0f);
     for (uint32 HighEntityIndex = 1;
         HighEntityIndex < GameState->HighEntityCount;
         HighEntityIndex++) {
@@ -541,7 +541,7 @@ internal void UpdateFamiliar(game_state* GameState, entity Entity, real32 dt) {
         }
     }
     v2 ddP = {};
-    if (ClosestHero.High && ClosestHeroDSq > 0.1f) {
+    if (ClosestHero.High && ClosestHeroDSq > Square(3.0f)) {
         real32 Acceleration = 0.3f;
         real32 OneOverLength = (Acceleration / SquareRoot(ClosestHeroDSq));
         ddP = (ClosestHero.High->P - Entity.High->P) * OneOverLength;
