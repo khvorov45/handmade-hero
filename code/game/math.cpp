@@ -8,6 +8,16 @@ union v2 {
     real32 E[2];
 };
 
+union v3 {
+    struct { real32 X, Y, Z; };
+    real32 E[3];
+};
+
+union v4 {
+    struct { real32 X, Y, Z, W; };
+    struct { real32 R, G, B, A; };
+    real32 E[4];
+};
 
 inline v2 V2(real32 X, real32 Y) {
     v2 Result;
