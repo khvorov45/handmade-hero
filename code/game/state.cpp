@@ -33,6 +33,12 @@ enum entity_type {
     EntityType_Monster
 };
 
+#define HITPOINT_SUBCOUNT 4
+struct hit_point {
+    uint8 Flags;
+    uint8 FilledAmount;
+};
+
 struct low_entity {
     entity_type Type;
     world_position P;
@@ -42,6 +48,9 @@ struct low_entity {
     bool32 Collides;
 
     uint32 HighEntityIndex;
+
+    uint32 HitPointMax;
+    hit_point HitPoint[16];
 };
 
 struct entity {
@@ -59,13 +68,10 @@ struct entity_visible_piece {
     loaded_bitmap* Bitmap;
     v2 Offset;
     real32 OffsetZ;
-    real32 Alpha;
     real32 EntityZC;
-};
 
-struct entity_visible_piece_group {
-    uint32 PieceCount;
-    entity_visible_piece Pieces[8];
+    real32 R, G, B, A;
+    v2 Dim;
 };
 
 struct game_state {
@@ -87,4 +93,12 @@ struct game_state {
     loaded_bitmap HeroShadow;
 
     loaded_bitmap Tree;
+
+    real32 MetersToPixels;
+};
+
+struct entity_visible_piece_group {
+    game_state* GameState;
+    uint32 PieceCount;
+    entity_visible_piece Pieces[32];
 };
