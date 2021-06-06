@@ -17,8 +17,7 @@ struct world_position {
 };
 
 struct world_difference {
-    v2 dXY;
-    real32 dZ;
+    v3 d;
 };
 
 struct world_entity_block {
@@ -237,13 +236,13 @@ internal bool32 AreInSameChunk(world* World, world_position* Pos1, world_positio
 world_difference Subtract(world* World, world_position* A, world_position* B) {
     world_difference Result = {};
 
-    v2 dTileXY = { (real32)A->ChunkX - (real32)B->ChunkX, (real32)A->ChunkY - (real32)B->ChunkY };
+    v3 dTile = {
+        World->ChunkSideInMeters * ((real32)A->ChunkX - (real32)B->ChunkX) + (A->Offset_.X - B->Offset_.X),
+        World->ChunkSideInMeters * ((real32)A->ChunkY - (real32)B->ChunkY) + (A->Offset_.Y - B->Offset_.Y),
+        World->ChunkSideInMeters * ((real32)A->ChunkZ - (real32)B->ChunkZ)
+    };
 
-    real32 dTileZ = World->ChunkSideInMeters * ((real32)A->ChunkZ - (real32)B->ChunkZ);
-
-    Result.dXY = World->ChunkSideInMeters * dTileXY + (A->Offset_ - B->Offset_);
-
-    Result.dZ = dTileZ;
+    Result.d = dTile;
 
     return Result;
 }

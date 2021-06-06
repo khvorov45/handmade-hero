@@ -119,7 +119,7 @@ internal void DrawBitmap(
 
 internal v2 GetCameraSpaceP(game_state* GameState, low_entity* EntityLow) {
     world_difference Diff = Subtract(GameState->World, &EntityLow->P, &GameState->CameraP);
-    return Diff.dXY;
+    return { Diff.d.X, Diff.d.Y };
 }
 
 internal high_entity* MakeEntityHigFrequency(
@@ -474,7 +474,7 @@ internal void SetCamera(game_state* GameState, world_position NewCameraP) {
         TileMap->TileSideInMeters * v2{ (real32)TileSpanX, (real32)TileSpanY }
     );
 
-    v2 EntityOffsetForFrame = -dCameraP.dXY;
+    v2 EntityOffsetForFrame = -v2{ dCameraP.d.X, dCameraP.d.Y };
     OffsetAndCheckFrequencyByArea(GameState, EntityOffsetForFrame, CameraBounds);
 
     Assert(ValidateEntityPairs(GameState));
