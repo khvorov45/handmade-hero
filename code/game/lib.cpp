@@ -559,8 +559,7 @@ internal inline void
 PushPiece(
     entity_visible_piece_group* Group, loaded_bitmap* Bitmap,
     v2 Offset, real32 OffsetZ, v2 Align, v2 Dim,
-    real32 R = 0.0f, real32 G = 0.0f, real32 B = 0.0f,
-    real32 Alpha = 1.0f,
+    v4 Color,
     real32 EntityZC = 1.0f
 ) {
     Assert(Group->PieceCount < ArrayCount(Group->Pieces));
@@ -569,10 +568,10 @@ PushPiece(
 
     v2 OffsetFixY = { Offset.X, -Offset.Y };
 
-    Piece->R = R;
-    Piece->G = G;
-    Piece->B = B;
-    Piece->A = Alpha;
+    Piece->R = Color.R;
+    Piece->G = Color.G;
+    Piece->B = Color.B;
+    Piece->A = Color.A;
     Piece->Bitmap = Bitmap;
     Piece->Offset = MetersToPixels * OffsetFixY - Align;
     Piece->OffsetZ = MetersToPixels * OffsetZ;
@@ -587,7 +586,7 @@ PushBitmap(
     real32 EntityZC = 1.0f
 ) {
     PushPiece(
-        Group, Bitmap, Offset, OffsetZ, Align, { 0, 0 }, 0, 0, 0, Alpha, EntityZC
+        Group, Bitmap, Offset, OffsetZ, Align, { 0, 0 }, { 0, 0, 0, Alpha }, EntityZC
     );
 }
 
@@ -595,12 +594,11 @@ internal void
 PushRect(
     entity_visible_piece_group* Group, loaded_bitmap* Bitmap,
     v2 Offset, real32 OffsetZ, v2 Dim,
-    real32 R = 0.0f, real32 G = 0.0f, real32 B = 0.0f,
-    real32 Alpha = 1.0f,
+    v4 Color,
     real32 EntityZC = 1.0f
 ) {
     PushPiece(
-        Group, 0, Offset, OffsetZ, { 0, 0 }, Dim, R, G, B, Alpha, EntityZC
+        Group, 0, Offset, OffsetZ, { 0, 0 }, Dim, Color, EntityZC
     );
 }
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -929,16 +927,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 v2 HitP = { (LowEntity->HitPointMax - 1) * (-0.5f) * SpacingX, -0.2f };
                 v2 dHitP = { SpacingX, 0.0f };
                 for (uint32 HealthIndex = 0; HealthIndex < LowEntity->HitPointMax; ++HealthIndex) {
-                    real32 R = 1.0f;
-                    real32 G = 0.0f;
-                    real32 B = 0.0f;
+                    v4 Color = { 1.0f, 0.0f, 0.0f, 1.0f };
                     hit_point* HitPoint = LowEntity->HitPoint + HealthIndex;
                     if (HitPoint->FilledAmount == 0) {
-                        R = 0.2f;
-                        G = 0.2f;
-                        B = 0.2f;
+                        Color.R = 0.2f;
+                        Color.G = 0.2f;
+                        Color.B = 0.2f;
                     }
-                    PushRect(&PieceGroup, 0, HitP, 0, HealthDim, R, G, B, 1.0f, 0.0f);
+                    PushRect(&PieceGroup, 0, HitP, 0, HealthDim, Color, 0.0f);
                     HitP += dHitP;
                 }
             }
