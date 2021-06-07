@@ -263,6 +263,14 @@ AddLowEntity(game_state* GameState, entity_type EntityType, world_position* Posi
     return Result;
 }
 
+internal void InitHitpoints(low_entity* EntityLow, uint32 Max) {
+    Assert(Max <= ArrayCount(EntityLow->HitPoint));
+    EntityLow->HitPointMax = Max;
+    for (uint32 HealthIndex = 0; HealthIndex < Max; HealthIndex++) {
+        EntityLow->HitPoint[HealthIndex].FilledAmount = HITPOINT_SUBCOUNT;
+    }
+}
+
 internal add_low_entity_result AddPlayer(game_state* GameState) {
 
     add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Hero, &GameState->CameraP);
@@ -272,9 +280,7 @@ internal add_low_entity_result AddPlayer(game_state* GameState) {
 
     Entity.Low->Collides = true;
 
-    Entity.Low->HitPointMax = 3;
-    Entity.Low->HitPoint[2].FilledAmount = HITPOINT_SUBCOUNT;
-    Entity.Low->HitPoint[0] = Entity.Low->HitPoint[1] = Entity.Low->HitPoint[2];
+    InitHitpoints(Entity.Low, 3);
 
     if (GameState->CameraFollowingEntityIndex == 0) {
         GameState->CameraFollowingEntityIndex = Entity.LowIndex;
@@ -309,6 +315,8 @@ AddMonster(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTi
 
     Entity.Low->Height = 0.5f;
     Entity.Low->Width = 1.0f;
+
+    InitHitpoints(Entity.Low, 3);
 
     Entity.Low->Collides = true;
 
@@ -601,6 +609,27 @@ PushRect(
         Group, 0, Offset, OffsetZ, { 0, 0 }, Dim, Color, EntityZC
     );
 }
+
+internal void DrawHitpoints(low_entity* LowEntity, entity_visible_piece_group* PieceGroup) {
+    if (LowEntity->HitPointMax >= 1) {
+        v2 HealthDim = { 0.2f, 0.2f };
+        real32 SpacingX = 2.0f * HealthDim.X;
+        v2 HitP = { (LowEntity->HitPointMax - 1) * (-0.5f) * SpacingX, -0.2f };
+        v2 dHitP = { SpacingX, 0.0f };
+        for (uint32 HealthIndex = 0; HealthIndex < LowEntity->HitPointMax; ++HealthIndex) {
+            v4 Color = { 1.0f, 0.0f, 0.0f, 1.0f };
+            hit_point* HitPoint = LowEntity->HitPoint + HealthIndex;
+            if (HitPoint->FilledAmount == 0) {
+                Color.R = 0.2f;
+                Color.G = 0.2f;
+                Color.B = 0.2f;
+            }
+            PushRect(PieceGroup, 0, HitP, 0, HealthDim, Color, 0.0f);
+            HitP += dHitP;
+        }
+    }
+}
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
@@ -921,23 +950,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             PushBitmap(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
             PushBitmap(&PieceGroup, &HeroBitmaps->Cape, { 0, 0 }, 0, HeroBitmaps->Align);
 
-            if (LowEntity->HitPointMax >= 1) {
-                v2 HealthDim = { 0.2f, 0.2f };
-                real32 SpacingX = 2.0f * HealthDim.X;
-                v2 HitP = { (LowEntity->HitPointMax - 1) * (-0.5f) * SpacingX, -0.2f };
-                v2 dHitP = { SpacingX, 0.0f };
-                for (uint32 HealthIndex = 0; HealthIndex < LowEntity->HitPointMax; ++HealthIndex) {
-                    v4 Color = { 1.0f, 0.0f, 0.0f, 1.0f };
-                    hit_point* HitPoint = LowEntity->HitPoint + HealthIndex;
-                    if (HitPoint->FilledAmount == 0) {
-                        Color.R = 0.2f;
-                        Color.G = 0.2f;
-                        Color.B = 0.2f;
-                    }
-                    PushRect(&PieceGroup, 0, HitP, 0, HealthDim, Color, 0.0f);
-                    HitP += dHitP;
-                }
-            }
+            DrawHitpoints(LowEntity, &PieceGroup);
         }
         break;
         case EntityType_Wall:
@@ -963,6 +976,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             UpdateMonster(GameState, Entity, dt);
             PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
             PushBitmap(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
+
+            DrawHitpoints(LowEntity, &PieceGroup);
         }
         break;
         default:
