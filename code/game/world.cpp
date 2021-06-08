@@ -87,6 +87,16 @@ internal uint32 GetChunkValue(
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
 #define TILE_CHUNK_UNINIT INT32_MAX
 
+internal inline world_position NullPosition() {
+    world_position Result = {};
+    Result.ChunkX = TILE_CHUNK_UNINIT;
+    return Result;
+}
+
+internal inline bool32 IsValid(world_position Position) {
+    return Position.ChunkX != TILE_CHUNK_UNINIT;
+}
+
 internal inline world_chunk* GetChunk(
     world* World, int32 ChunkX, int32 ChunkY, int32 ChunkZ,
     memory_arena* Arena = 0
@@ -270,11 +280,14 @@ internal void InitializeWorld(world* World, real32 TileSideInMeters) {
     }
 }
 
-internal void ChangeEntityLocation(
+internal void ChangeEntityLocationRaw(
     memory_arena* Arena,
     world* World, uint32 LowEntityIndex,
     world_position* OldP, world_position* NewP
 ) {
+    Assert(OldP == 0 || IsValid(*OldP));
+    Assert(NewP == 0 || IsValid(*NewP));
+
     if (OldP && AreInSameChunk(World, OldP, NewP)) {
         return;
     }
@@ -303,22 +316,24 @@ internal void ChangeEntityLocation(
             }
         }
     }
-    world_chunk* Chunk = GetChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
-    Assert(Chunk);
-    world_entity_block* Block = &Chunk->FirstBlock;
-    if (Block->EntityCount == ArrayCount(Block->LowEntityIndex)) {
-        world_entity_block* OldBlock = World->FirstFree;
-        if (OldBlock) {
-            World->FirstFree = OldBlock->Next;
-        } else {
-            OldBlock = PushStruct(Arena, world_entity_block);
+    if (NewP) {
+        world_chunk* Chunk = GetChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
+        Assert(Chunk);
+        world_entity_block* Block = &Chunk->FirstBlock;
+        if (Block->EntityCount == ArrayCount(Block->LowEntityIndex)) {
+            world_entity_block* OldBlock = World->FirstFree;
+            if (OldBlock) {
+                World->FirstFree = OldBlock->Next;
+            } else {
+                OldBlock = PushStruct(Arena, world_entity_block);
+            }
+            *OldBlock = *Block;
+            Block->Next = OldBlock;
+            Block->EntityCount = 0;
         }
-        *OldBlock = *Block;
-        Block->Next = OldBlock;
-        Block->EntityCount = 0;
+        Assert(Block->EntityCount < ArrayCount(Block->LowEntityIndex));
+        Block->LowEntityIndex[Block->EntityCount++] = LowEntityIndex;
     }
-    Assert(Block->EntityCount < ArrayCount(Block->LowEntityIndex));
-    Block->LowEntityIndex[Block->EntityCount++] = LowEntityIndex;
 }
 
 inline world_position ChunkPositionFromTilePosition(

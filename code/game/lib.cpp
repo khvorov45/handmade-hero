@@ -253,12 +253,10 @@ AddLowEntity(game_state* GameState, entity_type EntityType, world_position* Posi
     *Result.Low = {};
     Result.Low->Type = EntityType;
 
-    if (Position) {
-        Result.Low->P = *Position;
-        ChangeEntityLocation(
-            &GameState->WorldArena, GameState->World, Result.LowIndex, 0, Position
-        );
-    }
+    ChangeEntityLocation(
+        &GameState->WorldArena, GameState->World, Result.LowIndex, Result.Low, 0, Position
+    );
+
 
     return Result;
 }
@@ -271,6 +269,19 @@ internal void InitHitpoints(low_entity* EntityLow, uint32 Max) {
     }
 }
 
+internal add_low_entity_result AddSword(game_state* GameState) {
+
+    add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Sword, 0);
+
+    Entity.Low->Height = 0.5f;
+    Entity.Low->Width = 1.0f;
+
+
+    Entity.Low->Collides = false;
+
+    return Entity;
+}
+
 internal add_low_entity_result AddPlayer(game_state* GameState) {
 
     add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Hero, &GameState->CameraP);
@@ -281,6 +292,9 @@ internal add_low_entity_result AddPlayer(game_state* GameState) {
     Entity.Low->Collides = true;
 
     InitHitpoints(Entity.Low, 3);
+
+    add_low_entity_result Sword = AddSword(GameState);
+    Entity.Low->SwordLowIndex = Sword.LowIndex;
 
     if (GameState->CameraFollowingEntityIndex == 0) {
         GameState->CameraFollowingEntityIndex = Entity.LowIndex;
@@ -460,9 +474,9 @@ internal void MoveEntity(game_state* GameState, entity Entity, real32 dt, v2 ddP
     world_position NewWorldP =
         MapIntoChunkSpace(GameState->World, GameState->CameraP, Entity.High->P);
     ChangeEntityLocation(
-        &GameState->WorldArena, GameState->World, Entity.LowIndex, &Entity.Low->P, &NewWorldP
+        &GameState->WorldArena, GameState->World, Entity.LowIndex, Entity.Low,
+        &Entity.Low->P, &NewWorldP
     );
-    Entity.Low->P = NewWorldP;
 }
 
 internal void SetCamera(game_state* GameState, world_position NewCameraP) {
@@ -654,6 +668,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_shadow.bmp");
         GameState->Tree =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tree00.bmp");
+        GameState->Sword =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/rock03.bmp");
 
         hero_bitmaps* Bitmap;
 
@@ -873,12 +889,39 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 if (Controller->MoveRight.EndedDown) {
                     ddPlayer.X = 1;
                 }
-                if (Controller->ActionUp.EndedDown) {
-                    ControllingEntity.High->dZ = 3.0f;
-                }
+            }
+
+            if (Controller->Start.EndedDown) {
+                ControllingEntity.High->dZ = 3.0f;
+            }
+
+            v2 dSword = {};
+            if (Controller->ActionUp.EndedDown) {
+                dSword = { 0.0f, 1.0f };
+            }
+            if (Controller->ActionDown.EndedDown) {
+                dSword = { 0.0f, -1.0f };
+            }
+            if (Controller->ActionLeft.EndedDown) {
+                dSword = { -1.0f, 0.0f };
+            }
+            if (Controller->ActionRight.EndedDown) {
+                dSword = { 1.0f, 0.0f };
             }
 
             MoveEntity(GameState, ControllingEntity, Input->dtForFrame, ddPlayer);
+
+            if (dSword.X != 0.0f || dSword.Y != 0.0f) {
+                uint32 SwordIndex = ControllingEntity.Low->SwordLowIndex;
+                low_entity* Sword = GetLowEntity(GameState, SwordIndex);
+                if (Sword && !IsValid(Sword->P)) {
+                    world_position SwordP = ControllingEntity.Low->P;
+                    ChangeEntityLocation(
+                        &GameState->WorldArena, GameState->World,
+                        SwordIndex, Sword, 0, &SwordP
+                    );
+                }
+            }
         }
     }
 
@@ -956,6 +999,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         case EntityType_Wall:
         {
             PushBitmap(&PieceGroup, &GameState->Tree, { 0, 0 }, 0, { 40, 80 });
+        }
+        break;
+        case EntityType_Sword:
+        {
+            PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
+            PushBitmap(&PieceGroup, &GameState->Sword, { 0, 0 }, 0, { 29, 10 });
         }
         break;
         case EntityType_Familiar:

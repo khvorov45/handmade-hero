@@ -30,7 +30,8 @@ enum entity_type {
     EntityType_Hero,
     EntityType_Wall,
     EntityType_Familiar,
-    EntityType_Monster
+    EntityType_Monster,
+    EntityType_Sword
 };
 
 #define HITPOINT_SUBCOUNT 4
@@ -51,6 +52,9 @@ struct low_entity {
 
     uint32 HitPointMax;
     hit_point HitPoint[16];
+
+    uint32 SwordLowIndex;
+    real32 DistanceRemaining;
 };
 
 struct entity {
@@ -93,6 +97,7 @@ struct game_state {
     loaded_bitmap HeroShadow;
 
     loaded_bitmap Tree;
+    loaded_bitmap Sword;
 
     real32 MetersToPixels;
 };
@@ -102,3 +107,16 @@ struct entity_visible_piece_group {
     uint32 PieceCount;
     entity_visible_piece Pieces[32];
 };
+
+internal void ChangeEntityLocation(
+    memory_arena* Arena,
+    world* World, uint32 LowEntityIndex, low_entity* EntityLow,
+    world_position* OldP, world_position* NewP
+) {
+    ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
+    if (NewP) {
+        EntityLow->P = *NewP;
+    } else {
+        EntityLow->P = NullPosition();
+    }
+}
