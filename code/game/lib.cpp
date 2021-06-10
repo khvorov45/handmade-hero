@@ -371,21 +371,35 @@ internal bool32 TestWall(
     return Hit;
 }
 
+struct move_spec {
+    bool32 UnitMaxAccelVector;
+    real32 Speed;
+    real32 Drag;
+};
 
-internal void MoveEntity(game_state* GameState, entity Entity, real32 dt, v2 ddPlayer) {
+internal inline move_spec DefaultMoveSpec() {
+    move_spec MoveSpec = {};
+    MoveSpec.Drag = 0.0f;
+    MoveSpec.Speed = 1.0f;
+    MoveSpec.UnitMaxAccelVector = false;
+    return MoveSpec;
+}
+
+internal void
+MoveEntity(game_state* GameState, entity Entity, real32 dt, move_spec* MoveSpec, v2 ddPlayer) {
 
     world* TileMap = GameState->World;
 
-    real32 ddPlayerLengthSq = LengthSq(ddPlayer);
-    if (ddPlayerLengthSq > 1.0f) {
-        ddPlayer *= 1.0f / SquareRoot(ddPlayerLengthSq);
+    if (MoveSpec->UnitMaxAccelVector) {
+        real32 ddPlayerLengthSq = LengthSq(ddPlayer);
+        if (ddPlayerLengthSq > 1.0f) {
+            ddPlayer *= 1.0f / SquareRoot(ddPlayerLengthSq);
+        }
     }
 
-    real32 PlayerAcceleration = 150.0f;
+    ddPlayer *= MoveSpec->Speed;
 
-    ddPlayer *= PlayerAcceleration;
-
-    ddPlayer += -8.0f * Entity.High->dP;
+    ddPlayer += -MoveSpec->Drag * Entity.High->dP;
 
     v2 OldPlayerP = Entity.High->P;
 
@@ -576,13 +590,21 @@ internal void UpdateFamiliar(game_state* GameState, entity Entity, real32 dt) {
         real32 OneOverLength = (Acceleration / SquareRoot(ClosestHeroDSq));
         ddP = (ClosestHero.High->P - Entity.High->P) * OneOverLength;
     }
-    MoveEntity(GameState, Entity, dt, ddP);
+    move_spec MoveSpec = DefaultMoveSpec();
+    MoveSpec.Drag = 8.0f;
+    MoveSpec.Speed = 150.0f;
+    MoveSpec.UnitMaxAccelVector = true;
+    MoveEntity(GameState, Entity, dt, &MoveSpec, ddP);
 }
 
 internal void UpdateMonster(game_state* GameState, entity Entity, real32 dt) {}
 
 internal void UpdateSword(game_state* GameState, entity Entity, real32 dt) {
-    MoveEntity(GameState, Entity, dt, { 0.0f, 0.0f });
+    move_spec MoveSpec = DefaultMoveSpec();
+    MoveSpec.Speed = 0.0f;
+    MoveSpec.Drag = 0.0f;
+    MoveSpec.UnitMaxAccelVector = false;
+    MoveEntity(GameState, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
 }
 
 internal inline void
@@ -840,7 +862,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         while (GameState->LowEntityCount < (ArrayCount(GameState->LowEntities_) - 16)) {
             uint32 Coordinate = 1024 + GameState->LowEntityCount;
             AddWall(GameState, Coordinate, Coordinate, Coordinate);
-    }
+        }
 #endif
 
         uint32 CameraTileX = ScreenBaseX * TilesPerWidth + 17 / 2;
@@ -859,7 +881,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         SetCamera(GameState, NewCameraP);
 
         Memory->IsInitialized = true;
-}
+    }
 
     world* World = GameState->World;
     world* TileMap = World;
@@ -917,7 +939,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 dSword = { 1.0f, 0.0f };
             }
 
-            MoveEntity(GameState, ControllingEntity, Input->dtForFrame, ddPlayer);
+            move_spec MoveSpec = DefaultMoveSpec();
+            MoveSpec.Drag = 8.0f;
+            MoveSpec.Speed = 150.0f;
+            MoveSpec.UnitMaxAccelVector = true;
+            MoveEntity(GameState, ControllingEntity, Input->dtForFrame, &MoveSpec, ddPlayer);
 
             if (dSword.X != 0.0f || dSword.Y != 0.0f) {
                 uint32 SwordIndex = ControllingEntity.Low->SwordLowIndex;
@@ -953,14 +979,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
         if (CameraFollowingEntity.High->P.Y > 5.0f * TileMap->TileSideInMeters) {
             NewCameraP.AbsTileY += 9;
-        } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
-            NewCameraP.AbsTileY -= 9;
+    } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
+        NewCameraP.AbsTileY -= 9;
     }
 #else
         NewCameraP = CameraFollowingEntity.Low->P;
 #endif
         SetCamera(GameState, NewCameraP);
-    }
+}
 
     //* Clear screen
     DrawRectangle(
