@@ -200,7 +200,8 @@ internal inline void OffsetAndCheckFrequencyByArea(
     for (uint32 HighEntityIndex = 1; HighEntityIndex < GameState->HighEntityCount;) {
         high_entity* High = GameState->HighEntities_ + HighEntityIndex;
         High->P += Offset;
-        if (IsInRectangle(HighFrequencyBounds, High->P)) {
+        low_entity* Low = GameState->LowEntities_ + High->LowEntityIndex;
+        if (IsValid(Low->P) && IsInRectangle(HighFrequencyBounds, High->P)) {
             HighEntityIndex++;
         } else {
             Assert(
@@ -614,7 +615,6 @@ internal void UpdateSword(game_state* GameState, entity Entity, real32 dt) {
         ChangeEntityLocation(
             &GameState->WorldArena, GameState->World, Entity.LowIndex, Entity.Low, &Entity.Low->P, 0
         );
-        Entity.High->P += v2{ 100000.0f, 1000000.0f };
     }
 }
 
@@ -968,8 +968,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
                     entity Sword = ForceEntityIntoHigh(GameState, SwordIndex);
 
-                    Sword.Low->DistanceRemaining = 10.0f;
-                    Sword.High->dP = 5.0f * dSword;
+                    Sword.Low->DistanceRemaining = 5.0f;
+                    Sword.High->dP = 15.0f * dSword;
                 }
             }
         }
