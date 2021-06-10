@@ -288,7 +288,7 @@ internal void ChangeEntityLocationRaw(
     Assert(OldP == 0 || IsValid(*OldP));
     Assert(NewP == 0 || IsValid(*NewP));
 
-    if (OldP && AreInSameChunk(World, OldP, NewP)) {
+    if (OldP && NewP && AreInSameChunk(World, OldP, NewP)) {
         return;
     }
     if (OldP) {

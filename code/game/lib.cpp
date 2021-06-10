@@ -604,7 +604,18 @@ internal void UpdateSword(game_state* GameState, entity Entity, real32 dt) {
     MoveSpec.Speed = 0.0f;
     MoveSpec.Drag = 0.0f;
     MoveSpec.UnitMaxAccelVector = false;
+
+    v2 OldP = Entity.High->P;
     MoveEntity(GameState, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
+    real32 DistanceTravelled = Length(OldP - Entity.High->P);
+
+    Entity.Low->DistanceRemaining -= DistanceTravelled;
+    if (Entity.Low->DistanceRemaining < 0.0f) {
+        ChangeEntityLocation(
+            &GameState->WorldArena, GameState->World, Entity.LowIndex, Entity.Low, &Entity.Low->P, 0
+        );
+        Entity.High->P += v2{ 100000.0f, 1000000.0f };
+    }
 }
 
 internal inline void
@@ -958,7 +969,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     entity Sword = ForceEntityIntoHigh(GameState, SwordIndex);
 
                     Sword.Low->DistanceRemaining = 10.0f;
-                    Sword.High->dP = 2.0f * dSword;
+                    Sword.High->dP = 5.0f * dSword;
                 }
             }
         }
@@ -979,14 +990,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
         if (CameraFollowingEntity.High->P.Y > 5.0f * TileMap->TileSideInMeters) {
             NewCameraP.AbsTileY += 9;
-    } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
-        NewCameraP.AbsTileY -= 9;
-    }
+        } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
+            NewCameraP.AbsTileY -= 9;
+        }
 #else
         NewCameraP = CameraFollowingEntity.Low->P;
 #endif
         SetCamera(GameState, NewCameraP);
-}
+    }
 
     //* Clear screen
     DrawRectangle(
