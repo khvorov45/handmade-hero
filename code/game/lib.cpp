@@ -263,11 +263,45 @@ AddLowEntity(game_state* GameState, entity_type EntityType, world_position* Posi
     return Result;
 }
 
+struct add_low_entity_result_ {
+    low_entity_* Low;
+    uint32 LowIndex;
+};
+
+internal add_low_entity_result_
+AddLowEntity_(game_state* GameState, entity_type EntityType, world_position* Position) {
+
+    Assert(GameState->LowEntity_Count < ArrayCount(GameState->LowEntities));
+
+    add_low_entity_result_ Result = {};
+
+    Result.LowIndex = GameState->LowEntity_Count++;
+
+    Result.Low = GameState->LowEntities + Result.LowIndex;
+    *Result.Low = {};
+    Result.Low->Sim.Type = EntityType;
+
+    ChangeEntityLocation(
+        &GameState->WorldArena, GameState->World, Result.LowIndex, Result.Low, 0, Position
+    );
+
+
+    return Result;
+}
+
 internal void InitHitpoints(low_entity* EntityLow, uint32 Max) {
     Assert(Max <= ArrayCount(EntityLow->HitPoint));
     EntityLow->HitPointMax = Max;
     for (uint32 HealthIndex = 0; HealthIndex < Max; HealthIndex++) {
         EntityLow->HitPoint[HealthIndex].FilledAmount = HITPOINT_SUBCOUNT;
+    }
+}
+
+internal void InitHitpoints_(low_entity_* EntityLow, uint32 Max) {
+    Assert(Max <= ArrayCount(EntityLow->Sim.HitPoint));
+    EntityLow->Sim.HitPointMax = Max;
+    for (uint32 HealthIndex = 0; HealthIndex < Max; HealthIndex++) {
+        EntityLow->Sim.HitPoint[HealthIndex].FilledAmount = HITPOINT_SUBCOUNT;
     }
 }
 
@@ -297,6 +331,27 @@ internal add_low_entity_result AddPlayer(game_state* GameState) {
 
     add_low_entity_result Sword = AddSword(GameState);
     Entity.Low->SwordLowIndex = Sword.LowIndex;
+
+    if (GameState->CameraFollowingEntityIndex == 0) {
+        GameState->CameraFollowingEntityIndex = Entity.LowIndex;
+    }
+
+    return Entity;
+}
+
+internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
+
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Hero, &GameState->CameraP);
+
+    Entity.Low->Sim.Height = 0.5f;
+    Entity.Low->Sim.Width = 1.0f;
+
+    Entity.Low->Sim.Collides = true;
+
+    InitHitpoints_(Entity.Low, 3);
+
+    add_low_entity_result Sword = AddSword(GameState);
+    Entity.Low->Sim.Sword.Index = Sword.LowIndex;
 
     if (GameState->CameraFollowingEntityIndex == 0) {
         GameState->CameraFollowingEntityIndex = Entity.LowIndex;
@@ -352,39 +407,6 @@ AddFamiliar(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsT
     Entity.Low->Collides = false;
 
     return Entity;
-}
-
-internal bool32 TestWall(
-    real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
-    real32* tMin, real32 MinY, real32 MaxY
-) {
-    bool32 Hit = false;
-    if (PlayerDeltaX != 0.0f) {
-        real32 tResult = (WallX - RelX) / PlayerDeltaX;
-        real32 Y = RelY + tResult * PlayerDeltaY;
-        if (tResult > 0.0f && *tMin > tResult) {
-            if (Y >= MinY && Y <= MaxY) {
-                Hit = true;
-                real32 tEpsilon = 0.0001f;
-                *tMin = Maximum(0.0f, tResult - tEpsilon);
-            }
-        }
-    }
-    return Hit;
-}
-
-struct move_spec {
-    bool32 UnitMaxAccelVector;
-    real32 Speed;
-    real32 Drag;
-};
-
-internal inline move_spec DefaultMoveSpec() {
-    move_spec MoveSpec = {};
-    MoveSpec.Drag = 0.0f;
-    MoveSpec.Speed = 1.0f;
-    MoveSpec.UnitMaxAccelVector = false;
-    return MoveSpec;
 }
 
 internal void

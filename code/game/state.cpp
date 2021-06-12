@@ -81,36 +81,6 @@ struct entity_visible_piece {
     v2 Dim;
 };
 
-struct game_state {
-    memory_arena WorldArena;
-    world* World;
-    uint32 CameraFollowingEntityIndex;
-    world_position CameraP;
-
-    uint32 PlayerIndexForController[ArrayCount(((game_input*)0)->Controllers)];
-
-    uint32 HighEntityCount;
-    high_entity HighEntities_[256];
-
-    uint32 LowEntityCount;
-    low_entity LowEntities_[1000000];
-
-    loaded_bitmap Backdrop;
-    hero_bitmaps HeroBitmaps[4];
-    loaded_bitmap HeroShadow;
-
-    loaded_bitmap Tree;
-    loaded_bitmap Sword;
-
-    real32 MetersToPixels;
-};
-
-struct entity_visible_piece_group {
-    game_state* GameState;
-    uint32 PieceCount;
-    entity_visible_piece Pieces[32];
-};
-
 internal void ChangeEntityLocation(
     memory_arena* Arena,
     world* World, uint32 LowEntityIndex, low_entity* EntityLow,
