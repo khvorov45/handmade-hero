@@ -1,3 +1,6 @@
+#if !defined(HANDMADE_SIM_REGION_CPP)
+#define HANDMADE_SIM_REGION_CPP
+
 #include "../types.h"
 #include "state.cpp"
 #include "world.cpp"
@@ -65,7 +68,7 @@ struct game_state {
     uint32 CameraFollowingEntityIndex;
     world_position CameraP;
 
-    uint32 PlayerIndexForController[ArrayCount(((game_input*)0)->Controllers)];
+    controlled_hero ControlledHeroes[ArrayCount(((game_input*)0)->Controllers)];
 
     uint32 HighEntityCount;
     high_entity HighEntities_[256];
@@ -433,3 +436,5 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
         }
     }
 }
+
+#endif

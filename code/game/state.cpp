@@ -81,6 +81,13 @@ struct entity_visible_piece {
     v2 Dim;
 };
 
+struct controlled_hero {
+    uint32 EntityIndex;
+    v2 ddP;
+    v2 dSword;
+    real32 dZ;
+};
+
 internal void ChangeEntityLocation(
     memory_arena* Arena,
     world* World, uint32 LowEntityIndex, low_entity* EntityLow,

@@ -2,6 +2,7 @@
 #include "world.cpp"
 #include "state.cpp"
 #include "sim_region.cpp"
+#include "entity.cpp"
 #include "random.cpp"
 #include "math.cpp"
 #include <math.h>
@@ -263,45 +264,11 @@ AddLowEntity(game_state* GameState, entity_type EntityType, world_position* Posi
     return Result;
 }
 
-struct add_low_entity_result_ {
-    low_entity_* Low;
-    uint32 LowIndex;
-};
-
-internal add_low_entity_result_
-AddLowEntity_(game_state* GameState, entity_type EntityType, world_position* Position) {
-
-    Assert(GameState->LowEntity_Count < ArrayCount(GameState->LowEntities));
-
-    add_low_entity_result_ Result = {};
-
-    Result.LowIndex = GameState->LowEntity_Count++;
-
-    Result.Low = GameState->LowEntities + Result.LowIndex;
-    *Result.Low = {};
-    Result.Low->Sim.Type = EntityType;
-
-    ChangeEntityLocation(
-        &GameState->WorldArena, GameState->World, Result.LowIndex, Result.Low, 0, Position
-    );
-
-
-    return Result;
-}
-
 internal void InitHitpoints(low_entity* EntityLow, uint32 Max) {
     Assert(Max <= ArrayCount(EntityLow->HitPoint));
     EntityLow->HitPointMax = Max;
     for (uint32 HealthIndex = 0; HealthIndex < Max; HealthIndex++) {
         EntityLow->HitPoint[HealthIndex].FilledAmount = HITPOINT_SUBCOUNT;
-    }
-}
-
-internal void InitHitpoints_(low_entity_* EntityLow, uint32 Max) {
-    Assert(Max <= ArrayCount(EntityLow->Sim.HitPoint));
-    EntityLow->Sim.HitPointMax = Max;
-    for (uint32 HealthIndex = 0; HealthIndex < Max; HealthIndex++) {
-        EntityLow->Sim.HitPoint[HealthIndex].FilledAmount = HITPOINT_SUBCOUNT;
     }
 }
 
@@ -331,27 +298,6 @@ internal add_low_entity_result AddPlayer(game_state* GameState) {
 
     add_low_entity_result Sword = AddSword(GameState);
     Entity.Low->SwordLowIndex = Sword.LowIndex;
-
-    if (GameState->CameraFollowingEntityIndex == 0) {
-        GameState->CameraFollowingEntityIndex = Entity.LowIndex;
-    }
-
-    return Entity;
-}
-
-internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
-
-    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Hero, &GameState->CameraP);
-
-    Entity.Low->Sim.Height = 0.5f;
-    Entity.Low->Sim.Width = 1.0f;
-
-    Entity.Low->Sim.Collides = true;
-
-    InitHitpoints_(Entity.Low, 3);
-
-    add_low_entity_result Sword = AddSword(GameState);
-    Entity.Low->Sim.Sword.Index = Sword.LowIndex;
 
     if (GameState->CameraFollowingEntityIndex == 0) {
         GameState->CameraFollowingEntityIndex = Entity.LowIndex;
@@ -708,6 +654,26 @@ internal void DrawHitpoints(low_entity* LowEntity, entity_visible_piece_group* P
     }
 }
 
+internal void DrawHitpoints_(sim_entity* Entity, entity_visible_piece_group* PieceGroup) {
+    if (Entity->HitPointMax >= 1) {
+        v2 HealthDim = { 0.2f, 0.2f };
+        real32 SpacingX = 2.0f * HealthDim.X;
+        v2 HitP = { (Entity->HitPointMax - 1) * (-0.5f) * SpacingX, -0.2f };
+        v2 dHitP = { SpacingX, 0.0f };
+        for (uint32 HealthIndex = 0; HealthIndex < Entity->HitPointMax; ++HealthIndex) {
+            v4 Color = { 1.0f, 0.0f, 0.0f, 1.0f };
+            hit_point* HitPoint = Entity->HitPoint + HealthIndex;
+            if (HitPoint->FilledAmount == 0) {
+                Color.R = 0.2f;
+                Color.G = 0.2f;
+                Color.B = 0.2f;
+            }
+            PushRect(PieceGroup, 0, HitP, 0, HealthDim, Color, 0.0f);
+            HitP += dHitP;
+        }
+    }
+}
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
@@ -724,7 +690,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     if (!Memory->IsInitialized) {
         AddLowEntity(GameState, EntityType_Null, 0);
-        GameState->HighEntityCount = 1;
+        GameState->HighEntityCount = 1; //!
 
         GameState->Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
@@ -926,74 +892,53 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         game_controller_input* Controller = GetController(Input, ControllerIndex);
 
-        uint32 LowIndex = GameState->PlayerIndexForController[ControllerIndex];
-        if (LowIndex == 0) {
+        controlled_hero* ConHero = GameState->ControlledHeroes + ControllerIndex;
+
+        if (ConHero->EntityIndex == 0) {
             if (Controller->Start.EndedDown) {
-                add_low_entity_result PlayerEntity = AddPlayer(GameState);
-                GameState->PlayerIndexForController[ControllerIndex] = PlayerEntity.LowIndex;
+                *ConHero = {};
+                ConHero->EntityIndex = AddPlayer(GameState).LowIndex;
             }
         } else {
 
-            entity ControllingEntity = ForceEntityIntoHigh(GameState, LowIndex);
-
-            v2 ddPlayer = {};
+            ConHero->ddP = {};
+            ConHero->dSword = {};
+            ConHero->dZ = 0.0f;
 
             if (Controller->IsAnalog) {
-                ddPlayer = { Controller->StickAverageX, Controller->StickAverageY };
+                ConHero->ddP = { Controller->StickAverageX, Controller->StickAverageY };
             } else {
                 if (Controller->MoveUp.EndedDown) {
-                    ddPlayer.Y = 1;
+                    ConHero->ddP.Y = 1;
                 }
                 if (Controller->MoveDown.EndedDown) {
-                    ddPlayer.Y = -1;
+                    ConHero->ddP.Y = -1;
                 }
                 if (Controller->MoveLeft.EndedDown) {
-                    ddPlayer.X = -1;
+                    ConHero->ddP.X = -1;
                 }
                 if (Controller->MoveRight.EndedDown) {
-                    ddPlayer.X = 1;
+                    ConHero->ddP.X = 1;
                 }
             }
 
             if (Controller->Start.EndedDown) {
-                ControllingEntity.High->dZ = 3.0f;
+                entity ControllingEntity = ForceEntityIntoHigh(GameState, ConHero->EntityIndex); //!
+                ControllingEntity.High->dZ = 3.0f; //!
+                ConHero->dZ = 3.0f;
             }
 
-            v2 dSword = {};
             if (Controller->ActionUp.EndedDown) {
-                dSword = { 0.0f, 1.0f };
+                ConHero->dSword = { 0.0f, 1.0f };
             }
             if (Controller->ActionDown.EndedDown) {
-                dSword = { 0.0f, -1.0f };
+                ConHero->dSword = { 0.0f, -1.0f };
             }
             if (Controller->ActionLeft.EndedDown) {
-                dSword = { -1.0f, 0.0f };
+                ConHero->dSword = { -1.0f, 0.0f };
             }
             if (Controller->ActionRight.EndedDown) {
-                dSword = { 1.0f, 0.0f };
-            }
-
-            move_spec MoveSpec = DefaultMoveSpec();
-            MoveSpec.Drag = 8.0f;
-            MoveSpec.Speed = 150.0f;
-            MoveSpec.UnitMaxAccelVector = true;
-            MoveEntity(GameState, ControllingEntity, Input->dtForFrame, &MoveSpec, ddPlayer);
-
-            if (dSword.X != 0.0f || dSword.Y != 0.0f) {
-                uint32 SwordIndex = ControllingEntity.Low->SwordLowIndex;
-                low_entity* LowSword = GetLowEntity(GameState, SwordIndex);
-                if (LowSword && !IsValid(LowSword->P)) {
-                    world_position SwordP = ControllingEntity.Low->P;
-                    ChangeEntityLocation(
-                        &GameState->WorldArena, GameState->World,
-                        SwordIndex, LowSword, 0, &SwordP
-                    );
-
-                    entity Sword = ForceEntityIntoHigh(GameState, SwordIndex);
-
-                    Sword.Low->DistanceRemaining = 5.0f;
-                    Sword.High->dP = 15.0f * dSword;
-                }
+                ConHero->dSword = { 1.0f, 0.0f };
             }
         }
     }
@@ -1074,6 +1019,39 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         switch (LowEntity->Type) {
         case EntityType_Hero:
         {
+            for (uint32 ControlIndex = 0;
+                ControlIndex < ArrayCount(GameState->ControlledHeroes);
+                ++ControlIndex) {
+
+                controlled_hero* ConHero = GameState->ControlledHeroes + ControlIndex;
+
+                if (ConHero->EntityIndex == Entity.LowIndex) {
+                    move_spec MoveSpec = DefaultMoveSpec();
+                    MoveSpec.Drag = 8.0f;
+                    MoveSpec.Speed = 150.0f;
+                    MoveSpec.UnitMaxAccelVector = true;
+                    MoveEntity(GameState, Entity, Input->dtForFrame, &MoveSpec, ConHero->ddP);
+
+                    if (ConHero->dSword.X != 0.0f || ConHero->dSword.Y != 0.0f) {
+                        uint32 SwordIndex = Entity.Low->SwordLowIndex;
+                        low_entity* LowSword = GetLowEntity(GameState, SwordIndex);
+                        if (LowSword && !IsValid(LowSword->P)) {
+                            world_position SwordP = Entity.Low->P;
+                            ChangeEntityLocation(
+                                &GameState->WorldArena, GameState->World,
+                                SwordIndex, LowSword, 0, &SwordP
+                            );
+
+                            entity Sword = ForceEntityIntoHigh(GameState, SwordIndex);
+
+                            Sword.Low->DistanceRemaining = 5.0f;
+                            Sword.High->dP = 15.0f * ConHero->dSword;
+                        }
+                    }
+                }
+            }
+
+
             PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
             PushBitmap(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0, HeroBitmaps->Align);
             PushBitmap(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
