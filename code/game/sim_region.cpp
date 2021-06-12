@@ -136,6 +136,7 @@ LoadEntityReference(game_state* GameState, sim_region* SimRegion, entity_referen
     if (Ref->Index) {
         sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, Ref->Index);
         if (Entry->Ptr == 0) {
+            Entry->Index = Ref->Index;
             Entry->Ptr =
                 AddEntity(GameState, SimRegion, Ref->Index, GetLowEntity_(GameState, Ref->Index));
         }
@@ -294,13 +295,13 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-        }
+            }
 #else
             NewCameraP = Stored->P;
 #endif
             GameState->CameraP = NewCameraP;
+        }
     }
-}
 }
 
 internal bool32 TestWall(
