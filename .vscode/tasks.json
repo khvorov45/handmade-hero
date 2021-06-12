@@ -7,13 +7,8 @@
       "label": "build",
       "type": "shell",
       "windows": {
-        "command": "cmd",
-        "args": ["/c", ".\\misc\\build-task.bat"],
-        "options": {
-          "shell": {
-            "executable": "cmd.exe"
-          }
-        }
+        "type": "process",
+        "command": ".\\misc\\build-task.bat"
       },
       "linux": {
         "command": "./misc/build-linux.sh"

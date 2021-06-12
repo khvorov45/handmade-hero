@@ -1,5 +1,11 @@
 {
   "workbench.colorTheme": "Pitch Black",
   "editor.rulers": [100],
-  "terminal.integrated.shellArgs.windows": ["/k", ".\\misc\\shell.bat"]
+  "terminal.integrated.profiles.windows": {
+    "cmd": {
+      "path": "C:\\WINDOWS\\System32\\cmd.exe",
+      "args": ["/k", ".\\misc\\shell.bat"]
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "cmd"
 }
