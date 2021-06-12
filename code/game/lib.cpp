@@ -1,6 +1,7 @@
 #include "lib.hpp"
 #include "world.cpp"
 #include "state.cpp"
+#include "sim_region.cpp"
 #include "random.cpp"
 #include "math.cpp"
 #include <math.h>
@@ -999,6 +1000,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         SetCamera(GameState, NewCameraP);
     }
 
+    //* SimRegion
+    {
+
+        uint32 TileSpanX = 17 * 3;
+        uint32 TileSpanY = 9 * 3;
+        rectangle2 CameraBounds = RectCenterDim(
+            { 0, 0 },
+            World->TileSideInMeters * v2{ (real32)TileSpanX, (real32)TileSpanY }
+        );
+
+        //sim_region* SimRegion = BeginSim(SimArena, World, GameState->CameraP, CameraBounds);
+    }
+
     //* Clear screen
     DrawRectangle(
         Buffer, { 0, 0 }, { (real32)Buffer->Width, (real32)Buffer->Height },
@@ -1116,4 +1130,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
         }
     }
+
+    //EndSim(SimRegion, GameState);
 }

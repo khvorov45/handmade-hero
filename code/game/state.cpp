@@ -1,3 +1,6 @@
+#if !defined(HANDMADE_STATE_CPP)
+#define HANDMADE_STATE_CPP
+
 #include "world.cpp"
 #include "memory.cpp"
 #include "bmp.cpp"
@@ -120,3 +123,5 @@ internal void ChangeEntityLocation(
         EntityLow->P = NullPosition();
     }
 }
+
+#endif
