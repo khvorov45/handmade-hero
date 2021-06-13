@@ -1026,6 +1026,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 controlled_hero* ConHero = GameState->ControlledHeroes + ControlIndex;
 
                 if (ConHero->EntityIndex == Entity.LowIndex) {
+                    //? Entity->dZ = ConHero->dZ
+
                     move_spec MoveSpec = DefaultMoveSpec();
                     MoveSpec.Drag = 8.0f;
                     MoveSpec.Speed = 150.0f;

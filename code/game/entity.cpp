@@ -119,13 +119,15 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
 // ================================================================================================
 
 internal void UpdateFamiliar_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {
+
     sim_entity* ClosestHero = 0;
     real32 ClosestHeroDSq = Square(15.0f);
-    for (uint32 EntityIndex = 1;
-        EntityIndex < SimRegion->EntityCount;
-        EntityIndex++) {
 
-        sim_entity* TestEntity = SimRegion->Entities + EntityIndex;
+    for (uint32 TestEntityIndex = 0;
+        TestEntityIndex < SimRegion->EntityCount;
+        TestEntityIndex++) {
+
+        sim_entity* TestEntity = SimRegion->Entities + TestEntityIndex;
 
         if (TestEntity->Type == EntityType_Hero) {
             real32 TestDSq = LengthSq(TestEntity->P - Entity->P);
@@ -151,7 +153,7 @@ internal void UpdateFamiliar_(sim_region* SimRegion, sim_entity* Entity, real32 
 internal void UpdateMonster_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {}
 
 internal void
-UpdateSword_(game_state* GameState, sim_region* SimRegion, sim_entity* Entity, real32 dt) {
+UpdateSword_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {
     move_spec MoveSpec = DefaultMoveSpec();
     MoveSpec.Speed = 0.0f;
     MoveSpec.Drag = 0.0f;
@@ -163,9 +165,6 @@ UpdateSword_(game_state* GameState, sim_region* SimRegion, sim_entity* Entity, r
 
     Entity->DistanceRemaining -= DistanceTravelled;
     if (Entity->DistanceRemaining < 0.0f) {
-        low_entity_* Stored = GameState->LowEntities + Entity->StorageIndex;
-        ChangeEntityLocation(
-            &GameState->WorldArena, GameState->World, Entity->StorageIndex, Stored, &Stored->P, 0
-        );
+        Assert(!"MAKE ENTITY NOT BE THERE")
     }
 }
