@@ -192,8 +192,9 @@ internal bool32 IsWorldPointEmpty(world* World, world_position CanonicalPos) {
 
 internal bool32 IsCanonical(world* World, real32 TileRel) {
     //! Sometimes it's right on
-    bool32 Result = (TileRel >= -0.5f * World->ChunkSideInMeters)
-        && (TileRel <= 0.5f * World->ChunkSideInMeters);
+    real32 Epsilon = 0.0001f;
+    bool32 Result = (TileRel >= -(0.5f * World->ChunkSideInMeters + Epsilon))
+        && (TileRel <= 0.5f * World->ChunkSideInMeters + Epsilon);
     return Result;
 }
 
