@@ -149,7 +149,7 @@ LoadEntityReference(game_state* GameState, sim_region* SimRegion, entity_referen
 
 internal void
 MapStorageIndexToEntity(sim_region* SimRegion, uint32 StorageIndex, sim_entity* Entity) {
-    sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, Entity->StorageIndex);
+    sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, StorageIndex);
     Assert(Entry->Index == 0 || Entry->Index == StorageIndex);
     Entry->Index = StorageIndex;
     Entry->Ptr = Entity;
