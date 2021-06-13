@@ -4,6 +4,7 @@
 #include "../types.h"
 #include "state.cpp"
 #include "world.cpp"
+#include "math.cpp"
 
 struct sim_entity;
 union entity_reference {
@@ -200,6 +201,7 @@ BeginSim(
     world* World, world_position Origin, rectangle2 Bounds
 ) {
     sim_region* SimRegion = PushStruct(SimArena, sim_region);
+    ZeroStruct(SimRegion->Hash);
 
     SimRegion->World = World;
 
