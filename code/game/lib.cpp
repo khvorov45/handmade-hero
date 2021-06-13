@@ -976,7 +976,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     );
 
     memory_arena SimArena;
-    InitializeArena(&SimArena, Memory->TransientStorageSize, (uint8*)Memory->TransientStorage);
+    InitializeArena(&SimArena, Memory->TransientStorageSize, Memory->TransientStorage);
 
     sim_region* SimRegion = BeginSim(&SimArena, GameState, World, GameState->CameraP, CameraBounds);
 
