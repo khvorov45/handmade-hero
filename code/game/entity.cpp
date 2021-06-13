@@ -111,7 +111,7 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
 
-    Entity.Low->Sim.Collides = false;
+    Entity.Low->Sim.Collides = true;
 
     return Entity;
 }
