@@ -71,12 +71,6 @@ struct game_state {
 
     controlled_hero ControlledHeroes[ArrayCount(((game_input*)0)->Controllers)];
 
-    uint32 HighEntityCount;
-    high_entity HighEntities_[256];
-
-    uint32 LowEntityCount;
-    low_entity LowEntities_[1000000];
-
     uint32 LowEntity_Count;
     low_entity_ LowEntities[1000000];
 
@@ -121,7 +115,7 @@ internal low_entity_* GetLowEntity_(game_state* GameState, uint32 LowIndex) {
 
     low_entity_* Result = 0;
 
-    if (LowIndex > 0 && LowIndex < GameState->LowEntityCount) {
+    if (LowIndex > 0 && LowIndex < GameState->LowEntity_Count) {
         Result = GameState->LowEntities + LowIndex;
     }
 
