@@ -1001,7 +1001,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 ScreenCenterY = (real32)Buffer->Height * 0.5f;
     entity_visible_piece_group PieceGroup;
     PieceGroup.GameState = GameState;
-    for (uint32 EntityIndex = 1;
+    for (uint32 EntityIndex = 0;
         EntityIndex < SimRegion->EntityCount;
         EntityIndex++) {
 
