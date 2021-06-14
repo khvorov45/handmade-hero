@@ -88,17 +88,4 @@ struct controlled_hero {
     real32 dZ;
 };
 
-internal void ChangeEntityLocation(
-    memory_arena* Arena,
-    world* World, uint32 LowEntityIndex, low_entity* EntityLow,
-    world_position* OldP, world_position* NewP
-) {
-    ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
-    if (NewP) {
-        EntityLow->P = *NewP;
-    } else {
-        EntityLow->P = NullPosition();
-    }
-}
-
 #endif
