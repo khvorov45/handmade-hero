@@ -12,10 +12,16 @@ union entity_reference {
     uint32 Index;
 };
 
+enum sim_entity_flags {
+    EntityFlag_Collides = (1 << 1),
+    EntityFlag_Nonspatial = (1 << 2)
+};
+
 struct sim_entity {
     uint32 StorageIndex;
 
     entity_type Type;
+    uint32 Flags;
 
     v2 P;
     uint32 ChunkZ;
@@ -30,7 +36,6 @@ struct sim_entity {
     uint32 FacingDirection;
     real32 tBob;
 
-    bool32 Collides;
     int32 dAbsTileZ; //* Stairs
 
     uint32 HitPointMax;
@@ -89,6 +94,15 @@ struct entity_visible_piece_group {
     uint32 PieceCount;
     entity_visible_piece Pieces[32];
 };
+
+internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
+    bool32 Result = (Entity->Flags & Flag) != 0;
+    return Result;
+}
+
+internal void AddFlag(sim_entity* Entity, uint32 Flag) {
+    Entity->Flags |= Flag;
+}
 
 internal v2 GetSimSpaceP(sim_region* SimRegion, low_entity_* Stored) {
     world_difference Diff = Subtract(SimRegion->World, &Stored->P, &SimRegion->Origin);
@@ -368,14 +382,14 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
 
         v2 DesiredPosition = Entity->P + PlayerDelta;
 
-        if (Entity->Collides) {
+        if (IsSet(Entity, EntityFlag_Collides)) {
 
             for (uint32 TestHighEntityIndex = 1;
                 TestHighEntityIndex < Region->EntityCount;
                 ++TestHighEntityIndex) {
 
                 sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
-                if (TestEntity == Entity || !TestEntity->Collides) {
+                if (TestEntity == Entity || !IsSet(TestEntity, EntityFlag_Collides)) {
                     continue;
                 }
 

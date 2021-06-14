@@ -41,8 +41,6 @@ internal add_low_entity_result_ AddSword_(game_state* GameState) {
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
 
-    Entity.Low->Sim.Collides = false;
-
     return Entity;
 }
 
@@ -53,7 +51,7 @@ internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
 
-    Entity.Low->Sim.Collides = true;
+    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
     InitHitpoints_(Entity.Low, 3);
 
@@ -79,7 +77,7 @@ AddWall_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
     Entity.Low->Sim.Height = TileSide;
     Entity.Low->Sim.Width = TileSide;
 
-    Entity.Low->Sim.Collides = true;
+    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
     return Entity;
 }
@@ -96,7 +94,7 @@ AddMonster_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsT
 
     InitHitpoints_(Entity.Low, 3);
 
-    Entity.Low->Sim.Collides = true;
+    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
     return Entity;
 }
@@ -111,7 +109,7 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
 
-    Entity.Low->Sim.Collides = true;
+    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
     return Entity;
 }
