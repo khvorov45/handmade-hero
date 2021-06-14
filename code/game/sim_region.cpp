@@ -104,9 +104,19 @@ internal void AddFlag(sim_entity* Entity, uint32 Flag) {
     Entity->Flags |= Flag;
 }
 
+internal void ClearFlag(sim_entity* Entity, uint32 Flag) {
+    Entity->Flags &= ~Flag;
+}
+
+#define InvalidP { 100000.0f, 100000.0f }
+
 internal v2 GetSimSpaceP(sim_region* SimRegion, low_entity_* Stored) {
-    world_difference Diff = Subtract(SimRegion->World, &Stored->P, &SimRegion->Origin);
-    return { Diff.d.X, Diff.d.Y };
+    v2 Result = InvalidP;
+    if (!IsSet(&Stored->Sim, EntityFlag_Nonspatial)) {
+        world_difference Diff = Subtract(SimRegion->World, &Stored->P, &SimRegion->Origin);
+        Result = { Diff.d.X, Diff.d.Y };
+    }
+    return Result;
 }
 
 internal sim_entity_hash* GetHashFromStorageIndex(sim_region* SimRegion, uint32 StorageIndex) {
@@ -142,7 +152,10 @@ internal sim_entity* GetEntityByStorageIndex(sim_region* SimRegion, uint32 Stora
 }
 
 internal sim_entity*
-AddEntity(game_state* GameState, sim_region* SimRegion, uint32 StorageIndex, low_entity_* Source);
+AddEntity(
+    game_state* GameState, sim_region* SimRegion, uint32 LowEntityIndex,
+    low_entity_* Source, v2* SimP
+);
 
 internal void
 LoadEntityReference(game_state* GameState, sim_region* SimRegion, entity_reference* Ref) {
@@ -150,8 +163,9 @@ LoadEntityReference(game_state* GameState, sim_region* SimRegion, entity_referen
         sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, Ref->Index);
         if (Entry->Ptr == 0) {
             Entry->Index = Ref->Index;
-            Entry->Ptr =
-                AddEntity(GameState, SimRegion, Ref->Index, GetLowEntity_(GameState, Ref->Index));
+            Entry->Ptr = AddEntity(
+                GameState, SimRegion, Ref->Index, GetLowEntity_(GameState, Ref->Index), 0
+            );
         }
         Ref->Ptr = Entry->Ptr;
     }
@@ -166,7 +180,9 @@ MapStorageIndexToEntity(sim_region* SimRegion, uint32 StorageIndex, sim_entity* 
 }
 
 internal sim_entity*
-AddEntity(game_state* GameState, sim_region* SimRegion, uint32 StorageIndex, low_entity_* Source) {
+AddEntityRaw(
+    game_state* GameState, sim_region* SimRegion, uint32 StorageIndex, low_entity_* Source
+) {
     Assert(StorageIndex);
     sim_entity* Entity = 0;
 
@@ -193,7 +209,7 @@ AddEntity(
     game_state* GameState, sim_region* SimRegion, uint32 LowEntityIndex,
     low_entity_* Source, v2* SimP
 ) {
-    sim_entity* Dest = AddEntity(GameState, SimRegion, LowEntityIndex, Source);
+    sim_entity* Dest = AddEntityRaw(GameState, SimRegion, LowEntityIndex, Source);
     if (Dest) {
         if (SimP) {
             Dest->P = *SimP;
@@ -242,11 +258,12 @@ BeginSim(
                     uint32 LowEntityIndex = Block->LowEntityIndex[BlockIndex];
                     low_entity_* Low = GameState->LowEntities + LowEntityIndex;
 
-                    v2 SimSpaceP = GetSimSpaceP(SimRegion, Low);
-                    if (IsInRectangle(Bounds, SimSpaceP)) {
-                        AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
+                    if (!IsSet(&Low->Sim, EntityFlag_Nonspatial)) {
+                        v2 SimSpaceP = GetSimSpaceP(SimRegion, Low);
+                        if (IsInRectangle(Bounds, SimSpaceP)) {
+                            AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
+                        }
                     }
-
                 }
             }
         }
@@ -263,13 +280,26 @@ internal void StoreEntityReference(entity_reference* Ref) {
 internal void ChangeEntityLocation(
     memory_arena* Arena,
     world* World, uint32 LowEntityIndex, low_entity_* EntityLow,
-    world_position* OldP, world_position* NewP
+    world_position NewPInit
 ) {
+    world_position* OldP = 0;
+    world_position* NewP = 0;
+
+    if (!IsSet(&EntityLow->Sim, EntityFlag_Nonspatial) && IsValid(EntityLow->P)) {
+        OldP = &EntityLow->P;
+    }
+
+    if (IsValid(NewPInit)) {
+        NewP = &NewPInit;
+    }
+
     ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
     if (NewP) {
         EntityLow->P = *NewP;
+        ClearFlag(&EntityLow->Sim, EntityFlag_Nonspatial);
     } else {
         EntityLow->P = NullPosition();
+        AddFlag(&EntityLow->Sim, EntityFlag_Nonspatial);
     }
 }
 
@@ -286,11 +316,13 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
         Stored->Sim = *Entity;
         StoreEntityReference(&Stored->Sim.Sword);
 
-        world_position NewP = MapIntoChunkSpace(GameState->World, Region->Origin, Entity->P);
+        world_position NewP =
+            IsSet(Entity, EntityFlag_Nonspatial) ?
+            NullPosition() :
+            MapIntoChunkSpace(GameState->World, Region->Origin, Entity->P);
 
         ChangeEntityLocation(
-            &GameState->WorldArena, GameState->World, Entity->StorageIndex, Stored,
-            &Stored->P, &NewP
+            &GameState->WorldArena, GameState->World, Entity->StorageIndex, Stored, NewP
         );
 
         if (Entity->StorageIndex == GameState->CameraFollowingEntityIndex) {
@@ -354,6 +386,8 @@ internal inline move_spec DefaultMoveSpec() {
 internal void
 MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpec, v2 ddPlayer) {
 
+    Assert(!IsSet(Entity, EntityFlag_Nonspatial));
+
     world* World = Region->World;
 
     if (MoveSpec->UnitMaxAccelVector) {
@@ -382,14 +416,16 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
 
         v2 DesiredPosition = Entity->P + PlayerDelta;
 
-        if (IsSet(Entity, EntityFlag_Collides)) {
+        if (IsSet(Entity, EntityFlag_Collides) && !IsSet(Entity, EntityFlag_Nonspatial)) {
 
             for (uint32 TestHighEntityIndex = 1;
                 TestHighEntityIndex < Region->EntityCount;
                 ++TestHighEntityIndex) {
 
                 sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
-                if (TestEntity == Entity || !IsSet(TestEntity, EntityFlag_Collides)) {
+                if (TestEntity == Entity ||
+                    !IsSet(TestEntity, EntityFlag_Collides) ||
+                    IsSet(Entity, EntityFlag_Nonspatial)) {
                     continue;
                 }
 

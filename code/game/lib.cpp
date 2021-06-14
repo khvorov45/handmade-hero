@@ -201,7 +201,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
 
     if (!Memory->IsInitialized) {
-        AddLowEntity_(GameState, EntityType_Null, 0);
+        AddLowEntity_(GameState, EntityType_Null, NullPosition());
 
         GameState->Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");

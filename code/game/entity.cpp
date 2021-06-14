@@ -6,7 +6,7 @@ struct add_low_entity_result_ {
 };
 
 internal add_low_entity_result_
-AddLowEntity_(game_state* GameState, entity_type EntityType, world_position* Position) {
+AddLowEntity_(game_state* GameState, entity_type EntityType, world_position Position) {
 
     Assert(GameState->LowEntity_Count < ArrayCount(GameState->LowEntities));
 
@@ -17,11 +17,11 @@ AddLowEntity_(game_state* GameState, entity_type EntityType, world_position* Pos
     Result.Low = GameState->LowEntities + Result.LowIndex;
     *Result.Low = {};
     Result.Low->Sim.Type = EntityType;
+    Result.Low->P = NullPosition();
 
     ChangeEntityLocation(
-        &GameState->WorldArena, GameState->World, Result.LowIndex, Result.Low, 0, Position
+        &GameState->WorldArena, GameState->World, Result.LowIndex, Result.Low, Position
     );
-
 
     return Result;
 }
@@ -36,7 +36,7 @@ internal void InitHitpoints_(low_entity_* EntityLow, uint32 Max) {
 
 internal add_low_entity_result_ AddSword_(game_state* GameState) {
 
-    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Sword, 0);
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Sword, NullPosition());
 
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
@@ -46,7 +46,7 @@ internal add_low_entity_result_ AddSword_(game_state* GameState) {
 
 internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
 
-    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Hero, &GameState->CameraP);
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Hero, GameState->CameraP);
 
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
@@ -70,7 +70,7 @@ AddWall_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
     world_position EntityLowP =
         ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 
-    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Wall, &EntityLowP);
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Wall, EntityLowP);
 
     real32 TileSide = GameState->World->TileSideInMeters;
 
@@ -87,7 +87,7 @@ AddMonster_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsT
     world_position EntityLowP =
         ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 
-    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Monster, &EntityLowP);
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Monster, EntityLowP);
 
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
@@ -104,7 +104,7 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
     world_position EntityLowP =
         ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 
-    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Familiar, &EntityLowP);
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Familiar, EntityLowP);
 
     Entity.Low->Sim.Height = 0.5f;
     Entity.Low->Sim.Width = 1.0f;
@@ -150,19 +150,32 @@ internal void UpdateFamiliar_(sim_region* SimRegion, sim_entity* Entity, real32 
 
 internal void UpdateMonster_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {}
 
+internal void MakeEntityNonSpatial(sim_entity* Entity) {
+    AddFlag(Entity, EntityFlag_Nonspatial);
+    Entity->P = InvalidP;
+}
+
+internal void MakeEntitySpatial(sim_entity* Entity, v2 P, v2 dP) {
+    ClearFlag(Entity, EntityFlag_Nonspatial);
+    Entity->P = P;
+    Entity->dP = dP;
+}
+
 internal void
 UpdateSword_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {
-    move_spec MoveSpec = DefaultMoveSpec();
-    MoveSpec.Speed = 0.0f;
-    MoveSpec.Drag = 0.0f;
-    MoveSpec.UnitMaxAccelVector = false;
+    if (!IsSet(Entity, EntityFlag_Nonspatial)) {
+        move_spec MoveSpec = DefaultMoveSpec();
+        MoveSpec.Speed = 0.0f;
+        MoveSpec.Drag = 0.0f;
+        MoveSpec.UnitMaxAccelVector = false;
 
-    v2 OldP = Entity->P;
-    MoveEntity(SimRegion, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
-    real32 DistanceTravelled = Length(OldP - Entity->P);
+        v2 OldP = Entity->P;
+        MoveEntity(SimRegion, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
+        real32 DistanceTravelled = Length(OldP - Entity->P);
 
-    Entity->DistanceRemaining -= DistanceTravelled;
-    if (Entity->DistanceRemaining < 0.0f) {
-        Assert(!"MAKE ENTITY NOT BE THERE")
+        Entity->DistanceRemaining -= DistanceTravelled;
+        if (Entity->DistanceRemaining < 0.0f) {
+            MakeEntityNonSpatial(Entity);
+        }
     }
 }
