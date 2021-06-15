@@ -513,9 +513,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
                         sim_entity* Sword = Entity->Sword.Ptr;
                         if (Sword) {
-                            Sword->P = Entity->P; //! wierd
                             Sword->DistanceRemaining = 5.0f;
-                            Sword->dP = 15.0f * ConHero->dSword;
+                            MakeEntitySpatial(Sword, Entity->P, 15.0f * ConHero->dSword);
                         }
                     }
                 }
