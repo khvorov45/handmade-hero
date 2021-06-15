@@ -512,7 +512,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     if (ConHero->dSword.X != 0.0f || ConHero->dSword.Y != 0.0f) {
 
                         sim_entity* Sword = Entity->Sword.Ptr;
-                        if (Sword) {
+                        if (Sword && IsSet(Sword, EntityFlag_Nonspatial)) {
                             Sword->DistanceRemaining = 5.0f;
                             MakeEntitySpatial(Sword, Entity->P, 15.0f * ConHero->dSword);
                         }
