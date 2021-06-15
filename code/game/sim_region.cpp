@@ -14,7 +14,9 @@ union entity_reference {
 
 enum sim_entity_flags {
     EntityFlag_Collides = (1 << 1),
-    EntityFlag_Nonspatial = (1 << 2)
+    EntityFlag_Nonspatial = (1 << 2),
+
+    EntityFlag_Simming = (1 << 30)
 };
 
 struct sim_entity {
@@ -171,14 +173,6 @@ LoadEntityReference(game_state* GameState, sim_region* SimRegion, entity_referen
     }
 }
 
-internal void
-MapStorageIndexToEntity(sim_region* SimRegion, uint32 StorageIndex, sim_entity* Entity) {
-    sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, StorageIndex);
-    Assert(Entry->Index == 0 || Entry->Index == StorageIndex);
-    Entry->Index = StorageIndex;
-    Entry->Ptr = Entity;
-}
-
 internal sim_entity*
 AddEntityRaw(
     game_state* GameState, sim_region* SimRegion, uint32 StorageIndex, low_entity_* Source
@@ -186,19 +180,28 @@ AddEntityRaw(
     Assert(StorageIndex);
     sim_entity* Entity = 0;
 
-    if (SimRegion->EntityCount < SimRegion->MaxEntityCount) {
+    sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, StorageIndex);
 
-        Entity = SimRegion->Entities + SimRegion->EntityCount++;
-        MapStorageIndexToEntity(SimRegion, StorageIndex, Entity);
+    if (Entry->Ptr == 0) {
+        if (SimRegion->EntityCount < SimRegion->MaxEntityCount) {
 
-        if (Source) {
-            *Entity = Source->Sim;
-            LoadEntityReference(GameState, SimRegion, &Entity->Sword);
+            Entity = SimRegion->Entities + SimRegion->EntityCount++;
+
+            Entry->Index = StorageIndex;
+            Entry->Ptr = Entity;
+
+            if (Source) {
+                *Entity = Source->Sim;
+                LoadEntityReference(GameState, SimRegion, &Entity->Sword);
+
+                Assert(!IsSet(&Source->Sim, EntityFlag_Simming));
+                AddFlag(&Source->Sim, EntityFlag_Simming);
+            }
+            Entity->StorageIndex = StorageIndex;
+
+        } else {
+            InvalidCodePath;
         }
-        Entity->StorageIndex = StorageIndex;
-
-    } else {
-        InvalidCodePath;
     }
 
     return Entity;
@@ -313,7 +316,12 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
 
         //! stored_entity
         low_entity_* Stored = GameState->LowEntities + Entity->StorageIndex;
+
+        Assert(IsSet(&Stored->Sim, EntityFlag_Simming));
+
         Stored->Sim = *Entity;
+        Assert(!IsSet(&Stored->Sim, EntityFlag_Simming));
+
         StoreEntityReference(&Stored->Sim.Sword);
 
         world_position NewP =
@@ -346,9 +354,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP = Stored->P;
 #endif
             GameState->CameraP = NewCameraP;
+            }
         }
     }
-}
 
 internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
