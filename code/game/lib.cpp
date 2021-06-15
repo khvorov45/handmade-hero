@@ -376,6 +376,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         AddMonster_(GameState, CameraTileX + 2, CameraTileY + 2, CameraTileZ);
         AddFamiliar_(GameState, CameraTileX - 2, CameraTileY - 2, CameraTileZ);
 
+        world_position NewCameraP =
+            ChunkPositionFromTilePosition(GameState->World, CameraTileX, CameraTileY, CameraTileZ);
+        GameState->CameraP = NewCameraP;
+
         Memory->IsInitialized = true;
     }
 
