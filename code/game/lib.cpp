@@ -495,7 +495,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 controlled_hero* ConHero = GameState->ControlledHeroes + ControlIndex;
 
                 if (ConHero->EntityIndex == Entity->StorageIndex) {
-                    //? Entity->dZ = ConHero->dZ
+                    if (ConHero->dZ != 0.0f) {
+                        Entity->dZ = ConHero->dZ;
+                    }
 
                     move_spec MoveSpec = DefaultMoveSpec();
                     MoveSpec.Drag = 8.0f;
