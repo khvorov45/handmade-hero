@@ -167,9 +167,9 @@ LoadEntityReference(game_state* GameState, sim_region* SimRegion, entity_referen
         sim_entity_hash* Entry = GetHashFromStorageIndex(SimRegion, Ref->Index);
         if (Entry->Ptr == 0) {
             Entry->Index = Ref->Index;
-            Entry->Ptr = AddEntity(
-                GameState, SimRegion, Ref->Index, GetLowEntity_(GameState, Ref->Index), 0
-            );
+            low_entity_* LowEntity = GetLowEntity_(GameState, Ref->Index);
+            v2 EntityP = GetSimSpaceP(SimRegion, LowEntity);
+            Entry->Ptr = AddEntity(GameState, SimRegion, Ref->Index, LowEntity, &EntityP);
         }
         Ref->Ptr = Entry->Ptr;
     }
@@ -361,9 +361,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP = Stored->P;
 #endif
             GameState->CameraP = NewCameraP;
+            }
         }
     }
-}
 
 internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
