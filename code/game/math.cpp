@@ -2,6 +2,7 @@
 #define HANDMADE_MATH_CPP
 
 #include "../types.h"
+#include "../intrinsics.h"
 
 union v2 {
     struct { real32 X, Y; };
@@ -134,6 +135,13 @@ inline v2 GetMaxCorner(rectangle2 Rect) {
 
 inline v2 GetCenter(rectangle2 Rect) {
     return 0.5f * (Rect.Max + Rect.Min);
+}
+
+inline rectangle2 AddRadius(rectangle2 Rect, real32 Width, real32 Height) {
+    v2 ToAdd = { Width, Height };
+    Rect.Max = Rect.Max + ToAdd;
+    Rect.Min = Rect.Min - ToAdd;
+    return Rect;
 }
 
 #endif

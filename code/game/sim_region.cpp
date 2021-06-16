@@ -21,6 +21,7 @@ enum sim_entity_flags {
 
 struct sim_entity {
     uint32 StorageIndex;
+    bool32 Updatable;
 
     entity_type Type;
     uint32 Flags;
@@ -62,6 +63,7 @@ struct sim_region {
 
     world_position Origin;
     rectangle2 Bounds;
+    rectangle2 UpdatableBounds;
 
     uint32 MaxEntityCount;
     uint32 EntityCount;
@@ -198,6 +200,7 @@ AddEntityRaw(
                 AddFlag(&Source->Sim, EntityFlag_Simming);
             }
             Entity->StorageIndex = StorageIndex;
+            Entity->Updatable = false;
 
         } else {
             InvalidCodePath;
@@ -216,6 +219,7 @@ AddEntity(
     if (Dest) {
         if (SimP) {
             Dest->P = *SimP;
+            Dest->Updatable = IsInRectangle(SimRegion->UpdatableBounds, Dest->P);
         } else {
             Dest->P = GetSimSpaceP(SimRegion, Source);
         }
@@ -234,7 +238,10 @@ BeginSim(
     SimRegion->World = World;
 
     SimRegion->Origin = Origin;
-    SimRegion->Bounds = Bounds;
+    SimRegion->UpdatableBounds = Bounds;
+    real32 UpdateSafetyMargin = 1.0f;
+    SimRegion->Bounds =
+        AddRadius(SimRegion->UpdatableBounds, UpdateSafetyMargin, UpdateSafetyMargin);
 
     SimRegion->MaxEntityCount = 4096;
     SimRegion->EntityCount = 0;
@@ -354,9 +361,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP = Stored->P;
 #endif
             GameState->CameraP = NewCameraP;
-            }
         }
     }
+}
 
 internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,

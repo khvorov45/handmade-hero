@@ -483,6 +483,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         sim_entity* Entity = SimRegion->Entities + EntityIndex;
 
+        if (!Entity->Updatable) {
+            continue;
+        }
+
         real32 dt = Input->dtForFrame;
 
         real32 ShadowAlpha = Maximum(0.0f, 1.0f - Entity->Z);
