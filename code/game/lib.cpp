@@ -574,12 +574,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         }
 
-        real32 ddZ = -9.8f;
-        Entity->Z += 0.5f * ddZ * Square(dt) + Entity->dZ * dt;
-        Entity->dZ = ddZ * dt + Entity->dZ;
-        if (Entity->Z < 0) {
-            Entity->Z = 0;
-        }
         real32 Z = -Entity->Z * GameState->MetersToPixels;
         real32 EntityGroudX = ScreenCenterX + Entity->P.X * GameState->MetersToPixels;
         real32 EntityGroudY = ScreenCenterY - Entity->P.Y * GameState->MetersToPixels;

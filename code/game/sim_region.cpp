@@ -361,9 +361,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP = Stored->P;
 #endif
             GameState->CameraP = NewCameraP;
-            }
         }
     }
+}
 
 internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
@@ -422,6 +422,13 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
 
     v2 NewPlayerP = OldPlayerP + PlayerDelta;
     Entity->dP += ddPlayer * dt;
+
+    real32 ddZ = -9.8f;
+    Entity->Z += 0.5f * ddZ * Square(dt) + Entity->dZ * dt;
+    Entity->dZ = ddZ * dt + Entity->dZ;
+    if (Entity->Z < 0) {
+        Entity->Z = 0;
+    }
 
     for (uint32 Iteration = 0; Iteration < 4; ++Iteration) {
 
