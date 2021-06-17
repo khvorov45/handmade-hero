@@ -163,19 +163,17 @@ internal void MakeEntitySpatial(sim_entity* Entity, v2 P, v2 dP) {
 
 internal void
 UpdateSword_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {
-    if (!IsSet(Entity, EntityFlag_Nonspatial)) {
-        move_spec MoveSpec = DefaultMoveSpec();
-        MoveSpec.Speed = 0.0f;
-        MoveSpec.Drag = 0.0f;
-        MoveSpec.UnitMaxAccelVector = false;
+    move_spec MoveSpec = DefaultMoveSpec();
+    MoveSpec.Speed = 0.0f;
+    MoveSpec.Drag = 0.0f;
+    MoveSpec.UnitMaxAccelVector = false;
 
-        v2 OldP = Entity->P;
-        MoveEntity(SimRegion, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
-        real32 DistanceTravelled = Length(OldP - Entity->P);
+    v2 OldP = Entity->P;
+    MoveEntity(SimRegion, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
+    real32 DistanceTravelled = Length(OldP - Entity->P);
 
-        Entity->DistanceRemaining -= DistanceTravelled;
-        if (Entity->DistanceRemaining < 0.0f) {
-            MakeEntityNonSpatial(Entity);
-        }
+    Entity->DistanceRemaining -= DistanceTravelled;
+    if (Entity->DistanceRemaining < 0.0f) {
+        MakeEntityNonSpatial(Entity);
     }
 }
