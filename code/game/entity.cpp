@@ -116,40 +116,6 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
 
 // ================================================================================================
 
-internal void UpdateFamiliar_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {
-
-    sim_entity* ClosestHero = 0;
-    real32 ClosestHeroDSq = Square(15.0f);
-
-    for (uint32 TestEntityIndex = 0;
-        TestEntityIndex < SimRegion->EntityCount;
-        TestEntityIndex++) {
-
-        sim_entity* TestEntity = SimRegion->Entities + TestEntityIndex;
-
-        if (TestEntity->Type == EntityType_Hero) {
-            real32 TestDSq = LengthSq(TestEntity->P - Entity->P);
-            if (TestDSq < ClosestHeroDSq) {
-                ClosestHeroDSq = TestDSq;
-                ClosestHero = TestEntity;
-            }
-        }
-    }
-    v2 ddP = {};
-    if (ClosestHero && ClosestHeroDSq > Square(3.0f)) {
-        real32 Acceleration = 0.3f;
-        real32 OneOverLength = (Acceleration / SquareRoot(ClosestHeroDSq));
-        ddP = (ClosestHero->P - Entity->P) * OneOverLength;
-    }
-    move_spec MoveSpec = DefaultMoveSpec();
-    MoveSpec.Drag = 8.0f;
-    MoveSpec.Speed = 150.0f;
-    MoveSpec.UnitMaxAccelVector = true;
-    MoveEntity(SimRegion, Entity, dt, &MoveSpec, ddP);
-}
-
-internal void UpdateMonster_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {}
-
 internal void MakeEntityNonSpatial(sim_entity* Entity) {
     AddFlag(Entity, EntityFlag_Nonspatial);
     Entity->P = InvalidP;
@@ -159,21 +125,4 @@ internal void MakeEntitySpatial(sim_entity* Entity, v2 P, v2 dP) {
     ClearFlag(Entity, EntityFlag_Nonspatial);
     Entity->P = P;
     Entity->dP = dP;
-}
-
-internal void
-UpdateSword_(sim_region* SimRegion, sim_entity* Entity, real32 dt) {
-    move_spec MoveSpec = DefaultMoveSpec();
-    MoveSpec.Speed = 0.0f;
-    MoveSpec.Drag = 0.0f;
-    MoveSpec.UnitMaxAccelVector = false;
-
-    v2 OldP = Entity->P;
-    MoveEntity(SimRegion, Entity, dt, &MoveSpec, { 0.0f, 0.0f });
-    real32 DistanceTravelled = Length(OldP - Entity->P);
-
-    Entity->DistanceRemaining -= DistanceTravelled;
-    if (Entity->DistanceRemaining < 0.0f) {
-        MakeEntityNonSpatial(Entity);
-    }
 }
