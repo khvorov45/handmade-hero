@@ -447,7 +447,7 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
                 sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
                 if (TestEntity == Entity ||
                     !IsSet(TestEntity, EntityFlag_Collides) ||
-                    IsSet(Entity, EntityFlag_Nonspatial)) {
+                    IsSet(TestEntity, EntityFlag_Nonspatial)) {
                     continue;
                 }
 
