@@ -115,6 +115,17 @@ internal void ClearFlag(sim_entity* Entity, uint32 Flag) {
 
 #define InvalidP { 100000.0f, 100000.0f }
 
+internal void MakeEntityNonSpatial(sim_entity* Entity) {
+    AddFlag(Entity, EntityFlag_Nonspatial);
+    Entity->P = InvalidP;
+}
+
+internal void MakeEntitySpatial(sim_entity* Entity, v2 P, v2 dP) {
+    ClearFlag(Entity, EntityFlag_Nonspatial);
+    Entity->P = P;
+    Entity->dP = dP;
+}
+
 internal v2 GetSimSpaceP(sim_region* SimRegion, low_entity_* Stored) {
     v2 Result = InvalidP;
     if (!IsSet(&Stored->Sim, EntityFlag_Nonspatial)) {
@@ -385,6 +396,13 @@ internal bool32 TestWall(
     return Hit;
 }
 
+internal void HandleCollision(sim_entity* A, sim_entity* B) {
+    if (A->Type == EntityType_Monster && B->Type == EntityType_Sword) {
+        --A->HitPointMax;
+        MakeEntityNonSpatial(B);
+    }
+}
+
 struct move_spec {
     bool32 UnitMaxAccelVector;
     real32 Speed;
@@ -457,7 +475,8 @@ MoveEntity(
 
         v2 DesiredPosition = Entity->P + PlayerDelta;
 
-        if (IsSet(Entity, EntityFlag_Collides) && !IsSet(Entity, EntityFlag_Nonspatial)) {
+        bool32 StopsOnCollisiton = IsSet(Entity, EntityFlag_Collides);
+        if (!IsSet(Entity, EntityFlag_Nonspatial)) {
 
             for (uint32 TestHighEntityIndex = 1;
                 TestHighEntityIndex < Region->EntityCount;
@@ -500,9 +519,21 @@ MoveEntity(
         Entity->P += tMin * PlayerDelta;
         DistanceRemaining -= tMin * PlayerDeltaLength;
         if (HitEntity != 0) {
-            Entity->dP = Entity->dP - Inner(Entity->dP, WallNormal) * WallNormal;
             PlayerDelta = DesiredPosition - Entity->P;
-            PlayerDelta = PlayerDelta - Inner(PlayerDelta, WallNormal) * WallNormal;
+
+            if (StopsOnCollisiton) {
+                PlayerDelta = PlayerDelta - Inner(PlayerDelta, WallNormal) * WallNormal;
+                Entity->dP = Entity->dP - Inner(Entity->dP, WallNormal) * WallNormal;
+            }
+
+            sim_entity* A = Entity;
+            sim_entity* B = HitEntity;
+            if (A->Type > B->Type) {
+                sim_entity* Temp = A;
+                A = B;
+                B = Temp;
+            }
+            HandleCollision(A, B);
 
             //HitHigh->AbsTileZ += HitLow->dAbsTileZ;
         } else {
