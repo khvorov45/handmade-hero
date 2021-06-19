@@ -32,6 +32,8 @@ struct sim_entity {
     real32 Z;
     real32 dZ;
 
+    real32 DistanceLimit;
+
     v2 dP;
     real32 Width;
     real32 Height;
@@ -45,7 +47,6 @@ struct sim_entity {
     hit_point HitPoint[16];
 
     entity_reference Sword;
-    real32 DistanceRemaining;
 };
 
 struct low_entity_ {
@@ -399,7 +400,9 @@ internal inline move_spec DefaultMoveSpec() {
 }
 
 internal void
-MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpec, v2 ddPlayer) {
+MoveEntity(
+    sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpec, v2 ddPlayer
+) {
 
     Assert(!IsSet(Entity, EntityFlag_Nonspatial));
 
@@ -430,9 +433,25 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
         Entity->Z = 0;
     }
 
+    real32 DistanceRemaining = Entity->DistanceLimit;
+    if (DistanceRemaining <= 0.0f) {
+        DistanceRemaining = INFINITY;
+    }
+
     for (uint32 Iteration = 0; Iteration < 4; ++Iteration) {
 
+        real32 PlayerDeltaLength = Length(PlayerDelta);
+
+        if (PlayerDeltaLength <= 0.0f) {
+            break;
+        }
+
         real32 tMin = 1.0f;
+
+        if (PlayerDeltaLength > DistanceRemaining) {
+            tMin = DistanceRemaining / PlayerDeltaLength;
+        }
+
         v2 WallNormal = {};
         sim_entity* HitEntity = 0;
 
@@ -479,6 +498,7 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
         }
 
         Entity->P += tMin * PlayerDelta;
+        DistanceRemaining -= tMin * PlayerDeltaLength;
         if (HitEntity != 0) {
             Entity->dP = Entity->dP - Inner(Entity->dP, WallNormal) * WallNormal;
             PlayerDelta = DesiredPosition - Entity->P;
@@ -489,6 +509,10 @@ MoveEntity(sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpe
             break;
         }
 
+    }
+
+    if (Entity->DistanceLimit != 0.0f) {
+        Entity->DistanceLimit = DistanceRemaining;
     }
 
     if (AbsoluteValue(Entity->dP.Y) > AbsoluteValue(Entity->dP.X)) {

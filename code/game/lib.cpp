@@ -519,7 +519,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
                         sim_entity* Sword = Entity->Sword.Ptr;
                         if (Sword && IsSet(Sword, EntityFlag_Nonspatial)) {
-                            Sword->DistanceRemaining = 5.0f;
+                            Sword->DistanceLimit = 5.0f;
                             MakeEntitySpatial(Sword, Entity->P, 15.0f * ConHero->dSword);
                         }
                     }
@@ -548,10 +548,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             v2 OldP = Entity->P;
 
-            real32 DistanceTravelled = Length(OldP - Entity->P);
-
-            Entity->DistanceRemaining -= DistanceTravelled;
-            if (Entity->DistanceRemaining < 0.0f) {
+            if (Entity->DistanceLimit <= 0.0f) {
                 MakeEntityNonSpatial(Entity);
             }
             PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
@@ -611,7 +608,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
         break;
         }
-        // && (Entity->dP.X || Entity->dP.Y || ddP.X || ddP.Y)
+
         if (!IsSet(Entity, EntityFlag_Nonspatial)) {
             MoveEntity(SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
