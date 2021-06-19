@@ -453,7 +453,7 @@ MoveEntity(
 
     real32 DistanceRemaining = Entity->DistanceLimit;
     if (DistanceRemaining <= 0.0f) {
-        DistanceRemaining = INFINITY;
+        DistanceRemaining = 1e5;
     }
 
     for (uint32 Iteration = 0; Iteration < 4; ++Iteration) {
