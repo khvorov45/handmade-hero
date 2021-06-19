@@ -520,7 +520,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         sim_entity* Sword = Entity->Sword.Ptr;
                         if (Sword && IsSet(Sword, EntityFlag_Nonspatial)) {
                             Sword->DistanceLimit = 5.0f;
-                            MakeEntitySpatial(Sword, Entity->P, 15.0f * ConHero->dSword);
+                            MakeEntitySpatial(Sword, Entity->P, Entity->dP + 15.0f * ConHero->dSword);
                         }
                     }
                 }
