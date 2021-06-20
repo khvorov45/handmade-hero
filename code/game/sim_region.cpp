@@ -73,6 +73,14 @@ struct sim_region {
     sim_entity_hash Hash[4096];
 };
 
+struct pairwise_collision_rule {
+    bool32 ShouldCollide;
+    uint32 StorageIndexA;
+    uint32 StorageIndexB;
+
+    pairwise_collision_rule* NextInHash;
+};
+
 struct game_state {
     memory_arena WorldArena;
     world* World;
@@ -92,6 +100,9 @@ struct game_state {
     loaded_bitmap Sword;
 
     real32 MetersToPixels;
+
+    pairwise_collision_rule* CollisionRuleHash[256];
+    pairwise_collision_rule* FirstFreeCollisionRule;
 };
 
 struct entity_visible_piece_group {
@@ -396,11 +407,120 @@ internal bool32 TestWall(
     return Hit;
 }
 
-internal void HandleCollision(sim_entity* A, sim_entity* B) {
-    if (A->Type == EntityType_Monster && B->Type == EntityType_Sword) {
-        --A->HitPointMax;
-        MakeEntityNonSpatial(B);
+internal void
+AddCollisionRule(
+    game_state* GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 ShouldCollide
+) {
+
+    if (StorageIndexA > StorageIndexB) {
+        uint32 Temp = StorageIndexA;
+        StorageIndexA = StorageIndexB;
+        StorageIndexB = Temp;
     }
+
+    pairwise_collision_rule* Found = 0;
+
+    uint32 HashBucket = StorageIndexA & (ArrayCount(GameState->CollisionRuleHash) - 1);
+    for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
+        Rule;
+        Rule = Rule->NextInHash) {
+
+        if (Rule->StorageIndexA == StorageIndexB && Rule->StorageIndexB == StorageIndexB) {
+            Found = Rule;
+            break;
+        }
+    }
+
+    if (!Found) {
+        Found = GameState->FirstFreeCollisionRule;
+        if (Found) {
+            GameState->FirstFreeCollisionRule = Found->NextInHash;
+        } else {
+            Found = PushStruct(&GameState->WorldArena, pairwise_collision_rule);
+        }
+        Found->NextInHash = GameState->CollisionRuleHash[HashBucket];
+        GameState->CollisionRuleHash[HashBucket] = Found;
+    }
+
+    if (Found) {
+        Found->StorageIndexA = StorageIndexA;
+        Found->StorageIndexB = StorageIndexB;
+        Found->ShouldCollide = ShouldCollide;
+    }
+}
+
+internal void ClearCollisionRules(game_state* GameState, uint32 StorageIndex) {
+    for (uint32 HashIndex = 0; HashIndex < ArrayCount(GameState->CollisionRuleHash); HashIndex++) {
+        for (pairwise_collision_rule** Rule = GameState->CollisionRuleHash + HashIndex;
+            *Rule;
+            ) {
+            if ((*Rule)->StorageIndexA == StorageIndex || (*Rule)->StorageIndexB == StorageIndex) {
+                pairwise_collision_rule* RemovedRule = *Rule;
+                *Rule = (*Rule)->NextInHash;
+
+                RemovedRule->NextInHash = GameState->FirstFreeCollisionRule;
+                GameState->FirstFreeCollisionRule = RemovedRule;
+            } else {
+                Rule = &(*Rule)->NextInHash;
+            }
+        }
+    }
+}
+
+internal bool32 ShouldCollide(game_state* GameState, sim_entity* A, sim_entity* B) {
+
+    bool32 Result = false;
+
+    if (A == B) {
+        return Result;
+    }
+
+    if (A->StorageIndex > B->StorageIndex) {
+        sim_entity* Temp = A;
+        A = B;
+        B = Temp;
+    }
+
+    if (!IsSet(A, EntityFlag_Nonspatial) &&
+        !IsSet(B, EntityFlag_Nonspatial)) {
+        Result = true;
+    }
+
+    uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
+    for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
+        Rule;
+        Rule = Rule->NextInHash) {
+
+        if (Rule->StorageIndexA == A->StorageIndex && Rule->StorageIndexB == B->StorageIndex) {
+            Result = Rule->ShouldCollide;
+            break;
+        }
+    }
+
+    return Result;
+}
+
+internal bool32 HandleCollision(sim_entity* A, sim_entity* B) {
+
+    bool32 StopsOnCollisiton = false;
+
+    if (A->Type != EntityType_Sword) {
+        StopsOnCollisiton = true;
+    }
+
+    if (A->Type > B->Type) {
+        sim_entity* Temp = A;
+        A = B;
+        B = Temp;
+    }
+
+    if (A->Type == EntityType_Monster && B->Type == EntityType_Sword) {
+        if (A->HitPointMax > 0) {
+            --A->HitPointMax;
+        }
+    }
+
+    return StopsOnCollisiton;
 }
 
 struct move_spec {
@@ -419,6 +539,7 @@ internal inline move_spec DefaultMoveSpec() {
 
 internal void
 MoveEntity(
+    game_state* GameState,
     sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpec, v2 ddPlayer
 ) {
 
@@ -475,7 +596,6 @@ MoveEntity(
 
         v2 DesiredPosition = Entity->P + PlayerDelta;
 
-        bool32 StopsOnCollisiton = IsSet(Entity, EntityFlag_Collides);
         if (!IsSet(Entity, EntityFlag_Nonspatial)) {
 
             for (uint32 TestHighEntityIndex = 1;
@@ -483,9 +603,8 @@ MoveEntity(
                 ++TestHighEntityIndex) {
 
                 sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
-                if (TestEntity == Entity ||
-                    !IsSet(TestEntity, EntityFlag_Collides) ||
-                    IsSet(TestEntity, EntityFlag_Nonspatial)) {
+
+                if (!ShouldCollide(GameState, Entity, TestEntity)) {
                     continue;
                 }
 
@@ -518,24 +637,20 @@ MoveEntity(
 
         Entity->P += tMin * PlayerDelta;
         DistanceRemaining -= tMin * PlayerDeltaLength;
+
         if (HitEntity != 0) {
+
             PlayerDelta = DesiredPosition - Entity->P;
 
-            if (StopsOnCollisiton) {
+            bool32 StopsOnCollision = HandleCollision(Entity, HitEntity);
+
+            if (StopsOnCollision) {
                 PlayerDelta = PlayerDelta - Inner(PlayerDelta, WallNormal) * WallNormal;
                 Entity->dP = Entity->dP - Inner(Entity->dP, WallNormal) * WallNormal;
+            } else {
+                AddCollisionRule(GameState, Entity->StorageIndex, HitEntity->StorageIndex, false);
             }
 
-            sim_entity* A = Entity;
-            sim_entity* B = HitEntity;
-            if (A->Type > B->Type) {
-                sim_entity* Temp = A;
-                A = B;
-                B = Temp;
-            }
-            HandleCollision(A, B);
-
-            //HitHigh->AbsTileZ += HitLow->dAbsTileZ;
         } else {
             break;
         }

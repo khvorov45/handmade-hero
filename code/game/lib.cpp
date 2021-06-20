@@ -520,7 +520,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         sim_entity* Sword = Entity->Sword.Ptr;
                         if (Sword && IsSet(Sword, EntityFlag_Nonspatial)) {
                             Sword->DistanceLimit = 5.0f;
-                            MakeEntitySpatial(Sword, Entity->P, Entity->dP + 15.0f * ConHero->dSword);
+                            MakeEntitySpatial(
+                                Sword, Entity->P, Entity->dP + 15.0f * ConHero->dSword
+                            );
+                            AddCollisionRule(
+                                GameState, Sword->StorageIndex, Entity->StorageIndex, false
+                            );
                         }
                     }
                 }
@@ -550,6 +555,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             if (Entity->DistanceLimit <= 0.0f) {
                 MakeEntityNonSpatial(Entity);
+                ClearCollisionRules(GameState, Entity->StorageIndex);
             }
             PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
             PushBitmap(&PieceGroup, &GameState->Sword, { 0, 0 }, 0, { 29, 10 });
@@ -581,7 +587,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
                 }
             }
-            if (ClosestHero && ClosestHeroDSq > Square(3.0f)) {
+            if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
                 real32 Acceleration = 0.3f;
                 real32 OneOverLength = (Acceleration / SquareRoot(ClosestHeroDSq));
                 ddP = (ClosestHero->P - Entity->P) * OneOverLength;
@@ -610,7 +616,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial)) {
-            MoveEntity(SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
+            MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
         real32 Z = -Entity->Z * GameState->MetersToPixels;
