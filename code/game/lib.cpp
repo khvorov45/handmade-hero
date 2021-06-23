@@ -423,8 +423,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
 
             if (Controller->Start.EndedDown) {
-                //entity ControllingEntity = ForceEntityIntoHigh(GameState, ConHero->EntityIndex);
-                //ControllingEntity.High->dZ = 3.0f;
                 ConHero->dZ = 3.0f;
             }
 
@@ -446,9 +444,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     //* SimRegion
     uint32 TileSpanX = 17 * 3;
     uint32 TileSpanY = 9 * 3;
-    rectangle2 CameraBounds = RectCenterDim(
-        { 0, 0 },
-        World->TileSideInMeters * v2{ (real32)TileSpanX, (real32)TileSpanY }
+    uint32 TileSpanZ = 1;
+    rectangle3 CameraBounds = RectCenterDim(
+        V3(0, 0, 0),
+        World->TileSideInMeters * V3((real32)TileSpanX, (real32)TileSpanY, (real32)TileSpanZ)
     );
 
     memory_arena SimArena;
@@ -489,10 +488,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         real32 dt = Input->dtForFrame;
 
-        real32 ShadowAlpha = Maximum(0.0f, 1.0f - Entity->Z);
+        real32 ShadowAlpha = Maximum(0.0f, 1.0f - Entity->P.Z);
 
         move_spec MoveSpec = DefaultMoveSpec();
-        v2 ddP = {};
+        v3 ddP = {};
 
         hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[Entity->FacingDirection];
         PieceGroup.PieceCount = 0;
@@ -507,13 +506,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
                 if (ConHero->EntityIndex == Entity->StorageIndex) {
                     if (ConHero->dZ != 0.0f) {
-                        Entity->dZ = ConHero->dZ;
+                        Entity->dP.Z = ConHero->dZ;
                     }
 
                     MoveSpec.Drag = 8.0f;
                     MoveSpec.Speed = 150.0f;
                     MoveSpec.UnitMaxAccelVector = true;
-                    ddP = ConHero->ddP;
+                    ddP = V3(ConHero->ddP, 0.0f);
 
                     if (ConHero->dSword.X != 0.0f || ConHero->dSword.Y != 0.0f) {
 
@@ -521,7 +520,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         if (Sword && IsSet(Sword, EntityFlag_Nonspatial)) {
                             Sword->DistanceLimit = 5.0f;
                             MakeEntitySpatial(
-                                Sword, Entity->P, Entity->dP + 15.0f * ConHero->dSword
+                                Sword, Entity->P, Entity->dP + 15.0f * V3(ConHero->dSword, 0.0f)
                             );
                             AddCollisionRule(
                                 GameState, Sword->StorageIndex, Entity->StorageIndex, false
@@ -550,8 +549,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveSpec.Speed = 0.0f;
             MoveSpec.Drag = 0.0f;
             MoveSpec.UnitMaxAccelVector = false;
-
-            v2 OldP = Entity->P;
 
             if (Entity->DistanceLimit <= 0.0f) {
                 MakeEntityNonSpatial(Entity);
@@ -619,7 +616,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
-        real32 Z = -Entity->Z * GameState->MetersToPixels;
+        real32 Z = -Entity->P.Z * GameState->MetersToPixels;
         real32 EntityGroudX = ScreenCenterX + Entity->P.X * GameState->MetersToPixels;
         real32 EntityGroudY = ScreenCenterY - Entity->P.Y * GameState->MetersToPixels;
 
