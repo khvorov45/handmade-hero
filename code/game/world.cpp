@@ -107,7 +107,7 @@ internal bool32 IsTileValueEmpty(uint32 TileValue) {
 
 internal bool32 IsCanonical(real32 ChunkDim, real32 TileRel) {
     //! Sometimes it's right on
-    real32 Epsilon = 0.0001f;
+    real32 Epsilon = 0.01f;
     bool32 Result = (TileRel >= -(0.5f * ChunkDim + Epsilon))
         && (TileRel <= 0.5f * ChunkDim + Epsilon);
     return Result;
@@ -152,13 +152,13 @@ internal bool32 AreInSameChunk(world* World, world_position* Pos1, world_positio
 
 v3 Subtract(world* World, world_position* A, world_position* B) {
 
-    v3 Result = {
-        ((real32)A->ChunkX - (real32)B->ChunkX) + (A->Offset_.X - B->Offset_.X),
-        ((real32)A->ChunkY - (real32)B->ChunkY) + (A->Offset_.Y - B->Offset_.Y),
+    v3 Result = V3(
+        ((real32)A->ChunkX - (real32)B->ChunkX),
+        ((real32)A->ChunkY - (real32)B->ChunkY),
         ((real32)A->ChunkZ - (real32)B->ChunkZ)
-    };
+    );
 
-    Result = Hadamard(Result, World->ChunkDimInMeters);
+    Result = Hadamard(Result, World->ChunkDimInMeters) + (A->Offset_ - B->Offset_);
 
     return Result;
 }
@@ -254,9 +254,12 @@ inline world_position ChunkPositionFromTilePosition(
 
     world_position BasePos = {};
 
-    v3 Offset = Hadamard(
-        World->ChunkDimInMeters, V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ)
-    );
+    // v3 Offset = Hadamard(
+    //     V3(World->TileSideInMeters, World->TileSideInMeters, World->TileDepthInMeters),
+    //     V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ)
+    // );
+
+    v3 Offset = World->TileSideInMeters * V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ);
 
     world_position Result = MapIntoChunkSpace(World, BasePos, Offset);
 
