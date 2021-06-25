@@ -653,8 +653,8 @@ MoveEntity(
 
     }
 
-    if (Entity->dP.Z < 0) {
-        Entity->dP.Z = 0;
+    if (Entity->P.Z < 0) {
+        Entity->P.Z = 0;
     }
 
     if (Entity->DistanceLimit != 0.0f) {
