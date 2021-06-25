@@ -31,8 +31,7 @@ struct sim_entity {
 
     real32 DistanceLimit;
 
-    real32 Width;
-    real32 Height;
+    v3 Dim;
 
     uint32 FacingDirection;
     real32 tBob;
@@ -230,6 +229,15 @@ AddEntityRaw(
     return Entity;
 }
 
+internal bool32 EntityOverlapsRectange(v3 P, v3 Dim, rectangle3 Rect) {
+
+    rectangle3 GrownRect = AddRadius(Rect, 0.5f * Dim);
+
+    bool32 Result = IsInRectangle(GrownRect, P);
+
+    return Result;
+}
+
 internal sim_entity*
 AddEntity(
     game_state* GameState, sim_region* SimRegion, uint32 LowEntityIndex,
@@ -239,7 +247,8 @@ AddEntity(
     if (Dest) {
         if (SimP) {
             Dest->P = *SimP;
-            Dest->Updatable = IsInRectangle(SimRegion->UpdatableBounds, Dest->P);
+            Dest->Updatable =
+                EntityOverlapsRectange(Dest->P, Dest->Dim, SimRegion->UpdatableBounds);
         } else {
             Dest->P = GetSimSpaceP(SimRegion, Source);
         }
@@ -301,7 +310,7 @@ BeginSim(
 
                     if (!IsSet(&Low->Sim, EntityFlag_Nonspatial)) {
                         v3 SimSpaceP = GetSimSpaceP(SimRegion, Low);
-                        if (IsInRectangle(SimRegion->Bounds, SimSpaceP)) {
+                        if (EntityOverlapsRectange(SimSpaceP, Low->Sim.Dim, SimRegion->Bounds)) {
                             AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
                         }
                     }
@@ -614,11 +623,7 @@ MoveEntity(
                     continue;
                 }
 
-                v3 MinkowskiDiameter = V3(
-                    Entity->Width + TestEntity->Width,
-                    Entity->Height + TestEntity->Height,
-                    2.0f * World->TileDepthInMeters
-                );
+                v3 MinkowskiDiameter = Entity->Dim + TestEntity->Dim;
 
                 v3 MinCorner = -0.5f * MinkowskiDiameter;
                 v3 MaxCorner = 0.5f * MinkowskiDiameter;

@@ -38,8 +38,8 @@ internal add_low_entity_result_ AddSword_(game_state* GameState) {
 
     add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Sword, NullPosition());
 
-    Entity.Low->Sim.Height = 0.5f;
-    Entity.Low->Sim.Width = 1.0f;
+    Entity.Low->Sim.Dim.Y = 0.5f;
+    Entity.Low->Sim.Dim.X = 1.0f;
 
     return Entity;
 }
@@ -48,8 +48,8 @@ internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
 
     add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Hero, GameState->CameraP);
 
-    Entity.Low->Sim.Height = 0.5f;
-    Entity.Low->Sim.Width = 1.0f;
+    Entity.Low->Sim.Dim.Y = 0.5f;
+    Entity.Low->Sim.Dim.X = 1.0f;
 
     AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
@@ -74,8 +74,8 @@ AddWall_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
 
     real32 TileSide = GameState->World->TileSideInMeters;
 
-    Entity.Low->Sim.Height = TileSide;
-    Entity.Low->Sim.Width = TileSide;
+    Entity.Low->Sim.Dim.Y = TileSide;
+    Entity.Low->Sim.Dim.X = TileSide;
 
     AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
@@ -89,8 +89,8 @@ AddMonster_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsT
 
     add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Monster, EntityLowP);
 
-    Entity.Low->Sim.Height = 0.5f;
-    Entity.Low->Sim.Width = 1.0f;
+    Entity.Low->Sim.Dim.Y = 0.5f;
+    Entity.Low->Sim.Dim.X = 1.0f;
 
     InitHitpoints_(Entity.Low, 3);
 
@@ -106,8 +106,8 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
 
     add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Familiar, EntityLowP);
 
-    Entity.Low->Sim.Height = 0.5f;
-    Entity.Low->Sim.Width = 1.0f;
+    Entity.Low->Sim.Dim.Y = 0.5f;
+    Entity.Low->Sim.Dim.X = 1.0f;
 
     AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
