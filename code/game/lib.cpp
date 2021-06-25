@@ -453,7 +453,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     memory_arena SimArena;
     InitializeArena(&SimArena, Memory->TransientStorageSize, Memory->TransientStorage);
 
-    sim_region* SimRegion = BeginSim(&SimArena, GameState, World, GameState->CameraP, CameraBounds);
+    sim_region* SimRegion =
+        BeginSim(&SimArena, GameState, World, GameState->CameraP, CameraBounds, Input->dtForFrame);
 
     //* Clear screen
     DrawRectangle(

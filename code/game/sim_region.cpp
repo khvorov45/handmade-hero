@@ -57,6 +57,8 @@ struct sim_entity_hash {
 
 struct sim_region {
     world* World;
+    real32 MaxEntityRadius;
+    real32 MaxEntityVelocity;
 
     world_position Origin;
     rectangle3 Bounds;
@@ -248,7 +250,7 @@ AddEntity(
 internal sim_region*
 BeginSim(
     memory_arena* SimArena, game_state* GameState,
-    world* World, world_position Origin, rectangle3 Bounds
+    world* World, world_position Origin, rectangle3 Bounds, real32 dt
 ) {
     sim_region* SimRegion = PushStruct(SimArena, sim_region);
     ZeroStruct(SimRegion->Hash);
@@ -256,9 +258,17 @@ BeginSim(
     SimRegion->World = World;
 
     SimRegion->Origin = Origin;
-    SimRegion->UpdatableBounds = Bounds;
-    real32 UpdateSafetyMargin = 1.0f;
+
+    SimRegion->MaxEntityRadius = 5.0f;
+    SimRegion->MaxEntityVelocity = 30.0f;
+    real32 UpdateSafetyMargin = SimRegion->MaxEntityRadius + SimRegion->MaxEntityVelocity * dt;
     real32 UpdateSafetyMarginZ = 1.0f;
+
+    SimRegion->UpdatableBounds = AddRadius(
+        Bounds,
+        V3(SimRegion->MaxEntityRadius, SimRegion->MaxEntityRadius, SimRegion->MaxEntityRadius)
+    );
+
     SimRegion->Bounds = AddRadius(
         SimRegion->UpdatableBounds,
         V3(UpdateSafetyMargin, UpdateSafetyMargin, UpdateSafetyMarginZ)
@@ -269,9 +279,9 @@ BeginSim(
     SimRegion->Entities = PushArray(SimArena, SimRegion->MaxEntityCount, sim_entity);
 
     world_position MinChunkP =
-        MapIntoChunkSpace(World, Origin, GetMinCorner(Bounds));
+        MapIntoChunkSpace(World, Origin, GetMinCorner(SimRegion->Bounds));
     world_position MaxChunkP =
-        MapIntoChunkSpace(World, Origin, GetMaxCorner(Bounds));
+        MapIntoChunkSpace(World, Origin, GetMaxCorner(SimRegion->Bounds));
 
     for (int32 ChunkY = MinChunkP.ChunkY; ChunkY <= MaxChunkP.ChunkY; ChunkY++) {
 
@@ -291,7 +301,7 @@ BeginSim(
 
                     if (!IsSet(&Low->Sim, EntityFlag_Nonspatial)) {
                         v3 SimSpaceP = GetSimSpaceP(SimRegion, Low);
-                        if (IsInRectangle(Bounds, SimSpaceP)) {
+                        if (IsInRectangle(SimRegion->Bounds, SimSpaceP)) {
                             AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
                         }
                     }
@@ -566,6 +576,7 @@ MoveEntity(
 
     v3 NewPlayerP = OldPlayerP + PlayerDelta;
     Entity->dP += ddPlayer * dt;
+    Assert(LengthSq(Entity->dP) <= Square(Region->MaxEntityVelocity));
 
     real32 DistanceRemaining = Entity->DistanceLimit;
     if (DistanceRemaining <= 0.0f) {
@@ -657,6 +668,7 @@ MoveEntity(
 
     if (Entity->P.Z < 0) {
         Entity->P.Z = 0;
+        Entity->dP.Z = 0;
     }
 
     if (Entity->DistanceLimit != 0.0f) {
