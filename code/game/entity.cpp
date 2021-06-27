@@ -114,4 +114,18 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
     return Entity;
 }
 
+internal add_low_entity_result_
+AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
+    world_position EntityLowP =
+        ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+
+    add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Stairwell, EntityLowP);
+
+    Entity.Low->Sim.Dim.Y = 0.5f;
+    Entity.Low->Sim.Dim.X = 1.0f;
+    Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
+
+    return Entity;
+}
+
 // ================================================================================================
