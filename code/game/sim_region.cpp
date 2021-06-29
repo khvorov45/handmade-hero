@@ -115,23 +115,23 @@ internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
     return Result;
 }
 
-internal void AddFlag(sim_entity* Entity, uint32 Flag) {
+internal void AddFlags(sim_entity* Entity, uint32 Flag) {
     Entity->Flags |= Flag;
 }
 
-internal void ClearFlag(sim_entity* Entity, uint32 Flag) {
+internal void ClearFlags(sim_entity* Entity, uint32 Flag) {
     Entity->Flags &= ~Flag;
 }
 
 #define InvalidP { 100000.0f, 100000.0f, 100000.0f }
 
 internal void MakeEntityNonSpatial(sim_entity* Entity) {
-    AddFlag(Entity, EntityFlag_Nonspatial);
+    AddFlags(Entity, EntityFlag_Nonspatial);
     Entity->P = InvalidP;
 }
 
 internal void MakeEntitySpatial(sim_entity* Entity, v3 P, v3 dP) {
-    ClearFlag(Entity, EntityFlag_Nonspatial);
+    ClearFlags(Entity, EntityFlag_Nonspatial);
     Entity->P = P;
     Entity->dP = dP;
 }
@@ -218,7 +218,7 @@ AddEntityRaw(
                 LoadEntityReference(GameState, SimRegion, &Entity->Sword);
 
                 Assert(!IsSet(&Source->Sim, EntityFlag_Simming));
-                AddFlag(&Source->Sim, EntityFlag_Simming);
+                AddFlags(&Source->Sim, EntityFlag_Simming);
             }
             Entity->StorageIndex = StorageIndex;
             Entity->Updatable = false;
@@ -348,10 +348,10 @@ internal void ChangeEntityLocation(
     ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
     if (NewP) {
         EntityLow->P = *NewP;
-        ClearFlag(&EntityLow->Sim, EntityFlag_Nonspatial);
+        ClearFlags(&EntityLow->Sim, EntityFlag_Nonspatial);
     } else {
         EntityLow->P = NullPosition();
-        AddFlag(&EntityLow->Sim, EntityFlag_Nonspatial);
+        AddFlags(&EntityLow->Sim, EntityFlag_Nonspatial);
     }
 }
 
