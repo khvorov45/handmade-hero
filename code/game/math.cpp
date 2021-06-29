@@ -184,6 +184,11 @@ inline real32 Square(real32 A) {
     return A * A;
 }
 
+inline real32 Lerp(real32 A, real32 t, real32 B) {
+    real32 Result = (1.0f - t) * A + t * B;
+    return Result;
+}
+
 struct rectangle2 {
     v2 Min;
     v2 Max;
@@ -295,6 +300,32 @@ inline rectangle3 AddRadius(rectangle3 Rect, v3 Radius) {
     Rect.Max = Rect.Max + Radius;
     Rect.Min = Rect.Min - Radius;
     return Rect;
+}
+
+inline real32 SafeRatioN(real32 Numerator, real32 Divisor, real32 N) {
+    real32 Result = N;
+    if (Divisor != 0.0f) {
+        Result = Numerator / Divisor;
+    }
+    return Result;
+}
+
+inline real32 SafeRatio0(real32 Numerator, real32 Divisor) {
+    return SafeRatioN(Numerator, Divisor, 0.0f);
+}
+
+inline real32 SafeRatio1(real32 Numerator, real32 Divisor) {
+    return SafeRatioN(Numerator, Divisor, 1.0f);
+
+}
+
+inline v3 GetBarycentric(rectangle3 Rect, v3 P) {
+    v3 Result = {};
+    v3 Diff = Rect.Max - Rect.Min;
+    Result.X = SafeRatio0(P.X - Rect.Min.X, Diff.X);
+    Result.Y = SafeRatio0(P.Y - Rect.Min.Y, Diff.Y);
+    Result.Z = SafeRatio0(P.Z - Rect.Min.Z, Diff.Z);
+    return Result;
 }
 
 #endif

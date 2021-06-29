@@ -13,10 +13,11 @@ union entity_reference {
 };
 
 enum sim_entity_flags {
-    EntityFlag_Collides = (1 << 1),
-    EntityFlag_Nonspatial = (1 << 2),
+    EntityFlag_Collides = 1 << 0,
+    EntityFlag_Nonspatial = 1 << 1,
+    EntityFlag_Moveable = 1 << 2,
 
-    EntityFlag_Simming = (1 << 30)
+    EntityFlag_Simming = 1 << 30
 };
 
 struct sim_entity {
@@ -491,6 +492,10 @@ internal bool32 CanOverlap(game_state* GameState, sim_entity* Mover, sim_entity*
 
     bool32 Result = false;
 
+    if (Mover == Region) {
+        return Result;
+    }
+
     if (Region->Type == EntityType_Stairwell) {
         Result = true;
     }
@@ -500,10 +505,12 @@ internal bool32 CanOverlap(game_state* GameState, sim_entity* Mover, sim_entity*
 
 internal void
 HandleOverlap(
-    game_state* GameState, sim_entity* Move, sim_entity* Region, real32 dt, real32* Ground
+    game_state* GameState, sim_entity* Mover, sim_entity* Region, real32 dt, real32* Ground
 ) {
     if (Region->Type == EntityType_Stairwell) {
-
+        rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
+        v3 Bary = GetBarycentric(RegionRect, Mover->P);
+        *Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
     }
 }
 
@@ -524,6 +531,10 @@ internal bool32 CanCollide(game_state* GameState, sim_entity* A, sim_entity* B) 
     if (!IsSet(A, EntityFlag_Nonspatial) &&
         !IsSet(B, EntityFlag_Nonspatial)) {
         Result = true;
+    }
+
+    if (A->Type == EntityType_Stairwell || B->Type == EntityType_Stairwell) {
+        Result = false;
     }
 
     uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
@@ -562,10 +573,6 @@ HandleCollision(game_state* GameState, sim_entity* A, sim_entity* B) {
         if (A->HitPointMax > 0) {
             --A->HitPointMax;
         }
-    }
-
-    if (A->Type == EntityType_Hero && B->Type == EntityType_Stairwell) {
-        StopsOnCollisiton = false;
     }
 
     return StopsOnCollisiton;
