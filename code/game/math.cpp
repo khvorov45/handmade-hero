@@ -44,6 +44,15 @@ inline v3 V3(v2 XY, real32 Z) {
     return Result;
 };
 
+inline v4 V4(real32 X, real32 Y, real32 Z, real32 W) {
+    v4 Result;
+    Result.X = X;
+    Result.Y = Y;
+    Result.Z = Z;
+    Result.W = W;
+    return Result;
+};
+
 inline v2 operator-(v2 A) {
     v2 Result;
     Result.X = -A.X;

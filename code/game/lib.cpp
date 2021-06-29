@@ -156,7 +156,7 @@ PushBitmap(
 
 internal void
 PushRect(
-    entity_visible_piece_group* Group, loaded_bitmap* Bitmap,
+    entity_visible_piece_group* Group,
     v2 Offset, real32 OffsetZ, v2 Dim,
     v4 Color,
     real32 EntityZC = 1.0f
@@ -180,7 +180,7 @@ internal void DrawHitpoints_(sim_entity* Entity, entity_visible_piece_group* Pie
                 Color.G = 0.2f;
                 Color.B = 0.2f;
             }
-            PushRect(PieceGroup, 0, HitP, 0, HealthDim, Color, 0.0f);
+            PushRect(PieceGroup, HitP, 0, HealthDim, Color, 0.0f);
             HitP += dHitP;
         }
     }
@@ -547,7 +547,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Stairwell:
         {
-            PushBitmap(&PieceGroup, &GameState->Stairwell, { 0, 0 }, 0, { 37, 37 });
+            PushRect(&PieceGroup, V2(0, 0), 0, Entity->Dim.XY, V4(1, 1, 0, 1));
         }
         break;
         case EntityType_Sword:
