@@ -328,4 +328,26 @@ inline v3 GetBarycentric(rectangle3 Rect, v3 P) {
     return Result;
 }
 
+inline real32 Clamp(real32 Min, real32 Value, real32 Max) {
+    real32 Result = Value;
+    if (Result < Min) {
+        Result = Min;
+    } else if (Result > Max) {
+        Result = Max;
+    }
+    return Result;
+}
+
+inline real32 Clamp01(real32 Value) {
+    return Clamp(0, Value, 1);
+}
+
+inline v3 Clamp01(v3 Value) {
+    v3 Result = Value;
+    Result.X = Clamp01(Result.X);
+    Result.Y = Clamp01(Result.Y);
+    Result.Z = Clamp01(Result.Z);
+    return Result;
+}
+
 #endif

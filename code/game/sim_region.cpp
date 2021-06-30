@@ -294,26 +294,29 @@ BeginSim(
     world_position MaxChunkP =
         MapIntoChunkSpace(World, Origin, GetMaxCorner(SimRegion->Bounds));
 
-    for (int32 ChunkY = MinChunkP.ChunkY; ChunkY <= MaxChunkP.ChunkY; ChunkY++) {
+    for (int32 ChunkZ = MinChunkP.ChunkZ; ChunkZ <= MaxChunkP.ChunkZ; ChunkZ++) {
 
-        for (int32 ChunkX = MinChunkP.ChunkX; ChunkX <= MaxChunkP.ChunkX; ChunkX++) {
+        for (int32 ChunkY = MinChunkP.ChunkY; ChunkY <= MaxChunkP.ChunkY; ChunkY++) {
 
-            world_chunk* Chunk = GetChunk(World, ChunkX, ChunkY, Origin.ChunkZ);
-            if (Chunk == 0) {
-                continue;
-            }
+            for (int32 ChunkX = MinChunkP.ChunkX; ChunkX <= MaxChunkP.ChunkX; ChunkX++) {
 
-            for (world_entity_block* Block = &Chunk->FirstBlock; Block; Block = Block->Next) {
+                world_chunk* Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
+                if (Chunk == 0) {
+                    continue;
+                }
 
-                for (uint32 BlockIndex = 0; BlockIndex < Block->EntityCount; ++BlockIndex) {
+                for (world_entity_block* Block = &Chunk->FirstBlock; Block; Block = Block->Next) {
 
-                    uint32 LowEntityIndex = Block->LowEntityIndex[BlockIndex];
-                    low_entity_* Low = GameState->LowEntities + LowEntityIndex;
+                    for (uint32 BlockIndex = 0; BlockIndex < Block->EntityCount; ++BlockIndex) {
 
-                    if (!IsSet(&Low->Sim, EntityFlag_Nonspatial)) {
-                        v3 SimSpaceP = GetSimSpaceP(SimRegion, Low);
-                        if (EntityOverlapsRectange(SimSpaceP, Low->Sim.Dim, SimRegion->Bounds)) {
-                            AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
+                        uint32 LowEntityIndex = Block->LowEntityIndex[BlockIndex];
+                        low_entity_* Low = GameState->LowEntities + LowEntityIndex;
+
+                        if (!IsSet(&Low->Sim, EntityFlag_Nonspatial)) {
+                            v3 SimSpaceP = GetSimSpaceP(SimRegion, Low);
+                            if (EntityOverlapsRectange(SimSpaceP, Low->Sim.Dim, SimRegion->Bounds)) {
+                                AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
+                            }
                         }
                     }
                 }
@@ -509,7 +512,7 @@ HandleOverlap(
 ) {
     if (Region->Type == EntityType_Stairwell) {
         rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
-        v3 Bary = GetBarycentric(RegionRect, Mover->P);
+        v3 Bary = Clamp01(GetBarycentric(RegionRect, Mover->P));
         *Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
     }
 }
@@ -655,7 +658,7 @@ MoveEntity(
 
                 sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
 
-                if (!CanCollide(GameState, Entity, TestEntity)) {
+                if (!CanCollide(GameState, Entity, TestEntity) || TestEntity->P.Z != Entity->P.Z) {
                     continue;
                 }
 
@@ -723,8 +726,8 @@ MoveEntity(
         }
     }
 
-    if (Entity->P.Z < 0) {
-        Entity->P.Z = 0;
+    if (Entity->P.Z < Ground) {
+        Entity->P.Z = Ground;
         Entity->dP.Z = 0;
     }
 

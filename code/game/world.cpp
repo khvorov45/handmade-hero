@@ -249,7 +249,8 @@ internal void ChangeEntityLocationRaw(
 
 inline world_position ChunkPositionFromTilePosition(
     world* World,
-    int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ
+    int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ,
+    v3 AdditionalOffset = {}
 ) {
 
     world_position BasePos = {};
@@ -261,7 +262,7 @@ inline world_position ChunkPositionFromTilePosition(
 
     v3 Offset = World->TileSideInMeters * V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ);
 
-    world_position Result = MapIntoChunkSpace(World, BasePos, Offset);
+    world_position Result = MapIntoChunkSpace(World, BasePos, Offset + AdditionalOffset);
 
     Assert(IsCanonical(World, Result.Offset_));
 

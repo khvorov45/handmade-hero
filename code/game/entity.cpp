@@ -1,4 +1,5 @@
 #include "sim_region.cpp"
+#include "math.cpp"
 
 struct add_low_entity_result_ {
     low_entity_* Low;
@@ -117,14 +118,16 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
 
 internal add_low_entity_result_
 AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
-    world_position EntityLowP =
-        ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+    world_position EntityLowP = ChunkPositionFromTilePosition(
+        GameState->World, AbsTileX, AbsTileY, AbsTileZ,
+        V3(0, 0, 0.5f * GameState->World->TileDepthInMeters)
+    );
 
     add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Stairwell, EntityLowP);
 
     Entity.Low->Sim.Dim.Y = 1.5f;
     Entity.Low->Sim.Dim.X = 1.5f;
-    Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
+    Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters * 1.2f;
 
     return Entity;
 }
