@@ -576,6 +576,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             sim_entity* ClosestHero = 0;
             real32 ClosestHeroDSq = Square(15.0f);
 
+#if 0
             for (uint32 TestEntityIndex = 0;
                 TestEntityIndex < SimRegion->EntityCount;
                 TestEntityIndex++) {
@@ -590,6 +591,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
                 }
             }
+
+#endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
                 real32 Acceleration = 0.3f;
                 real32 OneOverLength = (Acceleration / SquareRoot(ClosestHeroDSq));

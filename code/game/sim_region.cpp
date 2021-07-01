@@ -16,6 +16,7 @@ enum sim_entity_flags {
     EntityFlag_Collides = 1 << 0,
     EntityFlag_Nonspatial = 1 << 1,
     EntityFlag_Moveable = 1 << 2,
+    EntityFlag_ZSupported = 1 << 3,
 
     EntityFlag_Simming = 1 << 30
 };
@@ -616,7 +617,9 @@ MoveEntity(
 
     ddPlayer += -MoveSpec->Drag * Entity->dP;
 
-    ddPlayer += V3(0.0f, 0.0f, -9.8f);
+    if (!IsSet(Entity, EntityFlag_ZSupported)) {
+        ddPlayer += V3(0.0f, 0.0f, -9.8f);
+    }
 
     v3 OldPlayerP = Entity->P;
 
@@ -726,9 +729,12 @@ MoveEntity(
         }
     }
 
-    if (Entity->P.Z < Ground) {
+    if (Entity->P.Z <= Ground || (IsSet(Entity, EntityFlag_ZSupported) && Entity->dP.Z == 0)) {
         Entity->P.Z = Ground;
         Entity->dP.Z = 0;
+        AddFlags(Entity, EntityFlag_ZSupported);
+    } else {
+        ClearFlags(Entity, EntityFlag_ZSupported);
     }
 
     if (Entity->DistanceLimit != 0.0f) {
