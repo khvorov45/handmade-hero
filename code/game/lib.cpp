@@ -332,7 +332,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     if (ShouldBeDoor) {
                         AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
                     } else if (CreatedZDoor) {
-                        if (TileX == 10 && TileY == 6) {
+                        if (TileX == 10 && TileY == 5) {
                             AddStair(
                                 GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ
                             );

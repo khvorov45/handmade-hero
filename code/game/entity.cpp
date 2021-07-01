@@ -125,8 +125,8 @@ AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
 
     add_low_entity_result_ Entity = AddLowEntity_(GameState, EntityType_Stairwell, EntityLowP);
 
-    Entity.Low->Sim.Dim.Y = 1.5f;
-    Entity.Low->Sim.Dim.X = 1.5f;
+    Entity.Low->Sim.Dim.X = GameState->World->TileSideInMeters;
+    Entity.Low->Sim.Dim.Y = 2.0f * GameState->World->TileSideInMeters;
     Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
 
     return Entity;
