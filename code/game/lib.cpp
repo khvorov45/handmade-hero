@@ -547,7 +547,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Stairwell:
         {
-            PushRect(&PieceGroup, V2(0, 0), 0, Entity->Dim.XY, V4(1, 1, 0, 1));
+            PushRect(&PieceGroup, V2(0, 0), 0, Entity->Dim.XY, V4(1, 1, 0, 1), 0.0f);
         }
         break;
         case EntityType_Sword:

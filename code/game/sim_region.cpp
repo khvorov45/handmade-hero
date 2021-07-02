@@ -537,10 +537,6 @@ internal bool32 CanCollide(game_state* GameState, sim_entity* A, sim_entity* B) 
         Result = true;
     }
 
-    if (A->Type == EntityType_Stairwell || B->Type == EntityType_Stairwell) {
-        Result = false;
-    }
-
     uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
     for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
         Rule;
@@ -594,6 +590,18 @@ internal inline move_spec DefaultMoveSpec() {
     MoveSpec.Speed = 1.0f;
     MoveSpec.UnitMaxAccelVector = false;
     return MoveSpec;
+}
+
+internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region) {
+    bool32 Result = true;
+    if (Region->Type == EntityType_Stairwell) {
+        rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
+        v3 Bary = Clamp01(GetBarycentric(RegionRect, Mover->P));
+        real32 Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+        real32 StepHeight = 0.1f;
+        Result = AbsoluteValue(Mover->P.Z - Ground) > StepHeight;
+    }
+    return Result;
 }
 
 internal void
@@ -661,8 +669,12 @@ MoveEntity(
 
                 sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
 
-                if (!CanCollide(GameState, Entity, TestEntity) || TestEntity->P.Z != Entity->P.Z) {
+                if (!CanCollide(GameState, Entity, TestEntity)) {
                     continue;
+                }
+
+                if (TestEntity->Type == EntityType_Stairwell) {
+                    int x = 0;
                 }
 
                 v3 MinkowskiDiameter = Entity->Dim + TestEntity->Dim;
@@ -672,21 +684,33 @@ MoveEntity(
 
                 v3 Rel = Entity->P - TestEntity->P;
 
-                if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y)) {
-                    WallNormal = V3(-1, 0, 0);
-                    HitEntity = TestEntity;
+                real32 tMinTest = tMin;
+                v3 TestWallNormal = {};
+                sim_entity* TestHitEntity = 0;
+                if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
+                    TestWallNormal = V3(-1, 0, 0);
+                    TestHitEntity = TestEntity;
                 }
-                if (TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y)) {
-                    WallNormal = V3(1, 0, 0);
-                    HitEntity = TestEntity;
+                if (TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
+                    TestWallNormal = V3(1, 0, 0);
+                    TestHitEntity = TestEntity;
                 }
-                if (TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X)) {
-                    WallNormal = V3(0, -1, 0);
-                    HitEntity = TestEntity;
+                if (TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
+                    TestWallNormal = V3(0, -1, 0);
+                    TestHitEntity = TestEntity;
                 }
-                if (TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X)) {
-                    WallNormal = V3(0, 1, 0);
-                    HitEntity = TestEntity;
+                if (TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
+                    TestWallNormal = V3(0, 1, 0);
+                    TestHitEntity = TestEntity;
+                }
+
+                if (TestHitEntity) {
+                    v3 TestP = Entity->P + tMinTest * PlayerDelta;
+                    if (SpeculativeCollide(Entity, TestEntity)) {
+                        tMin = tMinTest;
+                        WallNormal = TestWallNormal;
+                        HitEntity = TestHitEntity;
+                    }
                 }
             }
         }

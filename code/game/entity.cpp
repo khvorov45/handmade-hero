@@ -129,6 +129,8 @@ AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
     Entity.Low->Sim.Dim.Y = 2.0f * GameState->World->TileSideInMeters;
     Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
 
+    AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
+
     return Entity;
 }
 
