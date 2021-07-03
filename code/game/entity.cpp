@@ -41,6 +41,7 @@ internal add_low_entity_result_ AddSword_(game_state* GameState) {
 
     Entity.Low->Sim.Dim.Y = 0.5f;
     Entity.Low->Sim.Dim.X = 1.0f;
+    Entity.Low->Sim.Dim.X = 0.1f;
     AddFlags(&Entity.Low->Sim, EntityFlag_Moveable);
 
     return Entity;
