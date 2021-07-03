@@ -686,30 +686,30 @@ MoveEntity(
 
                 real32 tMinTest = tMin;
                 v3 TestWallNormal = {};
-                sim_entity* TestHitEntity = 0;
+                bool32 HitThis = false;
                 if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
                     TestWallNormal = V3(-1, 0, 0);
-                    TestHitEntity = TestEntity;
+                    HitThis = true;
                 }
                 if (TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
                     TestWallNormal = V3(1, 0, 0);
-                    TestHitEntity = TestEntity;
+                    HitThis = true;
                 }
                 if (TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
                     TestWallNormal = V3(0, -1, 0);
-                    TestHitEntity = TestEntity;
+                    HitThis = true;
                 }
                 if (TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
                     TestWallNormal = V3(0, 1, 0);
-                    TestHitEntity = TestEntity;
+                    HitThis = true;
                 }
 
-                if (TestHitEntity) {
+                if (HitThis) {
                     v3 TestP = Entity->P + tMinTest * PlayerDelta;
                     if (SpeculativeCollide(Entity, TestEntity)) {
                         tMin = tMinTest;
                         WallNormal = TestWallNormal;
-                        HitEntity = TestHitEntity;
+                        HitEntity = TestEntity;
                     }
                 }
             }
