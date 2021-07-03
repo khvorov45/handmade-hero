@@ -79,7 +79,7 @@ AddWall_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
 
     Entity.Low->Sim.Dim.Y = TileSide;
     Entity.Low->Sim.Dim.X = TileSide;
-    Entity.Low->Sim.Dim.Z = 0.5f * GameState->World->TileDepthInMeters;
+    Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
 
     AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 

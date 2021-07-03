@@ -174,14 +174,14 @@ internal world_position CenteredChunkPoint(uint32 ChunkX, uint32 ChunkY, uint32 
 
 #define TILES_PER_CHUNK 16
 
-internal void InitializeWorld(world* World, real32 TileSideInMeters) {
+internal void InitializeWorld(world* World, real32 TileSideInMeters, real32 TileDepthInMeters) {
 
     World->TileSideInMeters = TileSideInMeters;
-    World->TileDepthInMeters = TileSideInMeters;
+    World->TileDepthInMeters = TileDepthInMeters;
     World->ChunkDimInMeters = {
         (real32)TILES_PER_CHUNK * TileSideInMeters,
         (real32)TILES_PER_CHUNK * TileSideInMeters,
-        (real32)TileSideInMeters,
+        (real32)TileDepthInMeters,
     };
     World->FirstFree = 0;
 
@@ -255,12 +255,10 @@ inline world_position ChunkPositionFromTilePosition(
 
     world_position BasePos = {};
 
-    // v3 Offset = Hadamard(
-    //     V3(World->TileSideInMeters, World->TileSideInMeters, World->TileDepthInMeters),
-    //     V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ)
-    // );
-
-    v3 Offset = World->TileSideInMeters * V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ);
+    v3 Offset = Hadamard(
+        V3(World->TileSideInMeters, World->TileSideInMeters, World->TileDepthInMeters),
+        V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ)
+    );
 
     world_position Result = MapIntoChunkSpace(World, BasePos, Offset + AdditionalOffset);
 

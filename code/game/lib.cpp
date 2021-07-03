@@ -259,7 +259,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         GameState->World = PushStruct(&GameState->WorldArena, world);
         world* TileMap = GameState->World;
-        InitializeWorld(TileMap, 1.4f);
+        InitializeWorld(TileMap, 1.4f, 3.0f);
 
         uint32 TileSideInPixels = 60;
         GameState->MetersToPixels = (real32)TileSideInPixels / (real32)TileMap->TileSideInMeters;
