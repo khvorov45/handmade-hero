@@ -57,7 +57,7 @@ internal add_low_entity_result_ AddSword_(game_state* GameState) {
 
 internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
 
-    v3 Dim = V3(1.0f, 0.5f, 0.63f);
+    v3 Dim = V3(1.0f, 0.5f, 1.2f);
 
     add_low_entity_result_ Entity =
         AddGroundedEntity(GameState, EntityType_Hero, GameState->CameraP, Dim);
