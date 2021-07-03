@@ -599,7 +599,8 @@ internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region) {
         v3 Bary = Clamp01(GetBarycentric(RegionRect, Mover->P));
         real32 Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
         real32 StepHeight = 0.1f;
-        Result = AbsoluteValue(Mover->P.Z - Ground) > StepHeight;
+        Result = AbsoluteValue(Mover->P.Z - Ground) > StepHeight ||
+            (Bary.Y > 0.1f && Bary.Y < 0.9f);
     }
     return Result;
 }
