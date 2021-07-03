@@ -685,6 +685,10 @@ MoveEntity(
 
                 v3 Rel = Entity->P - TestEntity->P;
 
+                if (Rel.Z < MinCorner.Z || Rel.Z >= MaxCorner.Z) {
+                    continue;
+                }
+
                 real32 tMinTest = tMin;
                 v3 TestWallNormal = {};
                 bool32 HitThis = false;

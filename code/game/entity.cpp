@@ -52,6 +52,7 @@ internal add_low_entity_result_ AddPlayer_(game_state* GameState) {
 
     Entity.Low->Sim.Dim.Y = 0.5f;
     Entity.Low->Sim.Dim.X = 1.0f;
+    Entity.Low->Sim.Dim.Z = 0.5f;
 
     AddFlags(&Entity.Low->Sim, EntityFlag_Collides | EntityFlag_Moveable);
 
@@ -78,6 +79,7 @@ AddWall_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
 
     Entity.Low->Sim.Dim.Y = TileSide;
     Entity.Low->Sim.Dim.X = TileSide;
+    Entity.Low->Sim.Dim.Z = 0.5f * GameState->World->TileDepthInMeters;
 
     AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
@@ -93,6 +95,7 @@ AddMonster_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsT
 
     Entity.Low->Sim.Dim.Y = 0.5f;
     Entity.Low->Sim.Dim.X = 1.0f;
+    Entity.Low->Sim.Dim.Z = 0.5f;
 
     InitHitpoints_(Entity.Low, 3);
 
@@ -110,6 +113,7 @@ AddFamiliar_(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 Abs
 
     Entity.Low->Sim.Dim.Y = 0.5f;
     Entity.Low->Sim.Dim.X = 1.0f;
+    Entity.Low->Sim.Dim.Z = 0.5f;
 
     AddFlags(&Entity.Low->Sim, EntityFlag_Collides | EntityFlag_Moveable);
 
