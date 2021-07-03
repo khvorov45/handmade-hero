@@ -625,9 +625,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
+        real32 ZFudge = 1.0f + 0.1f * Entity->P.Z;
         real32 Z = -Entity->P.Z * GameState->MetersToPixels;
-        real32 EntityGroudX = ScreenCenterX + Entity->P.X * GameState->MetersToPixels;
-        real32 EntityGroudY = ScreenCenterY - Entity->P.Y * GameState->MetersToPixels;
+        real32 EntityGroudX = ScreenCenterX + Entity->P.X * GameState->MetersToPixels * ZFudge;
+        real32 EntityGroudY = ScreenCenterY - Entity->P.Y * GameState->MetersToPixels * ZFudge;
 
         for (uint32 PieceIndex = 0; PieceIndex < PieceGroup.PieceCount; ++PieceIndex) {
             entity_visible_piece* Piece = PieceGroup.Pieces + PieceIndex;
