@@ -489,7 +489,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         real32 dt = Input->dtForFrame;
 
-        real32 ShadowAlpha = Maximum(0.0f, 1.0f - Entity->P.Z);
+        real32 ShadowAlpha = Maximum(0.0f, 1.0f - 0.5f * (Entity->P.Z - 0.5f * Entity->Dim.Z));
 
         move_spec MoveSpec = DefaultMoveSpec();
         v3 ddP = {};
@@ -625,10 +625,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
-        real32 ZFudge = 1.0f + 0.1f * Entity->P.Z;
-        real32 Z = -Entity->P.Z * GameState->MetersToPixels;
-        real32 EntityGroudX = ScreenCenterX + Entity->P.X * GameState->MetersToPixels * ZFudge;
-        real32 EntityGroudY = ScreenCenterY - Entity->P.Y * GameState->MetersToPixels * ZFudge;
+        v3 EntityBaseP = Entity->P - V3(0, 0, 0.5f * Entity->Dim.Z);
+        real32 ZFudge = 1.0f + 0.1f * EntityBaseP.Z;
+        real32 EntityGroudX = ScreenCenterX + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
+        real32 EntityGroudY = ScreenCenterY - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
+        real32 Z = -EntityBaseP.Z * GameState->MetersToPixels;
 
         for (uint32 PieceIndex = 0; PieceIndex < PieceGroup.PieceCount; ++PieceIndex) {
             entity_visible_piece* Piece = PieceGroup.Pieces + PieceIndex;
