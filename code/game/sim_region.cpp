@@ -758,6 +758,7 @@ MoveEntity(
         }
     }
 
+    Ground += 0.5f * Entity->Dim.Z;
     if (Entity->P.Z <= Ground || (IsSet(Entity, EntityFlag_ZSupported) && Entity->dP.Z == 0)) {
         Entity->P.Z = Ground;
         Entity->dP.Z = 0;
