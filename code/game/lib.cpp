@@ -138,7 +138,7 @@ PushPiece(
     Piece->A = Color.A;
     Piece->Bitmap = Bitmap;
     Piece->Offset = MetersToPixels * OffsetFixY - Align;
-    Piece->OffsetZ = MetersToPixels * OffsetZ;
+    Piece->OffsetZ = OffsetZ;
     Piece->EntityZC = EntityZC;
     Piece->Dim = Dim;
 }
@@ -547,7 +547,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Stairwell:
         {
-            PushRect(&PieceGroup, V2(0, 0), 0, Entity->Dim.XY, V4(1, 1, 0, 1), 0.0f);
+            PushRect(&PieceGroup, V2(0, 0), 0, Entity->Dim.XY, V4(1, 0.5f, 0, 1), 0.0f);
+            PushRect(&PieceGroup, V2(0, 0), Entity->Dim.Z, Entity->Dim.XY, V4(1, 1, 0, 1), 0.0f);
         }
         break;
         case EntityType_Sword:
@@ -625,18 +626,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
-        v3 EntityBaseP = Entity->P - V3(0, 0, 0.5f * Entity->Dim.Z);
-        real32 ZFudge = 1.0f + 0.1f * EntityBaseP.Z;
-        real32 EntityGroudX = ScreenCenterX + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
-        real32 EntityGroudY = ScreenCenterY - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
-        real32 Z = -EntityBaseP.Z * GameState->MetersToPixels;
-
         for (uint32 PieceIndex = 0; PieceIndex < PieceGroup.PieceCount; ++PieceIndex) {
+
             entity_visible_piece* Piece = PieceGroup.Pieces + PieceIndex;
+
+            v3 EntityBaseP = Entity->P - V3(0, 0, 0.5f * Entity->Dim.Z);
+            real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
+
+            real32 EntityGroudX = ScreenCenterX + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
+            real32 EntityGroudY = ScreenCenterY - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
+            real32 EntityZ = -EntityBaseP.Z * GameState->MetersToPixels;
+
             v2 Center = {
                 EntityGroudX + Piece->Offset.X,
-                EntityGroudY + Piece->Offset.Y + Piece->OffsetZ + Z * Piece->EntityZC
+                EntityGroudY + Piece->Offset.Y + EntityZ * Piece->EntityZC
             };
+
             if (Piece->Bitmap) {
                 DrawBitmap(
                     Buffer,
