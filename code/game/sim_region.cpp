@@ -44,6 +44,8 @@ struct sim_entity {
     hit_point HitPoint[16];
 
     entity_reference Sword;
+
+    real32 WalkableHeight;
 };
 
 struct low_entity_ {
@@ -507,14 +509,25 @@ internal bool32 CanOverlap(game_state* GameState, sim_entity* Mover, sim_entity*
     return Result;
 }
 
+inline real32 GetStairGround(sim_entity* Entity, v3 AtGroudPoint) {
+    Assert(Entity->Type == EntityType_Stairwell);
+    rectangle3 RegionRect = RectCenterDim(Entity->P, Entity->Dim);
+    v3 Bary = Clamp01(GetBarycentric(RegionRect, AtGroudPoint));
+    real32 Result = RegionRect.Min.Z + Bary.Y * Entity->WalkableHeight;
+    return Result;
+}
+
+inline v3 GetEntityGroundPoint(sim_entity* Entity) {
+    v3 Result = Entity->P + V3(0, 0, -0.5f * Entity->Dim.Z);
+    return Result;
+}
+
 internal void
 HandleOverlap(
     game_state* GameState, sim_entity* Mover, sim_entity* Region, real32 dt, real32* Ground
 ) {
     if (Region->Type == EntityType_Stairwell) {
-        rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
-        v3 Bary = Clamp01(GetBarycentric(RegionRect, Mover->P));
-        *Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+        *Ground = GetStairGround(Region, GetEntityGroundPoint(Mover));
     }
 }
 
@@ -595,12 +608,10 @@ internal inline move_spec DefaultMoveSpec() {
 internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region) {
     bool32 Result = true;
     if (Region->Type == EntityType_Stairwell) {
-        rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
-        v3 Bary = Clamp01(GetBarycentric(RegionRect, Mover->P));
-        real32 Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+        v3 MoverGroundPoint = GetEntityGroundPoint(Mover);
+        real32 Ground = GetStairGround(Region, MoverGroundPoint);
         real32 StepHeight = 0.1f;
-        Result = AbsoluteValue(Mover->P.Z - Ground) > StepHeight ||
-            (Bary.Y > 0.1f && Bary.Y < 0.9f);
+        Result = AbsoluteValue(MoverGroundPoint.Z - Ground) > StepHeight;
     }
     return Result;
 }
@@ -758,7 +769,7 @@ MoveEntity(
         }
     }
 
-    Ground += 0.5f * Entity->Dim.Z;
+    Ground += Entity->P.Z - GetEntityGroundPoint(Entity).Z;
     if (Entity->P.Z <= Ground || (IsSet(Entity, EntityFlag_ZSupported) && Entity->dP.Z == 0)) {
         Entity->P.Z = Ground;
         Entity->dP.Z = 0;

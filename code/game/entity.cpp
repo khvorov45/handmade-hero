@@ -132,7 +132,7 @@ AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
     v3 Dim = V3(
         GameState->World->TileSideInMeters,
         2.0f * GameState->World->TileSideInMeters,
-        GameState->World->TileDepthInMeters
+        1.1f * GameState->World->TileDepthInMeters
     );
 
     world_position EntityLowP =
@@ -142,6 +142,8 @@ AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
         AddGroundedEntity(GameState, EntityType_Stairwell, EntityLowP, Dim);
 
     AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
+
+    Entity.Low->Sim.WalkableHeight = GameState->World->TileDepthInMeters;
 
     return Entity;
 }

@@ -630,7 +630,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             entity_visible_piece* Piece = PieceGroup.Pieces + PieceIndex;
 
-            v3 EntityBaseP = Entity->P - V3(0, 0, 0.5f * Entity->Dim.Z);
+            v3 EntityBaseP = GetEntityGroundPoint(Entity);
             real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
 
             real32 EntityGroudX = ScreenCenterX + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
