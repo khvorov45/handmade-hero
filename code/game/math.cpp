@@ -319,6 +319,14 @@ inline real32 SafeRatio1(real32 Numerator, real32 Divisor) {
 
 }
 
+inline v2 GetBarycentric(rectangle2 Rect, v2 P) {
+    v2 Result = {};
+    v2 Diff = Rect.Max - Rect.Min;
+    Result.X = SafeRatio0(P.X - Rect.Min.X, Diff.X);
+    Result.Y = SafeRatio0(P.Y - Rect.Min.Y, Diff.Y);
+    return Result;
+}
+
 inline v3 GetBarycentric(rectangle3 Rect, v3 P) {
     v3 Result = {};
     v3 Diff = Rect.Max - Rect.Min;
@@ -340,6 +348,13 @@ inline real32 Clamp(real32 Min, real32 Value, real32 Max) {
 
 inline real32 Clamp01(real32 Value) {
     return Clamp(0, Value, 1);
+}
+
+inline v2 Clamp01(v2 Value) {
+    v2 Result = Value;
+    Result.X = Clamp01(Result.X);
+    Result.Y = Clamp01(Result.Y);
+    return Result;
 }
 
 inline v3 Clamp01(v3 Value) {

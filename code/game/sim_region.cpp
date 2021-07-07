@@ -21,6 +21,18 @@ enum sim_entity_flags {
     EntityFlag_Simming = 1 << 30
 };
 
+struct sim_entity_collision_volume {
+    v3 OffsetP;
+    v3 Dim;
+};
+
+struct sim_entity_collision_volume_group {
+    sim_entity_collision_volume TotalVolume;
+
+    uint32 VolumeCount;
+    sim_entity_collision_volume* Volumes;
+};
+
 struct sim_entity {
     uint32 StorageIndex;
     bool32 Updatable;
@@ -33,7 +45,7 @@ struct sim_entity {
 
     real32 DistanceLimit;
 
-    v3 Dim;
+    sim_entity_collision_volume_group* Collision;
 
     uint32 FacingDirection;
     real32 tBob;
@@ -45,6 +57,7 @@ struct sim_entity {
 
     entity_reference Sword;
 
+    v2 WalkableDim;
     real32 WalkableHeight;
 };
 
@@ -234,11 +247,11 @@ AddEntityRaw(
     return Entity;
 }
 
-internal bool32 EntityOverlapsRectange(v3 P, v3 Dim, rectangle3 Rect) {
+internal bool32 EntityOverlapsRectange(v3 P, sim_entity_collision_volume Volume, rectangle3 Rect) {
 
-    rectangle3 GrownRect = AddRadius(Rect, 0.5f * Dim);
+    rectangle3 GrownRect = AddRadius(Rect, 0.5f * Volume.Dim);
 
-    bool32 Result = IsInRectangle(GrownRect, P);
+    bool32 Result = IsInRectangle(GrownRect, P + Volume.OffsetP);
 
     return Result;
 }
@@ -253,7 +266,7 @@ AddEntity(
         if (SimP) {
             Dest->P = *SimP;
             Dest->Updatable =
-                EntityOverlapsRectange(Dest->P, Dest->Dim, SimRegion->UpdatableBounds);
+                EntityOverlapsRectange(Dest->P, Dest->Collision->TotalVolume, SimRegion->UpdatableBounds);
         } else {
             Dest->P = GetSimSpaceP(SimRegion, Source);
         }
@@ -317,7 +330,7 @@ BeginSim(
 
                         if (!IsSet(&Low->Sim, EntityFlag_Nonspatial)) {
                             v3 SimSpaceP = GetSimSpaceP(SimRegion, Low);
-                            if (EntityOverlapsRectange(SimSpaceP, Low->Sim.Dim, SimRegion->Bounds)) {
+                            if (EntityOverlapsRectange(SimSpaceP, Low->Sim.Collision->TotalVolume, SimRegion->Bounds)) {
                                 AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
                             }
                         }
@@ -510,15 +523,18 @@ internal bool32 CanOverlap(game_state* GameState, sim_entity* Mover, sim_entity*
 }
 
 inline real32 GetStairGround(sim_entity* Entity, v3 AtGroudPoint) {
+
     Assert(Entity->Type == EntityType_Stairwell);
-    rectangle3 RegionRect = RectCenterDim(Entity->P, Entity->Dim);
-    v3 Bary = Clamp01(GetBarycentric(RegionRect, AtGroudPoint));
-    real32 Result = RegionRect.Min.Z + Bary.Y * Entity->WalkableHeight;
+
+    rectangle2 RegionRect = RectCenterDim(Entity->P.XY, Entity->WalkableDim);
+    v2 Bary = Clamp01(GetBarycentric(RegionRect, AtGroudPoint.XY));
+    real32 Result = Entity->P.Z + Bary.Y * Entity->WalkableHeight;
+
     return Result;
 }
 
 inline v3 GetEntityGroundPoint(sim_entity* Entity) {
-    v3 Result = Entity->P + V3(0, 0, -0.5f * Entity->Dim.Z);
+    v3 Result = Entity->P;
     return Result;
 }
 
@@ -685,47 +701,60 @@ MoveEntity(
                     continue;
                 }
 
-                if (TestEntity->Type == EntityType_Stairwell) {
-                    int x = 0;
-                }
+                for (uint32 VolumeIndex = 0;
+                    VolumeIndex < Entity->Collision->VolumeCount;
+                    VolumeIndex++) {
 
-                v3 MinkowskiDiameter = Entity->Dim + TestEntity->Dim;
+                    for (uint32 TestVolumeIndex = 0;
+                        TestVolumeIndex < TestEntity->Collision->VolumeCount;
+                        TestVolumeIndex++) {
 
-                v3 MinCorner = -0.5f * MinkowskiDiameter;
-                v3 MaxCorner = 0.5f * MinkowskiDiameter;
+                        sim_entity_collision_volume* Volume =
+                            Entity->Collision->Volumes + VolumeIndex;
 
-                v3 Rel = Entity->P - TestEntity->P;
+                        sim_entity_collision_volume* TestVolume =
+                            TestEntity->Collision->Volumes + TestVolumeIndex;
 
-                if (Rel.Z < MinCorner.Z || Rel.Z >= MaxCorner.Z) {
-                    continue;
-                }
+                        v3 MinkowskiDiameter = Volume->Dim + TestVolume->Dim;
 
-                real32 tMinTest = tMin;
-                v3 TestWallNormal = {};
-                bool32 HitThis = false;
-                if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
-                    TestWallNormal = V3(-1, 0, 0);
-                    HitThis = true;
-                }
-                if (TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
-                    TestWallNormal = V3(1, 0, 0);
-                    HitThis = true;
-                }
-                if (TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
-                    TestWallNormal = V3(0, -1, 0);
-                    HitThis = true;
-                }
-                if (TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
-                    TestWallNormal = V3(0, 1, 0);
-                    HitThis = true;
-                }
+                        v3 MinCorner = -0.5f * MinkowskiDiameter;
+                        v3 MaxCorner = 0.5f * MinkowskiDiameter;
 
-                if (HitThis) {
-                    v3 TestP = Entity->P + tMinTest * PlayerDelta;
-                    if (SpeculativeCollide(Entity, TestEntity)) {
-                        tMin = tMinTest;
-                        WallNormal = TestWallNormal;
-                        HitEntity = TestEntity;
+                        v3 Rel =
+                            (Entity->P + Volume->OffsetP) - (TestEntity->P + TestVolume->OffsetP);
+
+                        if (Rel.Z < MinCorner.Z || Rel.Z >= MaxCorner.Z) {
+                            continue;
+                        }
+
+                        real32 tMinTest = tMin;
+                        v3 TestWallNormal = {};
+                        bool32 HitThis = false;
+                        if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
+                            TestWallNormal = V3(-1, 0, 0);
+                            HitThis = true;
+                        }
+                        if (TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
+                            TestWallNormal = V3(1, 0, 0);
+                            HitThis = true;
+                        }
+                        if (TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
+                            TestWallNormal = V3(0, -1, 0);
+                            HitThis = true;
+                        }
+                        if (TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest, MinCorner.X, MaxCorner.X)) {
+                            TestWallNormal = V3(0, 1, 0);
+                            HitThis = true;
+                        }
+
+                        if (HitThis) {
+                            v3 TestP = Entity->P + tMinTest * PlayerDelta;
+                            if (SpeculativeCollide(Entity, TestEntity)) {
+                                tMin = tMinTest;
+                                WallNormal = TestWallNormal;
+                                HitEntity = TestEntity;
+                            }
+                        }
                     }
                 }
             }
