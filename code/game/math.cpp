@@ -365,4 +365,11 @@ inline v3 Clamp01(v3 Value) {
     return Result;
 }
 
+inline rectangle2 ToRectangleXY(rectangle3 A) {
+    rectangle2 Result;
+    Result.Min = A.Min.XY;
+    Result.Max = A.Max.XY;
+    return Result;
+}
+
 #endif

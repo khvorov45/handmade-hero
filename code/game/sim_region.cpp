@@ -118,6 +118,14 @@ struct game_state {
 
     pairwise_collision_rule* CollisionRuleHash[256];
     pairwise_collision_rule* FirstFreeCollisionRule;
+
+    sim_entity_collision_volume_group* NullCollision;
+    sim_entity_collision_volume_group* SwordCollision;
+    sim_entity_collision_volume_group* StairCollision;
+    sim_entity_collision_volume_group* PlayerCollision;
+    sim_entity_collision_volume_group* MonsterCollision;
+    sim_entity_collision_volume_group* WallCollision;
+    sim_entity_collision_volume_group* FamiliarCollision;
 };
 
 struct entity_visible_piece_group {
@@ -650,8 +658,9 @@ MoveEntity(
     }
 
     ddPlayer *= MoveSpec->Speed;
-
-    ddPlayer += -MoveSpec->Drag * Entity->dP;
+    v3 Drag = -MoveSpec->Drag * Entity->dP;
+    Drag.Z = 0;
+    ddPlayer += Drag;
 
     if (!IsSet(Entity, EntityFlag_ZSupported)) {
         ddPlayer += V3(0.0f, 0.0f, -9.8f);
@@ -781,7 +790,9 @@ MoveEntity(
 
     real32 Ground = 0.0f;
     {
-        rectangle3 EntityRect = RectCenterDim(Entity->P, Entity->Dim);
+        rectangle3 EntityRect = RectCenterDim(
+            Entity->P + Entity->Collision->TotalVolume.OffsetP, Entity->Collision->TotalVolume.Dim
+        );
         for (uint32 TestHighEntityIndex = 1;
             TestHighEntityIndex < Region->EntityCount;
             ++TestHighEntityIndex) {
@@ -789,7 +800,10 @@ MoveEntity(
             sim_entity* TestEntity = Region->Entities + TestHighEntityIndex;
 
             if (CanOverlap(GameState, Entity, TestEntity)) {
-                rectangle3 TestEntityRect = RectCenterDim(TestEntity->P, TestEntity->Dim);
+                rectangle3 TestEntityRect = RectCenterDim(
+                    TestEntity->P + TestEntity->Collision->TotalVolume.OffsetP,
+                    TestEntity->Collision->TotalVolume.Dim
+                );
 
                 if (RectanglesIntersect(EntityRect, TestEntityRect)) {
                     HandleOverlap(GameState, Entity, TestEntity, dt, &Ground);
