@@ -17,6 +17,7 @@ enum sim_entity_flags {
     EntityFlag_Nonspatial = 1 << 1,
     EntityFlag_Moveable = 1 << 2,
     EntityFlag_ZSupported = 1 << 3,
+    EntityFlag_Traversable = 1 << 4,
 
     EntityFlag_Simming = 1 << 30
 };
@@ -120,6 +121,7 @@ struct game_state {
     pairwise_collision_rule* FirstFreeCollisionRule;
 
     sim_entity_collision_volume_group* NullCollision;
+    sim_entity_collision_volume_group* StandardRoomCollision;
     sim_entity_collision_volume_group* SwordCollision;
     sim_entity_collision_volume_group* StairCollision;
     sim_entity_collision_volume_group* PlayerCollision;
@@ -569,19 +571,22 @@ internal bool32 CanCollide(game_state* GameState, sim_entity* A, sim_entity* B) 
         B = Temp;
     }
 
-    if (!IsSet(A, EntityFlag_Nonspatial) &&
-        !IsSet(B, EntityFlag_Nonspatial)) {
-        Result = true;
-    }
+    if (IsSet(A, EntityFlag_Collides) && IsSet(B, EntityFlag_Collides)) {
 
-    uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
-    for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
-        Rule;
-        Rule = Rule->NextInHash) {
+        if (!IsSet(A, EntityFlag_Nonspatial) &&
+            !IsSet(B, EntityFlag_Nonspatial)) {
+            Result = true;
+        }
 
-        if (Rule->StorageIndexA == A->StorageIndex && Rule->StorageIndexB == B->StorageIndex) {
-            Result = Rule->CanCollide;
-            break;
+        uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
+        for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
+            Rule;
+            Rule = Rule->NextInHash) {
+
+            if (Rule->StorageIndexA == A->StorageIndex && Rule->StorageIndexB == B->StorageIndex) {
+                Result = Rule->CanCollide;
+                break;
+            }
         }
     }
 

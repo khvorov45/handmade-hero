@@ -166,6 +166,24 @@ PushRect(
     );
 }
 
+internal void
+PushRectOutline(
+    entity_visible_piece_group* Group,
+    v2 Offset, real32 OffsetZ, v2 Dim,
+    v4 Color,
+    real32 EntityZC = 1.0f
+) {
+    real32 Thickness = 0.1f;
+
+    //* Top and bottom
+    PushPiece(Group, 0, Offset - V2(0, 0.5f * Dim.Y), OffsetZ, { 0, 0 }, V2(Dim.X, Thickness), Color, EntityZC);
+    PushPiece(Group, 0, Offset + V2(0, 0.5f * Dim.Y), OffsetZ, { 0, 0 }, V2(Dim.X, Thickness), Color, EntityZC);
+
+    //* Left and right
+    PushPiece(Group, 0, Offset - V2(0.5f * Dim.X, 0), OffsetZ, { 0, 0 }, V2(Thickness, Dim.Y), Color, EntityZC);
+    PushPiece(Group, 0, Offset + V2(0.5f * Dim.X, 0), OffsetZ, { 0, 0 }, V2(Thickness, Dim.Y), Color, EntityZC);
+}
+
 internal void DrawHitpoints_(sim_entity* Entity, entity_visible_piece_group* PieceGroup) {
     if (Entity->HitPointMax >= 1) {
         v2 HealthDim = { 0.2f, 0.2f };
@@ -239,6 +257,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         uint32 TileSideInPixels = 60;
         GameState->MetersToPixels = (real32)TileSideInPixels / (real32)TileMap->TileSideInMeters;
 
+        uint32 TilesPerWidth = 17;
+        uint32 TilesPerHeight = 9;
+
         GameState->NullCollision = MakeNullCollision(GameState);
         GameState->SwordCollision = MakeSimpleGroundedCollision(GameState, 1.0f, 0.5f, 0.1f);
         GameState->StairCollision = MakeSimpleGroundedCollision(
@@ -254,6 +275,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             GameState, GameState->World->TileSideInMeters,
             GameState->World->TileSideInMeters,
             GameState->World->TileDepthInMeters
+        );
+        GameState->StandardRoomCollision = MakeSimpleGroundedCollision(
+            GameState,
+            TilesPerWidth * GameState->World->TileSideInMeters,
+            TilesPerHeight * GameState->World->TileSideInMeters,
+            0.9f * GameState->World->TileDepthInMeters
         );
 
         GameState->Backdrop =
@@ -305,9 +332,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_torso.bmp");
         Bitmap->Align = { 72, 182 };
 
-        uint32 TilesPerWidth = 17;
-        uint32 TilesPerHeight = 9;
-
         uint32 ScreenBaseX = 0;
         uint32 ScreenBaseY = 0;
         uint32 ScreenBaseZ = 0;
@@ -350,6 +374,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             } else {
                 DoorTop = true;
             }
+
+            AddStandardRoom(
+                GameState,
+                ScreenX * TilesPerWidth + TilesPerWidth / 2,
+                ScreenY * TilesPerHeight + TilesPerHeight / 2,
+                AbsTileZ
+            );
 
             for (uint32 TileY = 0; TileY < TilesPerHeight; ++TileY) {
                 for (uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
@@ -654,6 +685,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             PushBitmap(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
 
             DrawHitpoints_(Entity, &PieceGroup);
+        }
+        break;
+        case EntityType_Space:
+        {
+            for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
+                sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
+                PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
+            }
         }
         break;
         default:

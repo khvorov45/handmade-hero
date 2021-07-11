@@ -138,4 +138,22 @@ AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
     return Entity;
 }
 
+
+internal add_low_entity_result_ AddStandardRoom(
+    game_state* GameState,
+    uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ
+) {
+
+    world_position EntityLowP =
+        ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+
+    add_low_entity_result_ Entity =
+        AddGroundedEntity(GameState, EntityType_Space, EntityLowP, GameState->StandardRoomCollision);
+
+    AddFlags(&Entity.Low->Sim, EntityFlag_Traversable);
+
+    return Entity;
+}
+
+
 // ================================================================================================
