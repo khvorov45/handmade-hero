@@ -438,6 +438,11 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
     }
 }
 
+struct test_wall {
+    real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
+    v3 Normal;
+};
+
 internal bool32 TestWall(
     real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
     real32* tMin, real32 MinY, real32 MaxY
@@ -693,6 +698,7 @@ MoveEntity(
         }
 
         real32 tMin = 1.0f;
+        real32 tMax = 0.0f;
 
         if (PlayerDeltaLength > DistanceRemaining) {
             tMin = DistanceRemaining / PlayerDeltaLength;
@@ -744,6 +750,7 @@ MoveEntity(
                         real32 tMinTest = tMin;
                         v3 TestWallNormal = {};
                         bool32 HitThis = false;
+#if 0
                         if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest, MinCorner.Y, MaxCorner.Y)) {
                             TestWallNormal = V3(-1, 0, 0);
                             HitThis = true;
@@ -760,7 +767,20 @@ MoveEntity(
                             TestWallNormal = V3(0, 1, 0);
                             HitThis = true;
                         }
-
+#endif
+                        test_wall Walls[] = {
+                            {MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, MinCorner.Y, MaxCorner.Y, V3(-1, 0, 0)},
+                            {MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, MinCorner.Y, MaxCorner.Y, V3(1, 0, 0)},
+                            {MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, -1, 0)},
+                            {MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, 1, 0)}
+                        };
+                        for (uint32 WallIndex = 0; WallIndex < ArrayCount(Walls); ++WallIndex) {
+                            test_wall* Wall = Walls + WallIndex;
+                            if (TestWall(Wall->X, Wall->RelX, Wall->RelY, Wall->DeltaX, Wall->DeltaY, &tMinTest, Wall->MinY, Wall->MaxY)) {
+                                TestWallNormal = Wall->Normal;
+                                HitThis = true;
+                            }
+                        }
                         if (HitThis) {
                             v3 TestP = Entity->P + tMinTest * PlayerDelta;
                             if (SpeculativeCollide(Entity, TestEntity)) {
