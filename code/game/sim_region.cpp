@@ -775,12 +775,23 @@ MoveEntity(
                             {MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, 1, 0)}
                         };
                         for (uint32 WallIndex = 0; WallIndex < ArrayCount(Walls); ++WallIndex) {
+
                             test_wall* Wall = Walls + WallIndex;
-                            if (TestWall(Wall->X, Wall->RelX, Wall->RelY, Wall->DeltaX, Wall->DeltaY, &tMinTest, Wall->MinY, Wall->MaxY)) {
-                                TestWallNormal = Wall->Normal;
-                                HitThis = true;
+
+                            if (Wall->DeltaX != 0.0f) {
+                                real32 tResult = (Wall->X - Wall->RelX) / Wall->DeltaX;
+                                real32 Y = Wall->RelY + tResult * Wall->DeltaY;
+                                if (tResult > 0.0f && tMinTest > tResult) {
+                                    if (Y >= Wall->MinY && Y <= Wall->MaxY) {
+                                        real32 tEpsilon = 0.0001f;
+                                        tMinTest = Maximum(0.0f, tResult - tEpsilon);
+                                        TestWallNormal = Wall->Normal;
+                                        HitThis = true;
+                                    }
+                                }
                             }
                         }
+
                         if (HitThis) {
                             v3 TestP = Entity->P + tMinTest * PlayerDelta;
                             if (SpeculativeCollide(Entity, TestEntity)) {
