@@ -402,7 +402,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 
                     if (ShouldBeDoor) {
-                        AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
+                        if (ScreenIndex == 0) {
+                            AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
+                        }
                     } else if (CreatedZDoor) {
                         if (TileX == 10 && TileY == 5) {
                             AddStair(
@@ -663,7 +665,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-            }
+        }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -700,7 +702,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-        }
+    }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -734,7 +736,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(Buffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-    }
+}
 
     EndSim(SimRegion, GameState);
 }
