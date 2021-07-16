@@ -28,6 +28,16 @@ inline v2 V2(real32 X, real32 Y) {
     return Result;
 };
 
+inline v2 V2u(uint32 X, uint32 Y) {
+    v2 Result = { (real32)X, (real32)Y };
+    return Result;
+}
+
+inline v2 V2i(int32 X, int32 Y) {
+    v2 Result = { (real32)X, (real32)Y };
+    return Result;
+}
+
 inline v3 V3(real32 X, real32 Y, real32 Z) {
     v3 Result;
     Result.X = X;

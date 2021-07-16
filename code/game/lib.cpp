@@ -228,6 +228,55 @@ MakeNullCollision(game_state* GameState) {
     return Group;
 }
 
+internal void DrawTestGround(game_state* GameState, game_offscreen_buffer* Buffer) {
+
+    uint32 RandomNumberIndex = 0;
+    v2 Center = 0.5f * V2i(Buffer->Width, Buffer->Height);
+    for (uint32 GrassIndex = 0; GrassIndex < 10; ++GrassIndex) {
+
+        Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+
+        loaded_bitmap* Stamp;
+        if (RandomNumberTable[RandomNumberIndex++] % 2) {
+            Stamp = GameState->Grass + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Grass));
+        } else {
+            Stamp = GameState->Ground + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Ground));
+        }
+
+        v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
+
+        v2 Offset = {
+            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1,
+            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1
+        };
+
+        real32 Radius = 5.0f;
+
+        v2 P = Center + Offset * GameState->MetersToPixels * Radius - BitmapCenter;
+        DrawBitmap(Buffer, Stamp, P.X, P.Y);
+    }
+
+    for (uint32 GrassIndex = 0; GrassIndex < 10; ++GrassIndex) {
+
+        Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+
+        loaded_bitmap* Stamp =
+            GameState->Tuft + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Tuft));
+
+        v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
+
+        v2 Offset = {
+            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1,
+            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1
+        };
+
+        real32 Radius = 5.0f;
+
+        v2 P = Center + Offset * GameState->MetersToPixels * Radius - BitmapCenter;
+        DrawBitmap(Buffer, Stamp, P.X, P.Y);
+    }
+}
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
@@ -282,6 +331,25 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             TilesPerHeight * GameState->World->TileSideInMeters,
             0.9f * GameState->World->TileDepthInMeters
         );
+
+        GameState->Grass[0] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass00.bmp");
+        GameState->Grass[1] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass01.bmp");
+        GameState->Tuft[0] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft00.bmp");
+        GameState->Tuft[1] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft01.bmp");
+        GameState->Tuft[2] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft02.bmp");
+        GameState->Ground[0] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground00.bmp");
+        GameState->Ground[1] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground01.bmp");
+        GameState->Ground[2] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground02.bmp");
+        GameState->Ground[3] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground03.bmp");
 
         GameState->Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
@@ -536,7 +604,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         1.0f, 0.0f, 1.0f
     );
 
-    //* Draw backdrop
+    // NOTE(sen) Draw backdrop
 #if 0
     DrawBitmap(Buffer, GameState->Backdrop, 0.0f, 0.0f);
 #else
@@ -545,6 +613,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         0.5f, 0.5f, 0.5f
     );
 #endif
+
+    DrawTestGround(GameState, Buffer);
 
     //* Draw entities
     real32 ScreenCenterX = (real32)Buffer->Width * 0.5f;
