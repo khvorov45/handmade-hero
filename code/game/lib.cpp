@@ -230,25 +230,21 @@ MakeNullCollision(game_state* GameState) {
 
 internal void DrawTestGround(game_state* GameState, game_offscreen_buffer* Buffer) {
 
-    uint32 RandomNumberIndex = 0;
+    random_series Series = Seed(0);
+
     v2 Center = 0.5f * V2i(Buffer->Width, Buffer->Height);
     for (uint32 GrassIndex = 0; GrassIndex < 10; ++GrassIndex) {
 
-        Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
-
         loaded_bitmap* Stamp;
-        if (RandomNumberTable[RandomNumberIndex++] % 2) {
-            Stamp = GameState->Grass + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Grass));
+        if (RandomChoice(&Series, 2)) {
+            Stamp = GameState->Grass + RandomChoice(&Series, ArrayCount(GameState->Grass));
         } else {
-            Stamp = GameState->Ground + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Ground));
+            Stamp = GameState->Ground + RandomChoice(&Series, ArrayCount(GameState->Ground));
         }
 
         v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
 
-        v2 Offset = {
-            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1,
-            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1
-        };
+        v2 Offset = { RandomBilateral(&Series), RandomBilateral(&Series) };
 
         real32 Radius = 5.0f;
 
@@ -258,17 +254,12 @@ internal void DrawTestGround(game_state* GameState, game_offscreen_buffer* Buffe
 
     for (uint32 GrassIndex = 0; GrassIndex < 10; ++GrassIndex) {
 
-        Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
-
         loaded_bitmap* Stamp =
-            GameState->Tuft + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Tuft));
+            GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
 
         v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
 
-        v2 Offset = {
-            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1,
-            2.0f * (real32)RandomNumberTable[RandomNumberIndex++] / (real32)MaxRandomNumber - 1
-        };
+        v2 Offset = { RandomBilateral(&Series), RandomBilateral(&Series) };
 
         real32 Radius = 5.0f;
 
@@ -408,7 +399,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         uint32 ScreenY = ScreenBaseY;
         uint32 AbsTileZ = ScreenBaseZ;
 
-        uint32 RandomNumberIndex = 0;
+        random_series Series = Seed(0);
 
         bool32 DoorLeft = false;
         bool32 DoorRight = false;
@@ -419,25 +410,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex) {
 
-            Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
-
-            uint32 RandomChoice;
-            if (DoorUp || DoorDown) {
-                RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
-            } else {
-                RandomChoice = RandomNumberTable[RandomNumberIndex++] % 3;
-            }
+            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown ? 2 : 3);
 
             bool32 CreatedZDoor = false;
 
-            if (RandomChoice == 2) {
+            if (DoorDirection == 2) {
                 CreatedZDoor = true;
                 if (AbsTileZ == ScreenBaseZ) {
                     DoorUp = true;
                 } else {
                     DoorDown = true;
                 }
-            } else if (RandomChoice == 1) {
+            } else if (DoorDirection == 1) {
                 DoorRight = true;
             } else {
                 DoorTop = true;
@@ -497,13 +481,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DoorDown = false;
             }
 
-            if (RandomChoice == 2) {
+            if (DoorDirection == 2) {
                 if (AbsTileZ == ScreenBaseZ) {
                     AbsTileZ = ScreenBaseZ + 1;
                 } else {
                     AbsTileZ = ScreenBaseZ;
                 }
-            } else if (RandomChoice == 1) {
+            } else if (DoorDirection == 1) {
                 ScreenX += 1;
             } else {
                 ScreenY += 1;
