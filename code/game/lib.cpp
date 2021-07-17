@@ -735,7 +735,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-        }
+            }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -761,10 +761,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Space:
         {
+#if 0
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
                 PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
             }
+#endif
         }
         break;
         default:
@@ -772,7 +774,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-    }
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -806,7 +808,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(Buffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-}
+    }
 
     EndSim(SimRegion, GameState);
 }
