@@ -530,7 +530,7 @@ internal inline random_series RandomSeed(uint32 Value) {
     return Result;
 }
 
-inline uint32 NextRandomUint32(random_series* Series) {
+inline uint32 RandomNextUint32(random_series* Series) {
     uint32 Result = RandomNumberTable[Series->Index++];
     if (Series->Index >= ArrayCount(RandomNumberTable)) {
         Series->Index = 0;
@@ -539,13 +539,13 @@ inline uint32 NextRandomUint32(random_series* Series) {
 }
 
 inline uint32 RandomChoice(random_series* Series, uint32 ChoiceCount) {
-    uint32 Result = NextRandomUint32(Series) % ChoiceCount;
+    uint32 Result = RandomNextUint32(Series) % ChoiceCount;
     return Result;
 }
 
 inline real32 RandomUnilateral(random_series* Series) {
     real32 Divisor = 1.0f / (real32)MaxRandomNumber;
-    real32 Result = (real32)NextRandomUint32(Series) * Divisor;
+    real32 Result = (real32)RandomNextUint32(Series) * Divisor;
     return Result;
 }
 
@@ -560,6 +560,6 @@ inline real32 RandomBetween(random_series* Series, real32 Min, real32 Max) {
 }
 
 inline int32 RandomBetween(random_series* Series, int32 Min, int32 Max) {
-    int32 Result = NextRandomUint32(Series) % (Max + 1 - Min) + Min;
+    int32 Result = RandomNextUint32(Series) % (Max + 1 - Min) + Min;
     return Result;
 }
