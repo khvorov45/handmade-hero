@@ -132,6 +132,8 @@ struct game_state {
     sim_entity_collision_volume_group* MonsterCollision;
     sim_entity_collision_volume_group* WallCollision;
     sim_entity_collision_volume_group* FamiliarCollision;
+
+    loaded_bitmap GroundBuffer;
 };
 
 struct entity_visible_piece_group {

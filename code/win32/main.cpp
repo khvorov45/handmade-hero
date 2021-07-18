@@ -1141,7 +1141,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         GraphicsBuffer.Width = GlobalBackBuffer.Width;
         GraphicsBuffer.Height = GlobalBackBuffer.Height;
         GraphicsBuffer.Pitch = GlobalBackBuffer.Pitch;
-        GraphicsBuffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
 
         if (Win32State.InputRecordingIndex) {
             Win32RecordInput(&Win32State, NewInput);
@@ -1327,4 +1326,4 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     }
 
     return (0);
-    }
+}

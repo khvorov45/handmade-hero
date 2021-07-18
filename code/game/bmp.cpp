@@ -29,10 +29,12 @@ struct bitmap_header {
 };
 #pragma pack(pop)
 
+
 struct loaded_bitmap {
-    uint32* Pixels;
+    void* Memory;
     int32 Width;
     int32 Height;
+    int32 Pitch;
 };
 
 internal loaded_bitmap DEBUGLoadBMP(
@@ -51,6 +53,7 @@ internal loaded_bitmap DEBUGLoadBMP(
 
     Result.Height = Header->Height;
     Result.Width = Header->Width;
+    Result.Pitch = -Result.Width * BITMAP_BYTES_PER_PIXEL;
 
     uint32 RedMask = Header->RedMask;
     uint32 GreenMask = Header->GreenMask;
@@ -83,7 +86,7 @@ internal loaded_bitmap DEBUGLoadBMP(
                 (((*Pixel >> BlueShift) & 0xFF));
         }
     }
-    Result.Pixels = Pixels;
+    Result.Memory = (uint8*)Pixels + (-Result.Pitch) * (Result.Height - 1);
     return Result;
 }
 

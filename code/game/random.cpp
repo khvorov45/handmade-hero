@@ -524,7 +524,7 @@ struct random_series {
     uint32 Index;
 };
 
-internal inline random_series Seed(uint32 Value) {
+internal inline random_series RandomSeed(uint32 Value) {
     random_series Result = {};
     Result.Index = Value % ArrayCount(RandomNumberTable);
     return Result;
