@@ -560,6 +560,6 @@ inline real32 RandomBetween(random_series* Series, real32 Min, real32 Max) {
 }
 
 inline int32 RandomBetween(random_series* Series, int32 Min, int32 Max) {
-    int32 Result = NextRandomUint32(Series) % (Max - Min) + Min;
+    int32 Result = NextRandomUint32(Series) % (Max + 1 - Min) + Min;
     return Result;
 }
