@@ -1,4 +1,5 @@
 #include "../types.h"
+#include "../util.h"
 
 #define MaxRandomNumber 0x05f5c21f
 #define MinRandomNumber 0x000025a0
@@ -555,5 +556,10 @@ inline real32 RandomBilateral(random_series* Series) {
 
 inline real32 RandomBetween(random_series* Series, real32 Min, real32 Max) {
     real32 Result = (Max - Min) * RandomUnilateral(Series) + Min;
+    return Result;
+}
+
+inline int32 RandomBetween(random_series* Series, int32 Min, int32 Max) {
+    int32 Result = NextRandomUint32(Series) % (Max - Min) + Min;
     return Result;
 }
