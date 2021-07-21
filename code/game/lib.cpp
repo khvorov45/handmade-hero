@@ -97,21 +97,23 @@ internal void DrawBitmap(
         uint32* Source = (uint32*)SourceRow;
         for (int32 X = StartX; X < EndX; ++X) {
 
-            real32 SA = (real32)((*Source >> 24)) / 255.0f * CAlpha;
-
-            real32 SR = (real32)((*Source >> 16) & 0xFF);
-            real32 SG = (real32)((*Source >> 8) & 0xFF);
-            real32 SB = (real32)((*Source) & 0xFF);
+            real32 SA = CAlpha * (real32)((*Source >> 24));
+            real32 SR = CAlpha * (real32)((*Source >> 16) & 0xFF);
+            real32 SG = CAlpha * (real32)((*Source >> 8) & 0xFF);
+            real32 SB = CAlpha * (real32)((*Source) & 0xFF);
 
             real32 DA = (real32)((*Dest >> 24) & 0xFF);
             real32 DR = (real32)((*Dest >> 16) & 0xFF);
             real32 DG = (real32)((*Dest >> 8) & 0xFF);
             real32 DB = (real32)((*Dest) & 0xFF);
 
-            real32 RA = Maximum(SA * 255.0f, DA);
-            real32 RR = (1.0f - SA) * DR + SA * SR;
-            real32 RG = (1.0f - SA) * DG + SA * SG;
-            real32 RB = (1.0f - SA) * DB + SA * SB;
+            real32 SA01 = SA / 255.0f;
+            real32 DA01 = DA / 255.0f;
+            real32 InvSA01 = 1.0f - SA01;
+            real32 RA = (SA01 + DA01 - SA01 * DA01) * 255.0f;
+            real32 RR = InvSA01 * DR + SR;
+            real32 RG = InvSA01 * DG + SG;
+            real32 RB = InvSA01 * DB + SB;
 
             *Dest = (RoundReal32ToUint32(RA) << 24) | (RoundReal32ToUint32(RR) << 16) |
                 (RoundReal32ToUint32(RG) << 8) | (RoundReal32ToUint32(RB));

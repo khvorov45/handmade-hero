@@ -79,11 +79,16 @@ internal loaded_bitmap DEBUGLoadBMP(
     uint32* Pixel = Pixels;
     for (int32 Y = 0; Y < Header->Height; ++Y) {
         for (int32 X = 0; X < Header->Width; ++X) {
+            real32 Alpha = (real32)((*Pixel >> AlphaShift) & 0xFF);
+            real32 Red = (real32)((*Pixel >> RedShift) & 0xFF);
+            real32 Green = (real32)((*Pixel >> GreenShift) & 0xFF);
+            real32 Blue = (real32)((*Pixel >> BlueShift) & 0xFF);
+            real32 Alpha01 = Alpha / 255.0f;
             *Pixel++ =
-                (((*Pixel >> AlphaShift) & 0xFF) << 24) |
-                (((*Pixel >> RedShift) & 0xFF) << 16) |
-                (((*Pixel >> GreenShift) & 0xFF) << 8) |
-                (((*Pixel >> BlueShift) & 0xFF));
+                (RoundReal32ToUint32(Alpha) << 24) |
+                (RoundReal32ToUint32(Red * Alpha01) << 16) |
+                (RoundReal32ToUint32(Green * Alpha01) << 8) |
+                (RoundReal32ToUint32(Blue * Alpha01));
         }
     }
     Result.Memory = (uint8*)Pixels + (-Result.Pitch) * (Result.Height - 1);
