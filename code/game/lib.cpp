@@ -528,7 +528,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             ChunkPositionFromTilePosition(GameState->World, CameraTileX, CameraTileY, CameraTileZ);
         GameState->CameraP = NewCameraP;
 
-        GameState->GroundBuffer = MakeEmptyBitmap(&GameState->WorldArena, 512, 512);
+        real32 ScreenWidth = (real32)Buffer->Width;
+        real32 ScreenHeight = (real32)Buffer->Height;
+        real32 MaximumZScale = 0.5f;
+        real32 GroundOverscan = 1.5f;
+
+        uint32 GroundBufferWidth = RoundReal32ToUint32(ScreenWidth * GroundOverscan);
+        uint32 GroundBufferHeight = RoundReal32ToUint32(ScreenHeight * GroundOverscan);
+
+        GameState->GroundBuffer =
+            MakeEmptyBitmap(&GameState->WorldArena, GroundBufferWidth, GroundBufferHeight);
+        GameState->GroundBufferP = GameState->CameraP;
         DrawTestGround(GameState, &GameState->GroundBuffer);
 
         Memory->IsInitialized = true;
@@ -625,12 +635,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         DrawBuffer, { 0, 0 }, { (real32)DrawBuffer->Width, (real32)DrawBuffer->Height },
         0.5f, 0.5f, 0.5f
     );
-    DrawBitmap(DrawBuffer, &GameState->GroundBuffer, 0.0f, 0.0f);
 
-
-    //* Draw entities
     real32 ScreenCenterX = (real32)DrawBuffer->Width * 0.5f;
     real32 ScreenCenterY = (real32)DrawBuffer->Height * 0.5f;
+
+    v2 Ground = V2(
+        ScreenCenterX - 0.5f * (real32)GameState->GroundBuffer.Width,
+        ScreenCenterY - 0.5f * (real32)GameState->GroundBuffer.Height
+    );
+    v3 Delta = Subtract(GameState->World, &GameState->GroundBufferP, &GameState->CameraP);
+    Delta.Y = -Delta.Y;
+    Ground += Delta.XY * GameState->MetersToPixels;
+    DrawBitmap(DrawBuffer, &GameState->GroundBuffer, Ground.X, Ground.Y);
+
+    //* Draw entities
     entity_visible_piece_group PieceGroup;
     PieceGroup.GameState = GameState;
     for (uint32 EntityIndex = 0;
@@ -779,7 +797,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
             }
 #endif
-        }
+            }
         break;
         default:
         {
@@ -820,7 +838,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-    }
+        }
 
     EndSim(SimRegion, GameState);
-}
+    }
