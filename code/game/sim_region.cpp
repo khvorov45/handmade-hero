@@ -96,8 +96,14 @@ struct pairwise_collision_rule {
     pairwise_collision_rule* NextInHash;
 };
 
+struct ground_buffer {
+    world_position P;
+    void* Memory;
+};
+
 struct game_state {
     memory_arena WorldArena;
+
     world* World;
     uint32 CameraFollowingEntityIndex;
     world_position CameraP;
@@ -132,9 +138,14 @@ struct game_state {
     sim_entity_collision_volume_group* MonsterCollision;
     sim_entity_collision_volume_group* WallCollision;
     sim_entity_collision_volume_group* FamiliarCollision;
+};
 
-    world_position GroundBufferP;
-    loaded_bitmap GroundBuffer;
+struct transient_state {
+    bool32 IsInitialized;
+    memory_arena TranArena;
+    uint32 GroundBufferCount;
+    loaded_bitmap GroundBitmapTemplate;
+    ground_buffer* GroundBuffers;
 };
 
 struct entity_visible_piece_group {
@@ -441,9 +452,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP.Offset_.Z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+            }
         }
     }
-}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
