@@ -250,12 +250,15 @@ internal loaded_bitmap MakeEmptyBitmap(memory_arena* Arena, int32 Width, int32 H
     return Result;
 }
 
-internal void DrawTestGround(game_state* GameState, loaded_bitmap* Buffer) {
+internal void
+DrawGroundChunk(game_state* GameState, loaded_bitmap* Buffer, world_position* ChunkP) {
 
-    random_series Series = RandomSeed(1234);
+    random_series Series =
+        RandomSeed(139 * ChunkP->ChunkX + 593 * ChunkP->ChunkY + 329 * ChunkP->ChunkZ);
 
-    v2 Center = 0.5f * V2i(Buffer->Width, Buffer->Height);
-    for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
+    real32 Width = (real32)Buffer->Width;
+    real32 Height = (real32)Buffer->Height;
+    for (uint32 GrassIndex = 0; GrassIndex < 1000; ++GrassIndex) {
 
         loaded_bitmap* Stamp;
         if (RandomChoice(&Series, 2)) {
@@ -266,26 +269,24 @@ internal void DrawTestGround(game_state* GameState, loaded_bitmap* Buffer) {
 
         v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
 
-        v2 Offset = { RandomBilateral(&Series), RandomBilateral(&Series) };
+        v2 Offset = { Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series) };
 
-        real32 Radius = 5.0f;
-
-        v2 P = Center + Offset * GameState->MetersToPixels * Radius - BitmapCenter;
+        v2 P = Offset - BitmapCenter;
         DrawBitmap(Buffer, Stamp, P.X, P.Y);
     }
 
-    for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
+    for (uint32 GrassIndex = 0; GrassIndex < 1000; ++GrassIndex) {
 
         loaded_bitmap* Stamp =
             GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
 
         v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
 
-        v2 Offset = { RandomBilateral(&Series), RandomBilateral(&Series) };
+        v2 Offset = { Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series) };
 
         real32 Radius = 5.0f;
 
-        v2 P = Center + Offset * GameState->MetersToPixels * Radius - BitmapCenter;
+        v2 P = Offset - BitmapCenter;
         DrawBitmap(Buffer, Stamp, P.X, P.Y);
     }
 }
@@ -432,7 +433,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex) {
 
-            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown ? 2 : 3);
+            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown || true ? 2 : 3);
 
             bool32 CreatedZDoor = false;
 
@@ -476,9 +477,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 
                     if (ShouldBeDoor) {
-                        if (ScreenIndex == 0) {
-                            AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
-                        }
+                        AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
                     } else if (CreatedZDoor) {
                         if (TileX == 10 && TileY == 5) {
                             AddStair(
@@ -539,7 +538,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->GroundBuffer =
             MakeEmptyBitmap(&GameState->WorldArena, GroundBufferWidth, GroundBufferHeight);
         GameState->GroundBufferP = GameState->CameraP;
-        DrawTestGround(GameState, &GameState->GroundBuffer);
+        DrawGroundChunk(GameState, &GameState->GroundBuffer, &GameState->GroundBufferP);
 
         Memory->IsInitialized = true;
     }
@@ -797,7 +796,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
             }
 #endif
-            }
+        }
         break;
         default:
         {
@@ -838,7 +837,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-        }
+    }
 
     EndSim(SimRegion, GameState);
-    }
+}
