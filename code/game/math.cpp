@@ -11,6 +11,7 @@ union v2 {
 
 union v3 {
     struct { real32 X, Y, Z; };
+    struct { real32 R, G, B; };
     struct { v2 XY; real32 Ignore_; };
     real32 E[3];
 };
@@ -310,6 +311,14 @@ inline rectangle3 AddRadius(rectangle3 Rect, v3 Radius) {
     Rect.Max = Rect.Max + Radius;
     Rect.Min = Rect.Min - Radius;
     return Rect;
+}
+
+
+inline rectangle3 Offset(rectangle3 Rect, v3 Offset) {
+    rectangle3 Result;
+    Result.Max = Rect.Max + Offset;
+    Result.Min = Rect.Min + Offset;
+    return Result;
 }
 
 inline real32 SafeRatioN(real32 Numerator, real32 Divisor, real32 N) {

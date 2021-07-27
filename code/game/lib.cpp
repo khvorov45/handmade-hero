@@ -56,6 +56,19 @@ internal void DrawRectangle(
     }
 }
 
+internal void
+DrawRectangleOutline(
+    loaded_bitmap* Buffer,
+    v2 vMin, v2 vMax,
+    v3 Color,
+    real32 T = 2.0f
+) {
+    DrawRectangle(Buffer, V2(vMin.X - T, vMax.Y - T), V2(vMax.X + T, vMax.Y + T), Color.R, Color.G, Color.B);
+    DrawRectangle(Buffer, V2(vMin.X - T, vMin.Y - T), V2(vMax.X + T, vMin.Y + T), Color.R, Color.G, Color.B);
+    DrawRectangle(Buffer, V2(vMin.X - T, vMin.Y - T), V2(vMin.X + T, vMax.Y + T), Color.R, Color.G, Color.B);
+    DrawRectangle(Buffer, V2(vMax.X - T, vMin.Y - T), V2(vMax.X + T, vMax.Y + T), Color.R, Color.G, Color.B);
+}
+
 internal void DrawBitmap(
     loaded_bitmap* Buffer, loaded_bitmap* BMP,
     real32 RealStartX, real32 RealStartY,
@@ -308,6 +321,13 @@ FillGroundChunk(
         v2 P = Offset - BitmapCenter;
         DrawBitmap(&Buffer, Stamp, P.X, P.Y);
     }
+}
+
+internal void RequestGroundBuffers(world_position CenterP, rectangle3 Bounds) {
+    Bounds = Offset(Bounds, CenterP.Offset_);
+    CenterP.Offset_ = V3(0, 0, 0);
+    //for (uint32 ) {}
+    //FillGroundChunk(TranState, GameState, TranState->GroundBuffers, &GameState->CameraP);
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -578,8 +598,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             GroundBuffer->P = NullPosition();
         }
 
-        FillGroundChunk(TranState, GameState, TranState->GroundBuffers, &GameState->CameraP);
-
         TranState->IsInitialized = true;
     }
 
@@ -641,26 +659,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
     }
 
-    //* SimRegion
-    uint32 TileSpanX = 17 * 3;
-    uint32 TileSpanY = 9 * 3;
-    uint32 TileSpanZ = 1;
-    rectangle3 CameraBounds = RectCenterDim(
-        V3(0, 0, 0),
-        World->TileSideInMeters * V3((real32)TileSpanX, (real32)TileSpanY, (real32)TileSpanZ)
-    );
-
-    temporary_memory SimMemory = BeginTemporaryMemory(&TranState->TranArena);
-    sim_region* SimRegion = BeginSim(
-        &TranState->TranArena, GameState, World, GameState->CameraP, CameraBounds, Input->dtForFrame
-    );
-
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap* DrawBuffer = &DrawBuffer_;
     DrawBuffer->Height = Buffer->Height;
     DrawBuffer->Pitch = Buffer->Pitch;
     DrawBuffer->Width = Buffer->Width;
     DrawBuffer->Memory = Buffer->Memory;
+
+    v2 ScreenCenter = 0.5f * V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height);
 
     // NOTE(sen) Clear screen
     DrawRectangle(
@@ -674,8 +680,60 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         0.5f, 0.5f, 0.5f
     );
 
-    real32 ScreenCenterX = (real32)DrawBuffer->Width * 0.5f;
-    real32 ScreenCenterY = (real32)DrawBuffer->Height * 0.5f;
+    {
+        real32 PixelsToMeters = 1.0f / GameState->MetersToPixels;
+        real32 ScreenWidthInMeters = Buffer->Width * PixelsToMeters;
+        real32 ScreenHeightInMeters = Buffer->Height * PixelsToMeters;
+        rectangle3 CameraBounds = RectCenterDim(
+            V3(0, 0, 0),
+            V3(ScreenWidthInMeters, ScreenHeightInMeters, 0)
+        );
+        world_position MinChunkP =
+            MapIntoChunkSpace(World, GameState->CameraP, GetMinCorner(CameraBounds));
+        world_position MaxChunkP =
+            MapIntoChunkSpace(World, GameState->CameraP, GetMaxCorner(CameraBounds));
+
+        for (int32 ChunkZ = MinChunkP.ChunkZ; ChunkZ <= MaxChunkP.ChunkZ; ChunkZ++) {
+
+            for (int32 ChunkY = MinChunkP.ChunkY; ChunkY <= MaxChunkP.ChunkY; ChunkY++) {
+
+                for (int32 ChunkX = MinChunkP.ChunkX; ChunkX <= MaxChunkP.ChunkX; ChunkX++) {
+
+                    world_chunk* Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
+                    if (Chunk) {
+                        world_position ChunkCenterP = CenteredChunkPoint(Chunk);
+                        v3 RelP = Subtract(GameState->World, &ChunkCenterP, &GameState->CameraP);
+                        v2 ScreenP = V2(
+                            ScreenCenter.X + GameState->MetersToPixels * RelP.X,
+                            ScreenCenter.Y - GameState->MetersToPixels * RelP.Y
+
+                        );
+                        v2 ScreenDim = GameState->World->ChunkDimInMeters.XY * GameState->MetersToPixels;
+                        DrawRectangleOutline(
+                            DrawBuffer,
+                            ScreenP - ScreenDim * 0.5f,
+                            ScreenP + ScreenDim * 0.5f,
+                            V3(1.0f, 1.0f, 0.0f)
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    // NOTE(sen) SimRegion
+    uint32 TileSpanX = 17 * 3;
+    uint32 TileSpanY = 9 * 3;
+    uint32 TileSpanZ = 1;
+    rectangle3 CameraBounds = RectCenterDim(
+        V3(0, 0, 0),
+        World->TileSideInMeters * V3((real32)TileSpanX, (real32)TileSpanY, (real32)TileSpanZ)
+    );
+
+    temporary_memory SimMemory = BeginTemporaryMemory(&TranState->TranArena);
+    sim_region* SimRegion = BeginSim(
+        &TranState->TranArena, GameState, World, GameState->CameraP, CameraBounds, Input->dtForFrame
+    );
 
     for (uint32 GroundBufferIndex = 0;
         GroundBufferIndex < TranState->GroundBufferCount;
@@ -691,8 +749,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
 
             v2 Ground = V2(
-                ScreenCenterX + Delta.X - 0.5f * (real32)Bitmap.Width,
-                ScreenCenterY - Delta.Y - 0.5f * (real32)Bitmap.Height
+                ScreenCenter.X + Delta.X - 0.5f * (real32)Bitmap.Width,
+                ScreenCenter.Y - Delta.Y - 0.5f * (real32)Bitmap.Height
             );
 
             DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
@@ -867,8 +925,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             v3 EntityBaseP = GetEntityGroundPoint(Entity);
             real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
 
-            real32 EntityGroudX = ScreenCenterX + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
-            real32 EntityGroudY = ScreenCenterY - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
+            real32 EntityGroudX = ScreenCenter.X + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
+            real32 EntityGroudY = ScreenCenter.Y - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
             real32 EntityZ = -EntityBaseP.Z * GameState->MetersToPixels;
 
             v2 Center = {

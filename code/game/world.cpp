@@ -172,6 +172,11 @@ internal world_position CenteredChunkPoint(uint32 ChunkX, uint32 ChunkY, uint32 
     return Pos;
 }
 
+internal world_position CenteredChunkPoint(world_chunk* Chunk) {
+    world_position Result = CenteredChunkPoint(Chunk->ChunkX, Chunk->ChunkY, Chunk->ChunkZ);
+    return Result;
+}
+
 #define TILES_PER_CHUNK 16
 
 internal void InitializeWorld(world* World, real32 TileSideInMeters, real32 TileDepthInMeters) {
