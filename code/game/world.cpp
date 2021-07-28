@@ -33,9 +33,6 @@ struct world_chunk {
 };
 
 struct world {
-    real32 TileSideInMeters;
-    real32 TileDepthInMeters;
-
     v3 ChunkDimInMeters;
 
     world_chunk ChunkHash[4096];
@@ -44,6 +41,8 @@ struct world {
 
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX / 64)
 #define TILE_CHUNK_UNINIT INT32_MAX
+
+#define TILES_PER_CHUNK 8
 
 internal inline world_position NullPosition() {
     world_position Result = {};
@@ -177,17 +176,9 @@ internal world_position CenteredChunkPoint(world_chunk* Chunk) {
     return Result;
 }
 
-#define TILES_PER_CHUNK 16
+internal void InitializeWorld(world* World, v3 ChunkDimInMeters) {
 
-internal void InitializeWorld(world* World, real32 TileSideInMeters, real32 TileDepthInMeters) {
-
-    World->TileSideInMeters = TileSideInMeters;
-    World->TileDepthInMeters = TileDepthInMeters;
-    World->ChunkDimInMeters = {
-        (real32)TILES_PER_CHUNK * TileSideInMeters,
-        (real32)TILES_PER_CHUNK * TileSideInMeters,
-        (real32)TileDepthInMeters,
-    };
+    World->ChunkDimInMeters = ChunkDimInMeters;
     World->FirstFree = 0;
 
     for (uint32 ChunkIndex = 0; ChunkIndex < ArrayCount(World->ChunkHash); ++ChunkIndex) {
@@ -260,8 +251,11 @@ inline world_position ChunkPositionFromTilePosition(
 
     world_position BasePos = {};
 
+    real32 TileSideInMeters = 1.4f;
+    real32 TileDepthInMeters = 3.0f;
+
     v3 Offset = Hadamard(
-        V3(World->TileSideInMeters, World->TileSideInMeters, World->TileDepthInMeters),
+        V3(TileSideInMeters, TileSideInMeters, TileDepthInMeters),
         V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ)
     );
 

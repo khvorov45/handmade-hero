@@ -132,7 +132,7 @@ AddStair(game_state* GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
 
     AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
-    Entity.Low->Sim.WalkableHeight = GameState->World->TileDepthInMeters;
+    Entity.Low->Sim.WalkableHeight = GameState->TypicalFloorHeight;
     Entity.Low->Sim.WalkableDim = Entity.Low->Sim.Collision->TotalVolume.Dim.XY;
 
     return Entity;

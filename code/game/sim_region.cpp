@@ -108,6 +108,8 @@ struct game_state {
     uint32 CameraFollowingEntityIndex;
     world_position CameraP;
 
+    real32 TypicalFloorHeight;
+
     controlled_hero ControlledHeroes[ArrayCount(((game_input*)0)->Controllers)];
 
     uint32 LowEntity_Count;
@@ -126,6 +128,7 @@ struct game_state {
     loaded_bitmap Stairwell;
 
     real32 MetersToPixels;
+    real32 PixelsToMeters;
 
     pairwise_collision_rule* CollisionRuleHash[256];
     pairwise_collision_rule* FirstFreeCollisionRule;
@@ -445,15 +448,15 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-            }
+        }
 #else
             real32 CamZOffset = NewCameraP.Offset_.Z;
             NewCameraP = Stored->P;
             NewCameraP.Offset_.Z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
-            }
-        }
+    }
+}
     }
 
 struct test_wall {
