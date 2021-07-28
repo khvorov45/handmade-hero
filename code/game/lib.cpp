@@ -701,7 +701,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     );
 
     {
-
         world_position MinChunkP =
             MapIntoChunkSpace(World, GameState->CameraP, GetMinCorner(CameraBoundsInMeters));
         world_position MaxChunkP =
@@ -714,22 +713,41 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 for (int32 ChunkX = MinChunkP.ChunkX; ChunkX <= MaxChunkP.ChunkX; ChunkX++) {
 
                     world_chunk* Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                    if (Chunk) {
-                        world_position ChunkCenterP = CenteredChunkPoint(Chunk);
-                        v3 RelP = Subtract(GameState->World, &ChunkCenterP, &GameState->CameraP);
-                        v2 ScreenP = V2(
-                            ScreenCenter.X + GameState->MetersToPixels * RelP.X,
-                            ScreenCenter.Y - GameState->MetersToPixels * RelP.Y
+                    world_position ChunkCenterP = CenteredChunkPoint(ChunkX, ChunkY, ChunkZ);
+                    v3 RelP = Subtract(GameState->World, &ChunkCenterP, &GameState->CameraP);
+                    v2 ScreenP = V2(
+                        ScreenCenter.X + GameState->MetersToPixels * RelP.X,
+                        ScreenCenter.Y - GameState->MetersToPixels * RelP.Y
 
-                        );
-                        v2 ScreenDim = GameState->World->ChunkDimInMeters.XY * GameState->MetersToPixels;
-                        DrawRectangleOutline(
-                            DrawBuffer,
-                            ScreenP - ScreenDim * 0.5f,
-                            ScreenP + ScreenDim * 0.5f,
-                            V3(1.0f, 1.0f, 0.0f)
-                        );
+                    );
+                    v2 ScreenDim = GameState->World->ChunkDimInMeters.XY * GameState->MetersToPixels;
+
+                    bool32 Found = false;
+                    ground_buffer* EmptyBuffer = 0;
+                    for (uint32 GroundBufferIndex = 0;
+                        GroundBufferIndex < TranState->GroundBufferCount;
+                        ++GroundBufferIndex) {
+
+                        ground_buffer* GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
+
+                        if (AreInSameChunk(GameState->World, &GroundBuffer->P, &ChunkCenterP)) {
+                            Found = true;
+                            break;
+                        } else if (!IsValid(GroundBuffer->P)) {
+                            EmptyBuffer = GroundBuffer;
+                        }
                     }
+
+                    if (!Found && EmptyBuffer) {
+                        FillGroundChunk(TranState, GameState, EmptyBuffer, &ChunkCenterP);
+                    }
+
+                    DrawRectangleOutline(
+                        DrawBuffer,
+                        ScreenP - ScreenDim * 0.5f,
+                        ScreenP + ScreenDim * 0.5f,
+                        V3(1.0f, 1.0f, 0.0f)
+                    );
                 }
             }
         }
