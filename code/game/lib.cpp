@@ -279,47 +279,58 @@ FillGroundChunk(
     transient_state* TranState, game_state* GameState,
     ground_buffer* GroundBuffer, world_position* ChunkP
 ) {
-
     loaded_bitmap Buffer = TranState->GroundBitmapTemplate;
     Buffer.Memory = GroundBuffer->Memory;
 
-    GroundBuffer->P = *ChunkP;
-
-    random_series Series =
-        RandomSeed(139 * ChunkP->ChunkX + 593 * ChunkP->ChunkY + 329 * ChunkP->ChunkZ);
-
     real32 Width = (real32)Buffer.Width;
     real32 Height = (real32)Buffer.Height;
-    for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
 
-        loaded_bitmap* Stamp;
-        if (RandomChoice(&Series, 2)) {
-            Stamp = GameState->Grass + RandomChoice(&Series, ArrayCount(GameState->Grass));
-        } else {
-            Stamp = GameState->Ground + RandomChoice(&Series, ArrayCount(GameState->Ground));
+    GroundBuffer->P = *ChunkP;
+
+    for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
+        for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
+
+            int32 ChunkX = ChunkP->ChunkX + ChunkOffsetX;
+            int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
+            int32 ChunkZ = ChunkP->ChunkZ;
+
+            random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
+
+            v2 Center = V2(ChunkOffsetX * Width, -ChunkOffsetY * Height);
+
+            for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
+
+                loaded_bitmap* Stamp;
+                if (RandomChoice(&Series, 2)) {
+                    Stamp = GameState->Grass + RandomChoice(&Series, ArrayCount(GameState->Grass));
+                } else {
+                    Stamp = GameState->Ground + RandomChoice(&Series, ArrayCount(GameState->Ground));
+                }
+
+                v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
+
+                v2 Offset = V2(Width * (RandomUnilateral(&Series)), Height * (RandomUnilateral(&Series)));
+
+                v2 P = Center + Offset - BitmapCenter;
+                DrawBitmap(&Buffer, Stamp, P.X, P.Y);
+            }
+
+            for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
+
+                loaded_bitmap* Stamp =
+                    GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
+
+                v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
+
+                v2 Offset = { Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series) };
+
+                real32 Radius = 5.0f;
+
+                v2 P = Center + Offset - BitmapCenter;
+                DrawBitmap(&Buffer, Stamp, P.X, P.Y);
+            }
+
         }
-
-        v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
-
-        v2 Offset = { Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series) };
-
-        v2 P = Offset - BitmapCenter;
-        DrawBitmap(&Buffer, Stamp, P.X, P.Y);
-    }
-
-    for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
-
-        loaded_bitmap* Stamp =
-            GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
-
-        v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
-
-        v2 Offset = { Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series) };
-
-        real32 Radius = 5.0f;
-
-        v2 P = Offset - BitmapCenter;
-        DrawBitmap(&Buffer, Stamp, P.X, P.Y);
     }
 }
 
