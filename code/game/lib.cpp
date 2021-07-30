@@ -314,6 +314,19 @@ FillGroundChunk(
                 v2 P = Center + Offset - BitmapCenter;
                 DrawBitmap(&Buffer, Stamp, P.X, P.Y);
             }
+        }
+    }
+
+    for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
+        for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
+
+            int32 ChunkX = ChunkP->ChunkX + ChunkOffsetX;
+            int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
+            int32 ChunkZ = ChunkP->ChunkZ;
+
+            random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
+
+            v2 Center = V2(ChunkOffsetX * Width, -ChunkOffsetY * Height);
 
             for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
 
@@ -329,7 +342,6 @@ FillGroundChunk(
                 v2 P = Center + Offset - BitmapCenter;
                 DrawBitmap(&Buffer, Stamp, P.X, P.Y);
             }
-
         }
     }
 }
@@ -921,7 +933,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-            }
+        }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -951,16 +963,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
                 PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
-            }
-#endif
         }
+#endif
+    }
         break;
         default:
         {
             InvalidCodePath;
         }
         break;
-        }
+}
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -994,7 +1006,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-    }
+        }
 
     EndSim(SimRegion, GameState);
 
@@ -1002,4 +1014,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
-}
+    }
