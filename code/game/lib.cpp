@@ -733,6 +733,28 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         V3(ScreenWidthInMeters, ScreenHeightInMeters, 0)
     );
 
+    for (uint32 GroundBufferIndex = 0;
+        GroundBufferIndex < TranState->GroundBufferCount;
+        GroundBufferIndex++) {
+
+        ground_buffer* GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
+        if (IsValid(GroundBuffer->P)) {
+
+            loaded_bitmap Bitmap = TranState->GroundBitmapTemplate;
+            Bitmap.Memory = GroundBuffer->Memory;
+
+            v3 Delta = GameState->MetersToPixels *
+                Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
+
+            v2 Ground = V2(
+                ScreenCenter.X + Delta.X - 0.5f * (real32)Bitmap.Width,
+                ScreenCenter.Y - Delta.Y - 0.5f * (real32)Bitmap.Height
+            );
+
+            DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
+        }
+    }
+
     {
         world_position MinChunkP =
             MapIntoChunkSpace(World, GameState->CameraP, GetMinCorner(CameraBoundsInMeters));
@@ -783,13 +805,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     if (FurthestBuffer) {
                         FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
-
+#if 0
                     DrawRectangleOutline(
                         DrawBuffer,
                         ScreenP - ScreenDim * 0.5f,
                         ScreenP + ScreenDim * 0.5f,
                         V3(1.0f, 1.0f, 0.0f)
                     );
+#endif
                 }
             }
         }
@@ -805,27 +828,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         &TranState->TranArena, GameState, World, GameState->CameraP, SimBounds, Input->dtForFrame
     );
 
-    for (uint32 GroundBufferIndex = 0;
-        GroundBufferIndex < TranState->GroundBufferCount;
-        GroundBufferIndex++) {
-
-        ground_buffer* GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
-        if (IsValid(GroundBuffer->P)) {
-
-            loaded_bitmap Bitmap = TranState->GroundBitmapTemplate;
-            Bitmap.Memory = GroundBuffer->Memory;
-
-            v3 Delta = GameState->MetersToPixels *
-                Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
-
-            v2 Ground = V2(
-                ScreenCenter.X + Delta.X - 0.5f * (real32)Bitmap.Width,
-                ScreenCenter.Y - Delta.Y - 0.5f * (real32)Bitmap.Height
-            );
-
-            DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
-        }
-    }
     //* Draw entities
     entity_visible_piece_group PieceGroup;
     PieceGroup.GameState = GameState;
