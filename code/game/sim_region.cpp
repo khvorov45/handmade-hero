@@ -448,16 +448,16 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-        }
+            }
 #else
             real32 CamZOffset = NewCameraP.Offset_.Z;
             NewCameraP = Stored->P;
             NewCameraP.Offset_.Z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+        }
     }
 }
-    }
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
@@ -569,8 +569,13 @@ inline real32 GetStairGround(sim_entity* Entity, v3 AtGroudPoint) {
     return Result;
 }
 
+inline v3 GetEntityGroundPoint(sim_entity* Entity, v3 ForEntityP) {
+    v3 Result = ForEntityP;
+    return Result;
+}
+
 inline v3 GetEntityGroundPoint(sim_entity* Entity) {
-    v3 Result = Entity->P;
+    v3 Result = GetEntityGroundPoint(Entity, Entity->P);
     return Result;
 }
 
@@ -660,10 +665,10 @@ internal inline move_spec DefaultMoveSpec() {
     return MoveSpec;
 }
 
-internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region) {
+internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region, v3 TestP) {
     bool32 Result = true;
     if (Region->Type == EntityType_Stairwell) {
-        v3 MoverGroundPoint = GetEntityGroundPoint(Mover);
+        v3 MoverGroundPoint = GetEntityGroundPoint(Mover, TestP);
         real32 Ground = GetStairGround(Region, MoverGroundPoint);
         real32 StepHeight = 0.1f;
         Result = AbsoluteValue(MoverGroundPoint.Z - Ground) > StepHeight;
@@ -860,7 +865,7 @@ MoveEntity(
                                 }
                                 if (HitThis) {
                                     v3 TestP = Entity->P + tMinTest * PlayerDelta;
-                                    if (SpeculativeCollide(Entity, TestEntity)) {
+                                    if (SpeculativeCollide(Entity, TestEntity, TestP)) {
                                         tMin = tMinTest;
                                         WallNormalMin = TestWallNormal;
                                         HitEntityMin = TestEntity;

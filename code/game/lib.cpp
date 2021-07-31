@@ -579,7 +579,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex) {
 
-            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown || true ? 2 : 3);
+            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown ? 2 : 3);
 
             bool32 CreatedZDoor = false;
 
@@ -687,7 +687,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             (uint8*)Memory->TransientStorage + sizeof(transient_state)
         );
 
-        TranState->GroundBufferCount = 32;
+        TranState->GroundBufferCount = 64;
         TranState->GroundBuffers =
             PushArray(&TranState->TranArena, TranState->GroundBufferCount, ground_buffer);
 
@@ -823,7 +823,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ScreenCenter.Y - Delta.Y - 0.5f * (real32)Bitmap.Height
             );
 
-            DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
+            //DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
         }
     }
 
@@ -875,7 +875,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 
                     if (FurthestBuffer) {
-                        FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
+                        //FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
 #if 0
                     DrawRectangleOutline(
