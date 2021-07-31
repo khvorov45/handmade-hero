@@ -138,6 +138,76 @@ internal void DrawBitmap(
         SourceRow += BMP->Pitch;
     }
 }
+internal void DrawMatte(
+    loaded_bitmap* Buffer, loaded_bitmap* BMP,
+    real32 RealStartX, real32 RealStartY,
+    real32 CAlpha = 1.0f
+) {
+
+    int32 StartX = RoundReal32ToInt32(RealStartX);
+    int32 StartY = RoundReal32ToInt32(RealStartY);
+
+    int32 EndX = StartX + BMP->Width;
+    int32 EndY = StartY + BMP->Height;
+
+    int32 SourceOffsetX = 0;
+    if (StartX < 0) {
+        SourceOffsetX = -StartX;
+        StartX = 0;
+    }
+
+    int32 SourceOffsetY = 0;
+    if (StartY < 0) {
+        SourceOffsetY = -StartY;
+        StartY = 0;
+    }
+
+    if (EndX > Buffer->Width) {
+        EndX = Buffer->Width;
+    }
+    if (EndY > Buffer->Height) {
+        EndY = Buffer->Height;
+    }
+
+    uint8* SourceRow =
+        (uint8*)BMP->Memory + SourceOffsetY * BMP->Pitch + SourceOffsetX * BITMAP_BYTES_PER_PIXEL;
+    uint8* DestRow =
+        (uint8*)Buffer->Memory + StartY * Buffer->Pitch + StartX * BITMAP_BYTES_PER_PIXEL;
+
+    for (int32 Y = StartY; Y < EndY; ++Y) {
+        uint32* Dest = (uint32*)DestRow;
+        uint32* Source = (uint32*)SourceRow;
+        for (int32 X = StartX; X < EndX; ++X) {
+
+            real32 SA = CAlpha * (real32)((*Source >> 24));
+            real32 SR = CAlpha * (real32)((*Source >> 16) & 0xFF);
+            real32 SG = CAlpha * (real32)((*Source >> 8) & 0xFF);
+            real32 SB = CAlpha * (real32)((*Source) & 0xFF);
+
+            real32 DA = (real32)((*Dest >> 24) & 0xFF);
+            real32 DR = (real32)((*Dest >> 16) & 0xFF);
+            real32 DG = (real32)((*Dest >> 8) & 0xFF);
+            real32 DB = (real32)((*Dest) & 0xFF);
+
+            real32 SA01 = SA / 255.0f;
+            real32 DA01 = DA / 255.0f;
+            real32 InvSA01 = 1.0f - SA01;
+            real32 RA = InvSA01 * DA;
+            real32 RR = InvSA01 * DR;
+            real32 RG = InvSA01 * DG;
+            real32 RB = InvSA01 * DB;
+
+            *Dest = (RoundReal32ToUint32(RA) << 24) | (RoundReal32ToUint32(RR) << 16) |
+                (RoundReal32ToUint32(RG) << 8) | (RoundReal32ToUint32(RB));
+
+            ++Dest;
+            ++Source;
+        }
+        DestRow += Buffer->Pitch;
+        SourceRow += BMP->Pitch;
+    }
+}
+
 
 internal inline void
 PushPiece(
@@ -328,7 +398,7 @@ FillGroundChunk(
 
             v2 Center = V2(ChunkOffsetX * Width, -ChunkOffsetY * Height);
 
-            for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
+            for (uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
 
                 loaded_bitmap* Stamp =
                     GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
@@ -720,10 +790,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     );
 
     // NOTE(sen) Draw backdrop
+#if 0
     DrawRectangle(
         DrawBuffer, { 0, 0 }, { (real32)DrawBuffer->Width, (real32)DrawBuffer->Height },
         0.5f, 0.5f, 0.5f
     );
+#endif
 
     real32 PixelsToMeters = 1.0f / GameState->MetersToPixels;
     real32 ScreenWidthInMeters = Buffer->Width * PixelsToMeters;
