@@ -636,6 +636,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         TranState->IsInitialized = true;
     }
 
+    if (Input->ExecutableReloaded) {
+        for (uint32 GroundBufferIndex = 0;
+            GroundBufferIndex < TranState->GroundBufferCount;
+            GroundBufferIndex++) {
+
+            ground_buffer* GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
+            GroundBuffer->P = NullPosition();
+        }
+    }
+
     world* World = GameState->World;
     world* TileMap = World;
 
@@ -933,7 +943,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-        }
+            }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -963,16 +973,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
                 PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
-        }
+            }
 #endif
-    }
+        }
         break;
         default:
         {
             InvalidCodePath;
         }
         break;
-}
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -1006,7 +1016,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-        }
+    }
 
     EndSim(SimRegion, GameState);
 
@@ -1014,4 +1024,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
-    }
+}
