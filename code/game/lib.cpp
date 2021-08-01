@@ -375,6 +375,8 @@ PushPiece(
 
     v2 OffsetFixY = { Offset.X, -Offset.Y };
 
+    Piece->Basis = Group->DefaultBasis;
+
     Piece->R = Color.R;
     Piece->G = Color.G;
     Piece->B = Color.B;
@@ -976,7 +978,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ScreenCenter.Y - Delta.Y - 0.5f * (real32)Bitmap.Height
             );
 
-            //DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
+            DrawBitmap(DrawBuffer, &Bitmap, Ground.X, Ground.Y);
         }
     }
 
@@ -1054,8 +1056,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     );
 
     //* Draw entities
-    entity_visible_piece_group PieceGroup;
-    PieceGroup.GameState = GameState;
+    entity_visible_piece_group* PieceGroup = PushStruct(&TranState->TranArena, entity_visible_piece_group);
+    PieceGroup->GameState = GameState;
+    render_basis DefaultBasis = {};
+    PieceGroup->DefaultBasis = &DefaultBasis;
+    PieceGroup->PieceCount = 0;
     for (uint32 EntityIndex = 0;
         EntityIndex < SimRegion->EntityCount;
         EntityIndex++) {
@@ -1073,8 +1078,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         move_spec MoveSpec = DefaultMoveSpec();
         v3 ddP = {};
 
+        render_basis* Basis = PushStruct(&TranState->TranArena, render_basis);
+        PieceGroup->DefaultBasis = Basis;
+
         hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[Entity->FacingDirection];
-        PieceGroup.PieceCount = 0;
         switch (Entity->Type) {
         case EntityType_Hero:
         {
@@ -1111,23 +1118,23 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
 
 
-            PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
-            PushBitmap(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0, HeroBitmaps->Align);
-            PushBitmap(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
-            PushBitmap(&PieceGroup, &HeroBitmaps->Cape, { 0, 0 }, 0, HeroBitmaps->Align);
+            PushBitmap(PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
+            PushBitmap(PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0, HeroBitmaps->Align);
+            PushBitmap(PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
+            PushBitmap(PieceGroup, &HeroBitmaps->Cape, { 0, 0 }, 0, HeroBitmaps->Align);
 
-            DrawHitpoints_(Entity, &PieceGroup);
+            DrawHitpoints_(Entity, PieceGroup);
         }
         break;
         case EntityType_Wall:
         {
-            PushBitmap(&PieceGroup, &GameState->Tree, { 0, 0 }, 0, { 40, 80 });
+            PushBitmap(PieceGroup, &GameState->Tree, { 0, 0 }, 0, { 40, 80 });
         }
         break;
         case EntityType_Stairwell:
         {
-            PushRect(&PieceGroup, V2(0, 0), 0, Entity->WalkableDim, V4(1, 0.5f, 0, 1), 0.0f);
-            PushRect(&PieceGroup, V2(0, 0), Entity->WalkableHeight, Entity->WalkableDim, V4(1, 1, 0, 1), 0.0f);
+            PushRect(PieceGroup, V2(0, 0), 0, Entity->WalkableDim, V4(1, 0.5f, 0, 1), 0.0f);
+            PushRect(PieceGroup, V2(0, 0), Entity->WalkableHeight, Entity->WalkableDim, V4(1, 1, 0, 1), 0.0f);
         }
         break;
         case EntityType_Sword:
@@ -1140,8 +1147,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 MakeEntityNonSpatial(Entity);
                 ClearCollisionRules(GameState, Entity->StorageIndex);
             }
-            PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
-            PushBitmap(&PieceGroup, &GameState->Sword, { 0, 0 }, 0, { 29, 10 });
+            PushBitmap(PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
+            PushBitmap(PieceGroup, &GameState->Sword, { 0, 0 }, 0, { 29, 10 });
         }
         break;
         case EntityType_Familiar:
@@ -1182,16 +1189,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveSpec.Speed = 150.0f;
             MoveSpec.UnitMaxAccelVector = true;
 
-            PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha * 0.5f + BobSin * 0.2f);
-            PushBitmap(&PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0.2f * BobSin, HeroBitmaps->Align);
+            PushBitmap(PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha * 0.5f + BobSin * 0.2f);
+            PushBitmap(PieceGroup, &HeroBitmaps->Head, { 0, 0 }, 0.2f * BobSin, HeroBitmaps->Align);
         }
         break;
         case EntityType_Monster:
         {
-            PushBitmap(&PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
-            PushBitmap(&PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
+            PushBitmap(PieceGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
+            PushBitmap(PieceGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
 
-            DrawHitpoints_(Entity, &PieceGroup);
+            DrawHitpoints_(Entity, PieceGroup);
         }
         break;
         case EntityType_Space:
@@ -1199,7 +1206,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if 0
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
-                PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
+                PushRectOutline(PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
             }
 #endif
         }
@@ -1215,33 +1222,35 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
-        for (uint32 PieceIndex = 0; PieceIndex < PieceGroup.PieceCount; ++PieceIndex) {
+        Basis->P = GetEntityGroundPoint(Entity);
+    }
 
-            entity_visible_piece* Piece = PieceGroup.Pieces + PieceIndex;
+    for (uint32 PieceIndex = 0; PieceIndex < PieceGroup->PieceCount; ++PieceIndex) {
 
-            v3 EntityBaseP = GetEntityGroundPoint(Entity);
-            real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
+        entity_visible_piece* Piece = PieceGroup->Pieces + PieceIndex;
 
-            real32 EntityGroudX = ScreenCenter.X + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
-            real32 EntityGroudY = ScreenCenter.Y - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
-            real32 EntityZ = -EntityBaseP.Z * GameState->MetersToPixels;
+        v3 EntityBaseP = Piece->Basis->P;
+        real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
 
-            v2 Center = {
-                EntityGroudX + Piece->Offset.X,
-                EntityGroudY + Piece->Offset.Y + EntityZ * Piece->EntityZC
-            };
+        real32 EntityGroudX = ScreenCenter.X + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
+        real32 EntityGroudY = ScreenCenter.Y - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
+        real32 EntityZ = -EntityBaseP.Z * GameState->MetersToPixels;
 
-            if (Piece->Bitmap) {
-                DrawBitmap(
-                    DrawBuffer,
-                    Piece->Bitmap,
-                    Center.X, Center.Y,
-                    Piece->A
-                );
-            } else {
-                v2 HalfDim = GameState->MetersToPixels * Piece->Dim * 0.5f;
-                DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
-            }
+        v2 Center = {
+            EntityGroudX + Piece->Offset.X,
+            EntityGroudY + Piece->Offset.Y + EntityZ * Piece->EntityZC
+        };
+
+        if (Piece->Bitmap) {
+            DrawBitmap(
+                DrawBuffer,
+                Piece->Bitmap,
+                Center.X, Center.Y,
+                Piece->A
+            );
+        } else {
+            v2 HalfDim = GameState->MetersToPixels * Piece->Dim * 0.5f;
+            DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
         }
     }
 
