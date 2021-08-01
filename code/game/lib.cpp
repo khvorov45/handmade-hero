@@ -1,6 +1,5 @@
 #include "lib.hpp"
 #include "world.cpp"
-#include "state.cpp"
 #include "sim_region.cpp"
 #include "render_group.cpp"
 #include "random.cpp"
@@ -1040,9 +1039,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     );
 #endif
                 }
-                }
             }
         }
+    }
 
     // NOTE(sen) SimRegion
 
@@ -1210,7 +1209,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-            }
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -1244,7 +1243,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
             }
         }
-        }
+    }
 
     EndSim(SimRegion, GameState);
 
@@ -1252,4 +1251,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
-        }
+}
