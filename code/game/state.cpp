@@ -75,16 +75,6 @@ struct low_entity_chunk_reference {
     uint32 EntityIndexInChunk;
 };
 
-struct entity_visible_piece {
-    loaded_bitmap* Bitmap;
-    v2 Offset;
-    real32 OffsetZ;
-    real32 EntityZC;
-
-    real32 R, G, B, A;
-    v2 Dim;
-};
-
 struct controlled_hero {
     uint32 EntityIndex;
     v2 ddP;

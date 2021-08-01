@@ -151,12 +151,6 @@ struct transient_state {
     ground_buffer* GroundBuffers;
 };
 
-struct entity_visible_piece_group {
-    game_state* GameState;
-    uint32 PieceCount;
-    entity_visible_piece Pieces[32];
-};
-
 internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
     bool32 Result = (Entity->Flags & Flag) != 0;
     return Result;
@@ -455,9 +449,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP.Offset_.Z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+            }
         }
     }
-}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;

@@ -2,6 +2,7 @@
 #include "world.cpp"
 #include "state.cpp"
 #include "sim_region.cpp"
+#include "render_group.cpp"
 #include "entity.cpp"
 #include "random.cpp"
 #include "math.cpp"
@@ -1017,7 +1018,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-            }
+        }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -1047,16 +1048,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
                 PushRectOutline(&PieceGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
-            }
-#endif
         }
+#endif
+    }
         break;
         default:
         {
             InvalidCodePath;
         }
         break;
-        }
+}
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
