@@ -23,10 +23,11 @@ internal void InitializeArena(memory_arena* Arena, memory_index Size, void* Base
     Arena->TempCount = 0;
 }
 
-#define PushStruct(Arena, type) (type*)PushSize(Arena, sizeof(type))
-#define PushArray(Arena, Count, type) (type*)PushSize(Arena, (Count)*sizeof(type))
+#define PushStruct(Arena, type) (type*)PushSize_(Arena, sizeof(type))
+#define PushArray(Arena, Count, type) (type*)PushSize_(Arena, (Count)*sizeof(type))
+#define PushSize(Arena, Size) PushSize_(Arena, Size)
 
-void* PushSize(memory_arena* Arena, memory_index Size) {
+void* PushSize_(memory_arena* Arena, memory_index Size) {
     Assert((Arena->Used + Size) <= Arena->Size);
     void* Result = Arena->Base + Arena->Used;
     Arena->Used += Size;
