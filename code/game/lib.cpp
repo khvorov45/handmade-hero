@@ -939,7 +939,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 PushRectOutline(RenderGroup, Volume->OffsetP.XY, 0, Volume->Dim.XY, V4(0, 0.5f, 1, 1), 0.0f);
             }
 #endif
-            }
+        }
         break;
         default:
         {
@@ -953,12 +953,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
 
         Basis->P = GetEntityGroundPoint(Entity);
-        }
+    }
 
     for (uint32 BaseAddress = 0; BaseAddress < RenderGroup->PushBufferSize;) {
 
-        entity_visible_piece* Piece = (entity_visible_piece*)(RenderGroup->PushBufferBase + BaseAddress);
-        BaseAddress += sizeof(entity_visible_piece);
+        render_group_entry* Piece = (render_group_entry*)(RenderGroup->PushBufferBase + BaseAddress);
+        BaseAddress += sizeof(render_group_entry);
 
         v3 EntityBaseP = Piece->Basis->P;
         real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
@@ -992,4 +992,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
-    }
+}

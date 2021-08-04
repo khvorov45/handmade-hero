@@ -6,7 +6,7 @@ struct render_basis {
     v3 P;
 };
 
-struct entity_visible_piece {
+struct render_group_entry {
     render_basis* Basis;
     loaded_bitmap* Bitmap;
     v2 Offset;
@@ -57,8 +57,8 @@ PushPiece(
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
-    entity_visible_piece* Piece =
-        (entity_visible_piece*)PushRenderElement(Group, sizeof(entity_visible_piece));
+    render_group_entry* Piece =
+        (render_group_entry*)PushRenderElement(Group, sizeof(render_group_entry));
     v2 OffsetFixY = { Offset.X, -Offset.Y };
     Piece->Basis = Group->DefaultBasis;
     Piece->R = Color.R;
