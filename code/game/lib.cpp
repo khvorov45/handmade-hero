@@ -955,35 +955,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Basis->P = GetEntityGroundPoint(Entity);
     }
 
-    for (uint32 BaseAddress = 0; BaseAddress < RenderGroup->PushBufferSize;) {
-
-        render_group_entry* Piece = (render_group_entry*)(RenderGroup->PushBufferBase + BaseAddress);
-        BaseAddress += sizeof(render_group_entry);
-
-        v3 EntityBaseP = Piece->Basis->P;
-        real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Piece->OffsetZ);
-
-        real32 EntityGroudX = ScreenCenter.X + EntityBaseP.X * GameState->MetersToPixels * ZFudge;
-        real32 EntityGroudY = ScreenCenter.Y - EntityBaseP.Y * GameState->MetersToPixels * ZFudge;
-        real32 EntityZ = -EntityBaseP.Z * GameState->MetersToPixels;
-
-        v2 Center = {
-            EntityGroudX + Piece->Offset.X,
-            EntityGroudY + Piece->Offset.Y + EntityZ * Piece->EntityZC
-        };
-
-        if (Piece->Bitmap) {
-            DrawBitmap(
-                DrawBuffer,
-                Piece->Bitmap,
-                Center.X, Center.Y,
-                Piece->A
-            );
-        } else {
-            v2 HalfDim = GameState->MetersToPixels * Piece->Dim * 0.5f;
-            DrawRectangle(DrawBuffer, Center - HalfDim, Center + HalfDim, Piece->R, Piece->G, Piece->B);
-        }
-    }
+    RenderGroupToOutput(RenderGroup, DrawBuffer);
 
     EndSim(SimRegion, GameState);
 

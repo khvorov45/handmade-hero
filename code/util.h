@@ -20,6 +20,7 @@
 #endif
 
 #define InvalidCodePath Assert(!"InvalidCodePath");
+#define InvalidDefaultCase default: {InvalidCodePath;} break
 
 inline uint32 SafeTruncateUint64(uint64 Value) {
     Assert(Value <= 0xFFFFFFFF);

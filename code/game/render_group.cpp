@@ -6,13 +6,27 @@ struct render_basis {
     v3 P;
 };
 
-struct render_group_entry {
+enum render_group_entry_type {
+    RenderGroupEntryType_render_entry_clear,
+    RenderGroupEntryType_render_entry_rectangle
+};
+
+struct render_group_entry_header {
+    render_group_entry_type Type;
+};
+
+struct render_entry_clear {
+    render_group_entry_header Header;
+    real32 R, G, B, A;
+};
+
+struct render_entry_rectangle {
+    render_group_entry_header Header;
     render_basis* Basis;
     loaded_bitmap* Bitmap;
     v2 Offset;
     real32 OffsetZ;
     real32 EntityZC;
-
     real32 R, G, B, A;
     v2 Dim;
 };
@@ -24,17 +38,6 @@ struct render_group {
     uint32 PushBufferSize;
     uint8* PushBufferBase;
 };
-
-inline void* PushRenderElement(render_group* Group, uint32 Size) {
-    void* Result = 0;
-    if (Group->PushBufferSize + Size < Group->MaxPushBufferSize) {
-        Result = Group->PushBufferBase + Group->PushBufferSize;
-        Group->PushBufferSize += Size;
-    } else {
-        InvalidCodePath;
-    }
-    return Result;
-}
 
 internal render_group*
 AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize, real32 MetersToPixels) {
@@ -48,6 +51,20 @@ AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize, real32 Meters
     return Result;
 }
 
+#define PushRenderElement(Group, type) (type*)PushRenderElement_(Group, sizeof(type), RenderGroupEntryType_##type)
+
+inline render_group_entry_header*
+PushRenderElement_(render_group* Group, uint32 Size, render_group_entry_type Type) {
+    render_group_entry_header* Result = 0;
+    if (Group->PushBufferSize + Size < Group->MaxPushBufferSize) {
+        Result = (render_group_entry_header*)(Group->PushBufferBase + Group->PushBufferSize);
+        Result->Type = Type;
+        Group->PushBufferSize += Size;
+    } else {
+        InvalidCodePath;
+    }
+    return Result;
+}
 
 internal inline void
 PushPiece(
@@ -57,19 +74,20 @@ PushPiece(
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
-    render_group_entry* Piece =
-        (render_group_entry*)PushRenderElement(Group, sizeof(render_group_entry));
     v2 OffsetFixY = { Offset.X, -Offset.Y };
-    Piece->Basis = Group->DefaultBasis;
-    Piece->R = Color.R;
-    Piece->G = Color.G;
-    Piece->B = Color.B;
-    Piece->A = Color.A;
-    Piece->Bitmap = Bitmap;
-    Piece->Offset = MetersToPixels * OffsetFixY - Align;
-    Piece->OffsetZ = OffsetZ;
-    Piece->EntityZC = EntityZC;
-    Piece->Dim = Dim;
+    render_entry_rectangle* Piece = PushRenderElement(Group, render_entry_rectangle);
+    if (Piece) {
+        Piece->Basis = Group->DefaultBasis;
+        Piece->R = Color.R;
+        Piece->G = Color.G;
+        Piece->B = Color.B;
+        Piece->A = Color.A;
+        Piece->Bitmap = Bitmap;
+        Piece->Offset = MetersToPixels * OffsetFixY - Align;
+        Piece->OffsetZ = OffsetZ;
+        Piece->EntityZC = EntityZC;
+        Piece->Dim = Dim;
+    }
 }
 
 internal inline void
@@ -301,5 +319,49 @@ internal void DrawMatte(
         }
         DestRow += Buffer->Pitch;
         SourceRow += BMP->Pitch;
+    }
+}
+
+internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* OutputTarget) {
+
+    v2 ScreenCenter = 0.5f * V2((real32)OutputTarget->Width, (real32)OutputTarget->Height);
+
+    for (uint32 BaseAddress = 0; BaseAddress < RenderGroup->PushBufferSize;) {
+
+        render_group_entry_header* TypelessEntry =
+            (render_group_entry_header*)(RenderGroup->PushBufferBase + BaseAddress);
+
+        switch (TypelessEntry->Type) {
+        case RenderGroupEntryType_render_entry_clear: {
+            render_entry_clear* Entry = (render_entry_clear*)TypelessEntry;
+
+            BaseAddress += sizeof(*Entry);
+        } break;
+        case RenderGroupEntryType_render_entry_rectangle: {
+            render_entry_rectangle* Entry = (render_entry_rectangle*)TypelessEntry;
+
+            v3 EntityBaseP = Entry->Basis->P;
+            real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.Z + Entry->OffsetZ);
+
+            real32 EntityGroudX = ScreenCenter.X + EntityBaseP.X * RenderGroup->MetersToPixels * ZFudge;
+            real32 EntityGroudY = ScreenCenter.Y - EntityBaseP.Y * RenderGroup->MetersToPixels * ZFudge;
+            real32 EntityZ = -EntityBaseP.Z * RenderGroup->MetersToPixels;
+
+            v2 Center = V2(
+                EntityGroudX + Entry->Offset.X,
+                EntityGroudY + Entry->Offset.Y + EntityZ * Entry->EntityZC
+            );
+
+            if (Entry->Bitmap) {
+                DrawBitmap(OutputTarget, Entry->Bitmap, Center.X, Center.Y, Entry->A);
+            } else {
+                v2 HalfDim = RenderGroup->MetersToPixels * Entry->Dim * 0.5f;
+                DrawRectangle(OutputTarget, Center - HalfDim, Center + HalfDim, Entry->R, Entry->G, Entry->B);
+            }
+
+            BaseAddress += sizeof(*Entry);
+        } break;
+            InvalidDefaultCase;
+        }
     }
 }
