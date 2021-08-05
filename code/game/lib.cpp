@@ -681,19 +681,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     v2 ScreenCenter = 0.5f * V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height);
 
-    // NOTE(sen) Clear screen
-    DrawRectangle(
-        DrawBuffer, { 0, 0 }, { (real32)DrawBuffer->Width, (real32)DrawBuffer->Height },
-        1.0f, 0.0f, 1.0f
-    );
-
-    // NOTE(sen) Draw backdrop
-#if 0
-    DrawRectangle(
-        DrawBuffer, { 0, 0 }, { (real32)DrawBuffer->Width, (real32)DrawBuffer->Height },
-        0.5f, 0.5f, 0.5f
-    );
-#endif
+    Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 0.0f));
 
     real32 PixelsToMeters = 1.0f / GameState->MetersToPixels;
     real32 ScreenWidthInMeters = Buffer->Width * PixelsToMeters;

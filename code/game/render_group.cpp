@@ -25,7 +25,7 @@ struct render_group_entry_header {
 
 struct render_entry_clear {
     render_group_entry_header Header;
-    real32 R, G, B, A;
+    v4 Color;
 };
 
 struct render_entry_bitmap {
@@ -149,6 +149,14 @@ internal inline void PushRect(
     }
 }
 
+
+internal void Clear(render_group* Group, v4 Color) {
+    render_entry_clear* Entry = PushRenderElement(Group, render_entry_clear);
+    if (Entry) {
+        Entry->Color = Color;
+    }
+}
+
 internal void
 PushRectOutline(
     render_group* Group,
@@ -171,7 +179,7 @@ PushRectOutline(
 internal void DrawRectangle(
     loaded_bitmap* Buffer,
     v2 vMin, v2 vMax,
-    real32 R, real32 G, real32 B
+    real32 R, real32 G, real32 B, real32 A = 1.0f
 ) {
     int32 MinX = RoundReal32ToInt32(vMin.x);
     int32 MinY = RoundReal32ToInt32(vMin.y);
@@ -192,7 +200,9 @@ internal void DrawRectangle(
         MaxY = Buffer->Height;
     }
 
-    uint32 Color = (RoundReal32ToUint32(R * 255.0f) << 16) |
+    uint32 Color =
+        (RoundReal32ToUint32(A * 255.0f) << 24) |
+        (RoundReal32ToUint32(R * 255.0f) << 16) |
         (RoundReal32ToUint32(G * 255.0f) << 8) |
         (RoundReal32ToUint32(B * 255.0f));
 
@@ -370,6 +380,11 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         switch (TypelessEntry->Type) {
         case RenderGroupEntryType_render_entry_clear: {
             render_entry_clear* Entry = (render_entry_clear*)TypelessEntry;
+
+            DrawRectangle(
+                OutputTarget, V2(0, 0), V2i(OutputTarget->Width, OutputTarget->Height),
+                Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a
+            );
 
             BaseAddress += sizeof(*Entry);
         } break;
