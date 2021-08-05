@@ -114,9 +114,9 @@ internal bool32 IsCanonical(real32 ChunkDim, real32 TileRel) {
 
 internal bool32 IsCanonical(world* World, v3 Offset) {
     bool32 Result =
-        IsCanonical(World->ChunkDimInMeters.X, Offset.X) &&
-        IsCanonical(World->ChunkDimInMeters.Y, Offset.Y) &&
-        IsCanonical(World->ChunkDimInMeters.Z, Offset.Z);
+        IsCanonical(World->ChunkDimInMeters.x, Offset.x) &&
+        IsCanonical(World->ChunkDimInMeters.y, Offset.y) &&
+        IsCanonical(World->ChunkDimInMeters.z, Offset.z);
     return Result;
 }
 
@@ -133,9 +133,9 @@ internal inline world_position MapIntoChunkSpace(world* World, world_position Ba
     world_position Result = BasePos;
 
     Result.Offset_ += Offset;
-    RecanonicalizeCoord(World->ChunkDimInMeters.X, &Result.ChunkX, &Result.Offset_.X);
-    RecanonicalizeCoord(World->ChunkDimInMeters.Y, &Result.ChunkY, &Result.Offset_.Y);
-    RecanonicalizeCoord(World->ChunkDimInMeters.Z, &Result.ChunkZ, &Result.Offset_.Z);
+    RecanonicalizeCoord(World->ChunkDimInMeters.x, &Result.ChunkX, &Result.Offset_.x);
+    RecanonicalizeCoord(World->ChunkDimInMeters.y, &Result.ChunkY, &Result.Offset_.y);
+    RecanonicalizeCoord(World->ChunkDimInMeters.z, &Result.ChunkZ, &Result.Offset_.z);
 
     return Result;
 }

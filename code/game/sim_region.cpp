@@ -509,25 +509,25 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP.ChunkZ = Stored->P.ChunkZ;
 
 #if 0
-            if (CameraFollowingEntity.High->P.X > 9.0f * TileMap->TileSideInMeters) {
+            if (CameraFollowingEntity.High->P.x > 9.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileX += 17;
-            } else if (CameraFollowingEntity.High->P.X < -9.0f * TileMap->TileSideInMeters) {
+            } else if (CameraFollowingEntity.High->P.x < -9.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileX -= 17;
             }
-            if (CameraFollowingEntity.High->P.Y > 5.0f * TileMap->TileSideInMeters) {
+            if (CameraFollowingEntity.High->P.y > 5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY += 9;
-            } else if (CameraFollowingEntity.High->P.Y < -5.0f * TileMap->TileSideInMeters) {
+            } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
             }
 #else
-            real32 CamZOffset = NewCameraP.Offset_.Z;
+            real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
-            NewCameraP.Offset_.Z = CamZOffset;
+            NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
-            }
         }
     }
+}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
@@ -632,9 +632,9 @@ inline real32 GetStairGround(sim_entity* Entity, v3 AtGroudPoint) {
 
     Assert(Entity->Type == EntityType_Stairwell);
 
-    rectangle2 RegionRect = RectCenterDim(Entity->P.XY, Entity->WalkableDim);
-    v2 Bary = Clamp01(GetBarycentric(RegionRect, AtGroudPoint.XY));
-    real32 Result = Entity->P.Z + Bary.Y * Entity->WalkableHeight;
+    rectangle2 RegionRect = RectCenterDim(Entity->P.xy, Entity->WalkableDim);
+    v2 Bary = Clamp01(GetBarycentric(RegionRect, AtGroudPoint.xy));
+    real32 Result = Entity->P.z + Bary.y * Entity->WalkableHeight;
 
     return Result;
 }
@@ -741,7 +741,7 @@ internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region, v3 Tes
         v3 MoverGroundPoint = GetEntityGroundPoint(Mover, TestP);
         real32 Ground = GetStairGround(Region, MoverGroundPoint);
         real32 StepHeight = 0.1f;
-        Result = AbsoluteValue(MoverGroundPoint.Z - Ground) > StepHeight;
+        Result = AbsoluteValue(MoverGroundPoint.z - Ground) > StepHeight;
     }
     return Result;
 }
@@ -796,7 +796,7 @@ MoveEntity(
 
     ddPlayer *= MoveSpec->Speed;
     v3 Drag = -MoveSpec->Drag * Entity->dP;
-    Drag.Z = 0;
+    Drag.z = 0;
     ddPlayer += Drag;
 
     if (!IsSet(Entity, EntityFlag_ZSupported)) {
@@ -874,15 +874,15 @@ MoveEntity(
                             v3 Rel =
                                 (Entity->P + Volume->OffsetP) - (TestEntity->P + TestVolume->OffsetP);
 
-                            if (Rel.Z < MinCorner.Z || Rel.Z >= MaxCorner.Z) {
+                            if (Rel.z < MinCorner.z || Rel.z >= MaxCorner.z) {
                                 continue;
                             }
 
                             test_wall Walls[] = {
-                                {MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, MinCorner.Y, MaxCorner.Y, V3(-1, 0, 0)},
-                                {MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, MinCorner.Y, MaxCorner.Y, V3(1, 0, 0)},
-                                {MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, -1, 0)},
-                                {MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, 1, 0)}
+                                {MinCorner.x, Rel.x, Rel.y, PlayerDelta.x, PlayerDelta.y, MinCorner.y, MaxCorner.y, V3(-1, 0, 0)},
+                                {MaxCorner.x, Rel.x, Rel.y, PlayerDelta.x, PlayerDelta.y, MinCorner.y, MaxCorner.y, V3(1, 0, 0)},
+                                {MinCorner.y, Rel.y, Rel.x, PlayerDelta.y, PlayerDelta.x, MinCorner.x, MaxCorner.x, V3(0, -1, 0)},
+                                {MaxCorner.y, Rel.y, Rel.x, PlayerDelta.y, PlayerDelta.x, MinCorner.x, MaxCorner.x, V3(0, 1, 0)}
                             };
 
                             if (IsSet(TestEntity, EntityFlag_Traversable)) {
@@ -994,10 +994,10 @@ MoveEntity(
         }
     }
 
-    Ground += Entity->P.Z - GetEntityGroundPoint(Entity).Z;
-    if (Entity->P.Z <= Ground || (IsSet(Entity, EntityFlag_ZSupported) && Entity->dP.Z == 0)) {
-        Entity->P.Z = Ground;
-        Entity->dP.Z = 0;
+    Ground += Entity->P.z - GetEntityGroundPoint(Entity).z;
+    if (Entity->P.z <= Ground || (IsSet(Entity, EntityFlag_ZSupported) && Entity->dP.z == 0)) {
+        Entity->P.z = Ground;
+        Entity->dP.z = 0;
         AddFlags(Entity, EntityFlag_ZSupported);
     } else {
         ClearFlags(Entity, EntityFlag_ZSupported);
@@ -1007,14 +1007,14 @@ MoveEntity(
         Entity->DistanceLimit = DistanceRemaining;
     }
 
-    if (AbsoluteValue(Entity->dP.Y) > AbsoluteValue(Entity->dP.X)) {
-        if (Entity->dP.Y > 0) {
+    if (AbsoluteValue(Entity->dP.y) > AbsoluteValue(Entity->dP.x)) {
+        if (Entity->dP.y > 0) {
             Entity->FacingDirection = 1;
         } else {
             Entity->FacingDirection = 3;
         }
-    } else if (AbsoluteValue(Entity->dP.Y) < AbsoluteValue(Entity->dP.X)) {
-        if (Entity->dP.X > 0) {
+    } else if (AbsoluteValue(Entity->dP.y) < AbsoluteValue(Entity->dP.x)) {
+        if (Entity->dP.x > 0) {
             Entity->FacingDirection = 0;
         } else {
             Entity->FacingDirection = 2;
