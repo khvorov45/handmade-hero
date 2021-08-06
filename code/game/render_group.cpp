@@ -92,8 +92,7 @@ PushRenderElement_(render_group* Group, uint32 Size, render_group_entry_type Typ
     return Result;
 }
 
-internal inline void
-PushPiece(
+internal inline void PushPiece(
     render_group* Group, loaded_bitmap* Bitmap,
     v2 Offset, real32 OffsetZ, v2 Align, v2 Dim,
     v4 Color,
@@ -157,8 +156,7 @@ internal void Clear(render_group* Group, v4 Color) {
     }
 }
 
-internal void
-PushRectOutline(
+internal void PushRectOutline(
     render_group* Group,
     v2 Offset, real32 OffsetZ, v2 Dim,
     v4 Color,
@@ -167,12 +165,12 @@ PushRectOutline(
     real32 Thickness = 0.1f;
 
     //* Top and bottom
-    PushPiece(Group, 0, Offset - V2(0, 0.5f * Dim.y), OffsetZ, { 0, 0 }, V2(Dim.x, Thickness), Color, EntityZC);
-    PushPiece(Group, 0, Offset + V2(0, 0.5f * Dim.y), OffsetZ, { 0, 0 }, V2(Dim.x, Thickness), Color, EntityZC);
+    PushRect(Group, Offset - V2(0, 0.5f * Dim.y), OffsetZ, V2(Dim.x, Thickness), Color, EntityZC);
+    PushRect(Group, Offset + V2(0, 0.5f * Dim.y), OffsetZ, V2(Dim.x, Thickness), Color, EntityZC);
 
     //* Left and right
-    PushPiece(Group, 0, Offset - V2(0.5f * Dim.x, 0), OffsetZ, { 0, 0 }, V2(Thickness, Dim.y), Color, EntityZC);
-    PushPiece(Group, 0, Offset + V2(0.5f * Dim.x, 0), OffsetZ, { 0, 0 }, V2(Thickness, Dim.y), Color, EntityZC);
+    PushRect(Group, Offset - V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
+    PushRect(Group, Offset + V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
 }
 
 /// Maximums are not inclusive

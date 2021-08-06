@@ -720,12 +720,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     world_chunk* Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
                     world_position ChunkCenterP = CenteredChunkPoint(ChunkX, ChunkY, ChunkZ);
                     v3 RelP = Subtract(GameState->World, &ChunkCenterP, &GameState->CameraP);
-                    v2 ScreenP = V2(
-                        ScreenCenter.x + GameState->MetersToPixels * RelP.x,
-                        ScreenCenter.y - GameState->MetersToPixels * RelP.y
-
-                    );
-                    v2 ScreenDim = GameState->World->ChunkDimInMeters.xy * GameState->MetersToPixels;
 
                     real32 FurthestBufferLengthSq = 0.0f;
                     ground_buffer* FurthestBuffer = 0;
@@ -755,14 +749,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     if (FurthestBuffer) {
                         FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
-#if 0
-                    DrawRectangleOutline(
-                        DrawBuffer,
-                        ScreenP - ScreenDim * 0.5f,
-                        ScreenP + ScreenDim * 0.5f,
-                        V3(1.0f, 1.0f, 0.0f)
+                    PushRectOutline(
+                        RenderGroup, RelP.xy, 0.0f, GameState->World->ChunkDimInMeters.xy,
+                        V4(1.0f, 1.0f, 0.0f, 1.0f)
                     );
-#endif
                 }
             }
         }
@@ -921,12 +911,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Space:
         {
-#if 0
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
-                PushRectOutline(RenderGroup, Volume->OffsetP.xY, 0, Volume->Dim.xY, V4(0, 0.5f, 1, 1), 0.0f);
+                PushRectOutline(RenderGroup, Volume->OffsetP.xy, 0, Volume->Dim.xy, V4(0, 0.5f, 1, 1), 0.0f);
             }
-#endif
         }
         break;
         default:
