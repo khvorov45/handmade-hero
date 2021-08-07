@@ -244,6 +244,12 @@ FillGroundChunk(
     transient_state* TranState, game_state* GameState,
     ground_buffer* GroundBuffer, world_position* ChunkP
 ) {
+    temporary_memory GroundMemory = BeginTemporaryMemory(&TranState->TranArena);
+    render_group* GroundRenderGroup =
+        AllocateRenderGroup(&TranState->TranArena, Megabytes(4), 1.0f);
+
+    Clear(GroundRenderGroup, V4(1.0f, 1.0f, 0.0f, 1.0f));
+
     loaded_bitmap* Buffer = &GroundBuffer->Bitmap;
 
     real32 Width = (real32)Buffer->Width;
@@ -276,7 +282,7 @@ FillGroundChunk(
                 v2 Offset = V2(Width * (RandomUnilateral(&Series)), Height * (RandomUnilateral(&Series)));
 
                 v2 P = Center + Offset - BitmapCenter;
-                DrawBitmap(Buffer, Stamp, P.x, P.y);
+                PushBitmap(GroundRenderGroup, Stamp, P, 0, V2(0, 0));
             }
         }
     }
@@ -302,12 +308,14 @@ FillGroundChunk(
                 v2 Offset = { Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series) };
 
                 real32 Radius = 5.0f;
-
                 v2 P = Center + Offset - BitmapCenter;
-                DrawBitmap(Buffer, Stamp, P.x, P.y);
+                PushBitmap(GroundRenderGroup, Stamp, P, 0, V2(0, 0));
             }
         }
     }
+
+    RenderGroupToOutput(GroundRenderGroup, Buffer);
+    EndTemporaryMemory(GroundMemory);
 }
 
 internal void RequestGroundBuffers(world_position CenterP, rectangle3 Bounds) {
@@ -691,6 +699,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         V3(ScreenWidthInMeters, ScreenHeightInMeters, 0)
     );
 
+    // NOTE(sen) Draw ground
     for (uint32 GroundBufferIndex = 0;
         GroundBufferIndex < TranState->GroundBufferCount;
         GroundBufferIndex++) {
@@ -705,6 +714,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
     }
 
+    // NOTE(sen) Fill ground bitmaps
     {
         world_position MinChunkP =
             MapIntoChunkSpace(World, GameState->CameraP, GetMinCorner(CameraBoundsInMeters));
