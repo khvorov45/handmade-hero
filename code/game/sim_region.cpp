@@ -218,6 +218,8 @@ struct game_state {
     sim_entity_collision_volume_group* MonsterCollision;
     sim_entity_collision_volume_group* WallCollision;
     sim_entity_collision_volume_group* FamiliarCollision;
+
+    real32 Time;
 };
 
 struct transient_state {
@@ -525,9 +527,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+            }
         }
     }
-}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;

@@ -941,6 +941,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Basis->P = GetEntityGroundPoint(Entity);
     }
 
+    GameState->Time += Input->dtForFrame;
+    v2 Origin = ScreenCenter;
+    real32 Angle = GameState->Time;
+    v2 XAxis = 100.0f * V2(Cos(Angle), Sin(Angle));
+    v2 YAxis = V2(-XAxis.y, XAxis.x);
+
+    CoordinateSystem(RenderGroup, Origin, XAxis, YAxis, V4(1.0f, 1.0f, 0.0f, 1.0f));
+
     RenderGroupToOutput(RenderGroup, DrawBuffer);
 
     EndSim(SimRegion, GameState);

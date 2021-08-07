@@ -16,7 +16,8 @@ struct render_entity_basis {
 enum render_group_entry_type {
     RenderGroupEntryType_render_entry_clear,
     RenderGroupEntryType_render_entry_bitmap,
-    RenderGroupEntryType_render_entry_rectangle
+    RenderGroupEntryType_render_entry_rectangle,
+    RenderGroupEntryType_render_entry_coordinate_system
 };
 
 struct render_group_entry_header {
@@ -26,6 +27,16 @@ struct render_group_entry_header {
 struct render_entry_clear {
     render_group_entry_header Header;
     v4 Color;
+};
+
+struct render_entry_coordinate_system {
+    render_group_entry_header Header;
+    v2 Origin;
+    v2 XAxis;
+    v2 YAxis;
+    v4 Color;
+
+    v2 Points[16];
 };
 
 struct render_entry_bitmap {
@@ -148,7 +159,6 @@ internal inline void PushRect(
     }
 }
 
-
 internal void Clear(render_group* Group, v4 Color) {
     render_entry_clear* Entry = PushRenderElement(Group, render_entry_clear);
     if (Entry) {
@@ -171,6 +181,22 @@ internal void PushRectOutline(
     //* Left and right
     PushRect(Group, Offset - V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
     PushRect(Group, Offset + V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
+}
+
+internal void CoordinateSystem(render_group* Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color) {
+    render_entry_coordinate_system* Entry = PushRenderElement(Group, render_entry_coordinate_system);
+    if (Entry) {
+        Entry->Origin = Origin;
+        Entry->XAxis = XAxis;
+        Entry->YAxis = YAxis;
+        Entry->Color = Color;
+        uint32 PIndex = 0;
+        for (real32 Y = 0.0f; Y < 1.0f; Y += 0.25f) {
+            for (real32 X = 0.0f; X < 1.0f; X += 0.25f) {
+                Entry->Points[PIndex++] = V2(X, Y);
+            }
+        }
+    }
 }
 
 /// Maximums are not inclusive
@@ -399,6 +425,28 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             render_entry_rectangle* Entry = (render_entry_rectangle*)TypelessEntry;
             v2 P = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
             DrawRectangle(OutputTarget, P, P + Entry->Dim, Entry->R, Entry->G, Entry->B);
+            BaseAddress += sizeof(*Entry);
+        } break;
+
+        case RenderGroupEntryType_render_entry_coordinate_system: {
+            render_entry_coordinate_system* Entry = (render_entry_coordinate_system*)TypelessEntry;
+
+            v2 P = Entry->Origin;
+            v2 Dim = V2(2, 2);
+
+            v2 PX = P + Entry->XAxis;
+            v2 PY = P + Entry->YAxis;
+
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+
+            for (uint32 PIndex = 0; PIndex < ArrayCount(Entry->Points); PIndex++) {
+                v2 Point = Entry->Points[PIndex];
+                v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
+                DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            }
+
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
