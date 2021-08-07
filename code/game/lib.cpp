@@ -943,7 +943,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     GameState->Time += Input->dtForFrame;
     v2 Origin = ScreenCenter;
-    real32 Angle = 0.0f; //GameState->Time;
+    real32 Angle = GameState->Time;
     v2 XAxis = 100.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = V2(-XAxis.y, XAxis.x);
 
