@@ -240,6 +240,32 @@ internal void DrawRectangle(
     }
 }
 
+
+/// Maximums are not inclusive
+internal void DrawRectangleSlowly(
+    loaded_bitmap* Buffer,
+    v2 vMin, v2 vMax,
+    v4 Color
+) {
+    uint32 Color32 =
+        (RoundReal32ToUint32(Color.a * 255.0f) << 24) |
+        (RoundReal32ToUint32(Color.r * 255.0f) << 16) |
+        (RoundReal32ToUint32(Color.g * 255.0f) << 8) |
+        (RoundReal32ToUint32(Color.b * 255.0f));
+
+    uint8* Row = (uint8*)Buffer->Memory;
+    for (int32 Y = 0; Y < Buffer->Height; ++Y) {
+        uint32* Pixel = (uint32*)Row;
+        for (int32 X = 0; X < Buffer->Width; ++X) {
+            if (X >= vMin.x && X < vMax.x && Y >= vMin.y && Y < vMax.y) {
+                *Pixel = Color32;
+            }
+            Pixel++;
+        }
+        Row += Buffer->Pitch;
+    }
+}
+
 internal void
 DrawRectangleOutline(
     loaded_bitmap* Buffer,
@@ -440,13 +466,15 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            DrawRectangleSlowly(OutputTarget, Entry->Origin, Entry->Origin + Entry->XAxis + Entry->YAxis, Entry->Color);
 
+#if 0
             for (uint32 PIndex = 0; PIndex < ArrayCount(Entry->Points); PIndex++) {
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             }
-
+#endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
