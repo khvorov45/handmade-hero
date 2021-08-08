@@ -94,11 +94,24 @@ inline v3 operator*(real32 A, v3 B) {
     return Result;
 }
 
+inline v4 operator*(real32 A, v4 B) {
+    v4 Result;
+    Result.x = B.x * A;
+    Result.y = B.y * A;
+    Result.z = B.z * A;
+    Result.w = B.w * A;
+    return Result;
+}
+
 inline v2 operator*(v2 B, real32 A) {
     return A * B;
 }
 
 inline v3 operator*(v3 B, real32 A) {
+    return A * B;
+}
+
+inline v4 operator*(v4 B, real32 A) {
     return A * B;
 }
 
@@ -124,6 +137,15 @@ inline v3 operator+(v3 A, v3 B) {
     Result.x = A.x + B.x;
     Result.y = A.y + B.y;
     Result.z = A.z + B.z;
+    return Result;
+}
+
+inline v4 operator+(v4 A, v4 B) {
+    v4 Result;
+    Result.x = A.x + B.x;
+    Result.y = A.y + B.y;
+    Result.z = A.z + B.z;
+    Result.w = A.w + B.w;
     return Result;
 }
 
@@ -197,6 +219,11 @@ inline real32 Square(real32 A) {
 
 inline real32 Lerp(real32 A, real32 t, real32 B) {
     real32 Result = (1.0f - t) * A + t * B;
+    return Result;
+}
+
+inline v4 Lerp(v4 A, real32 t, v4 B) {
+    v4 Result = (1.0f - t) * A + t * B;
     return Result;
 }
 

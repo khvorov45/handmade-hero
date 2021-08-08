@@ -35,7 +35,7 @@ struct render_entry_coordinate_system {
     v2 XAxis;
     v2 YAxis;
     v4 Color;
-
+    loaded_bitmap* Texture;
     v2 Points[16];
 };
 
@@ -183,13 +183,16 @@ internal void PushRectOutline(
     PushRect(Group, Offset + V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
 }
 
-internal void CoordinateSystem(render_group* Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color) {
+internal void CoordinateSystem(
+    render_group* Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color, loaded_bitmap* Texture
+) {
     render_entry_coordinate_system* Entry = PushRenderElement(Group, render_entry_coordinate_system);
     if (Entry) {
         Entry->Origin = Origin;
         Entry->XAxis = XAxis;
         Entry->YAxis = YAxis;
         Entry->Color = Color;
+        Entry->Texture = Texture;
         uint32 PIndex = 0;
         for (real32 Y = 0.0f; Y < 1.0f; Y += 0.25f) {
             for (real32 X = 0.0f; X < 1.0f; X += 0.25f) {
@@ -240,18 +243,11 @@ internal void DrawRectangle(
     }
 }
 
-/// Maximums are not inclusive
 internal void DrawRectangleSlowly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
-    v4 Color
+    v4 Color, loaded_bitmap* Texture
 ) {
-    uint32 Color32 =
-        (RoundReal32ToUint32(Color.a * 255.0f) << 24) |
-        (RoundReal32ToUint32(Color.r * 255.0f) << 16) |
-        (RoundReal32ToUint32(Color.g * 255.0f) << 8) |
-        (RoundReal32ToUint32(Color.b * 255.0f));
-
     int32 WidthMax = Buffer->Width - 1;
     int32 HeightMax = Buffer->Height - 1;
     int32 XMin = WidthMax;
@@ -298,17 +294,96 @@ internal void DrawRectangleSlowly(
         YMax = HeightMax;
     }
 
+    real32 InvXAxisLengthSq = 1 / LengthSq(XAxis);
+    real32 InvYAxisLengthSq = 1 / LengthSq(YAxis);
+
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
     for (int32 Y = YMin; Y <= YMax; ++Y) {
         uint32* Pixel = (uint32*)Row;
         for (int32 X = XMin; X <= XMax; ++X) {
+
             v2 PixelP = V2i(X, Y);
-            real32 Edge0 = Inner(PixelP - Origin, -Perp(XAxis));
-            real32 Edge1 = Inner(PixelP - (Origin + XAxis), -Perp(YAxis));
-            real32 Edge2 = Inner(PixelP - (Origin + XAxis + YAxis), Perp(XAxis));
-            real32 Edge3 = Inner(PixelP - (Origin + YAxis), Perp(YAxis));
+            v2 d = PixelP - Origin;
+            real32 Edge0 = Inner(d, -Perp(XAxis));
+            real32 Edge1 = Inner(d - XAxis, -Perp(YAxis));
+            real32 Edge2 = Inner(d - XAxis - YAxis, Perp(XAxis));
+            real32 Edge3 = Inner(d - YAxis, Perp(YAxis));
             if (Edge0 < 0 && Edge1 < 0 && Edge2 < 0 && Edge3 < 0) {
-                *Pixel = Color32;
+                real32 U = Inner(d, XAxis) * InvXAxisLengthSq;
+                real32 V = Inner(d, YAxis) * InvYAxisLengthSq;
+
+                Assert(U >= 0.0f && U <= 1.0f);
+                Assert(V >= 0.0f && V <= 1.0f);
+
+                real32 TextureX = U * (real32)(Texture->Width - 2);
+                real32 TextureY = V * (real32)(Texture->Height - 2);
+
+                int32 TextureXFloored = FloorReal32ToInt32(TextureX);
+                int32 TextureYFloored = FloorReal32ToInt32(TextureY);
+
+                real32 TextureXf = TextureX - (real32)TextureXFloored;
+                real32 TextureYf = TextureY - (real32)TextureYFloored;
+
+                Assert(TextureXFloored >= 0 && TextureXFloored < Texture->Width);
+                Assert(TextureYFloored >= 0 && TextureYFloored < Texture->Height);
+
+                uint8* TexelPtr = (uint8*)Texture->Memory + TextureYFloored * Texture->Pitch + TextureXFloored * BITMAP_BYTES_PER_PIXEL;
+                uint32 TexelA = *(uint32*)TexelPtr;
+                uint32 TexelB = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
+                uint32 TexelC = *(uint32*)(TexelPtr + Texture->Pitch);
+                uint32 TexelD = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
+
+                v4 TexelAv4 = V4(
+                    (real32)((TexelA >> 16) & 0xFF),
+                    (real32)((TexelA >> 8) & 0xFF),
+                    (real32)((TexelA) & 0xFF),
+                    (real32)((TexelA >> 24))
+                );
+                v4 TexelBv4 = V4(
+                    (real32)((TexelB >> 16) & 0xFF),
+                    (real32)((TexelB >> 8) & 0xFF),
+                    (real32)((TexelB) & 0xFF),
+                    (real32)((TexelB >> 24))
+                );
+                v4 TexelCv4 = V4(
+                    (real32)((TexelC >> 16) & 0xFF),
+                    (real32)((TexelC >> 8) & 0xFF),
+                    (real32)((TexelC) & 0xFF),
+                    (real32)((TexelC >> 24))
+                );
+                v4 TexelDv4 = V4(
+                    (real32)((TexelD >> 16) & 0xFF),
+                    (real32)((TexelD >> 8) & 0xFF),
+                    (real32)((TexelD) & 0xFF),
+                    (real32)((TexelD >> 24))
+                );
+
+                v4 TexelValue = Lerp(
+                    Lerp(TexelAv4, TextureXf, TexelBv4),
+                    TextureYf,
+                    Lerp(TexelCv4, TextureXf, TexelDv4)
+                );
+
+                real32 SA = TexelValue.a;
+                real32 SR = TexelValue.r;
+                real32 SG = TexelValue.g;
+                real32 SB = TexelValue.b;
+
+                real32 DA = (real32)((*Pixel >> 24) & 0xFF);
+                real32 DR = (real32)((*Pixel >> 16) & 0xFF);
+                real32 DG = (real32)((*Pixel >> 8) & 0xFF);
+                real32 DB = (real32)((*Pixel) & 0xFF);
+
+                real32 SA01 = SA / 255.0f;
+                real32 DA01 = DA / 255.0f;
+                real32 InvSA01 = 1.0f - SA01;
+                real32 RA = (SA01 + DA01 - SA01 * DA01) * 255.0f;
+                real32 RR = InvSA01 * DR + SR;
+                real32 RG = InvSA01 * DG + SG;
+                real32 RB = InvSA01 * DB + SB;
+
+                *Pixel = (RoundReal32ToUint32(RA) << 24) | (RoundReal32ToUint32(RR) << 16) |
+                    (RoundReal32ToUint32(RG) << 8) | (RoundReal32ToUint32(RB));
             }
             Pixel++;
         }
@@ -516,7 +591,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            DrawRectangleSlowly(OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color);
+            DrawRectangleSlowly(OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color, Entry->Texture);
 
 #if 0
             for (uint32 PIndex = 0; PIndex < ArrayCount(Entry->Points); PIndex++) {

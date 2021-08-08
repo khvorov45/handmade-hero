@@ -941,13 +941,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Basis->P = GetEntityGroundPoint(Entity);
     }
 
-    GameState->Time += Input->dtForFrame * 2;
-    v2 Origin = ScreenCenter;
-    real32 Angle = GameState->Time;
-    v2 XAxis = 100.0f * V2(Cos(Angle), Sin(Angle));
-    v2 YAxis = 100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
+    GameState->Time += Input->dtForFrame;
+    real32 Disp = 130.0f * Cos(GameState->Time);
 
-    CoordinateSystem(RenderGroup, Origin, XAxis, YAxis, V4(1.0f, 1.0f, 0.0f, 1.0f));
+    v2 Origin = ScreenCenter + V2(Disp, 0);
+    real32 Angle = GameState->Time;
+    v2 XAxis = 350.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
+    v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
+
+    CoordinateSystem(RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis, V4(1.0f, 1.0f, 0.0f, 1.0f), &GameState->Tree);
 
     RenderGroupToOutput(RenderGroup, DrawBuffer);
 
