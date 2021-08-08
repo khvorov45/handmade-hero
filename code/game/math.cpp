@@ -391,4 +391,9 @@ inline rectangle2 ToRectangleXY(rectangle3 A) {
     return Result;
 }
 
+inline v2 Perp(v2 A) {
+    v2 Result = V2(-A.y, A.x);
+    return Result;
+}
+
 #endif
