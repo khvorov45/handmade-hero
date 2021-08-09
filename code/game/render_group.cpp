@@ -61,6 +61,26 @@ struct render_group {
     uint8* PushBufferBase;
 };
 
+internal v4 SRGB255ToLinear1(v4 Color) {
+    v4 Result;
+    v4 Color01 = Color * (1.0f / 255.0f);
+    Result.r = Square(Color01.r);
+    Result.g = Square(Color01.g);
+    Result.b = Square(Color01.b);
+    Result.a = Color01.a;
+    return Result;
+}
+
+internal v4 Linear1ToSRGB255(v4 Color) {
+    v4 Result01;
+    Result01.r = SquareRoot(Color.r);
+    Result01.g = SquareRoot(Color.g);
+    Result01.b = SquareRoot(Color.b);
+    Result01.a = Color.a;
+    v4 Result = Result01 * 255.0f;
+    return Result;
+}
+
 internal render_group*
 AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize, real32 MetersToPixels) {
     render_group* Result = PushStruct(Arena, render_group);
@@ -311,10 +331,10 @@ internal void DrawRectangleSlowly(
             if (Edge0 < 0 && Edge1 < 0 && Edge2 < 0 && Edge3 < 0) {
                 real32 U = Inner(d, XAxis) * InvXAxisLengthSq;
                 real32 V = Inner(d, YAxis) * InvYAxisLengthSq;
-
+#if 0
                 Assert(U >= 0.0f && U <= 1.0f);
                 Assert(V >= 0.0f && V <= 1.0f);
-
+#endif
                 real32 TextureX = U * (real32)(Texture->Width - 2);
                 real32 TextureY = V * (real32)(Texture->Height - 2);
 
@@ -358,32 +378,41 @@ internal void DrawRectangleSlowly(
                     (real32)((TexelD >> 24))
                 );
 
-                v4 TexelValue = Lerp(
-                    Lerp(TexelAv4, TextureXf, TexelBv4),
+                v4 TexelA01 = SRGB255ToLinear1(TexelAv4);
+                v4 TexelB01 = SRGB255ToLinear1(TexelBv4);
+                v4 TexelC01 = SRGB255ToLinear1(TexelCv4);
+                v4 TexelD01 = SRGB255ToLinear1(TexelDv4);
+
+                v4 Texel = Lerp(
+                    Lerp(TexelA01, TextureXf, TexelB01),
                     TextureYf,
-                    Lerp(TexelCv4, TextureXf, TexelDv4)
+                    Lerp(TexelC01, TextureXf, TexelD01)
                 );
 
-                real32 SA = TexelValue.a;
-                real32 SR = TexelValue.r;
-                real32 SG = TexelValue.g;
-                real32 SB = TexelValue.b;
+                v4 Dest = V4(
+                    (real32)((*Pixel >> 16) & 0xFF),
+                    (real32)((*Pixel >> 8) & 0xFF),
+                    (real32)((*Pixel) & 0xFF),
+                    (real32)((*Pixel >> 24))
+                );
+                Dest = SRGB255ToLinear1(Dest);
 
-                real32 DA = (real32)((*Pixel >> 24) & 0xFF);
-                real32 DR = (real32)((*Pixel >> 16) & 0xFF);
-                real32 DG = (real32)((*Pixel >> 8) & 0xFF);
-                real32 DB = (real32)((*Pixel) & 0xFF);
-
-                real32 SA01 = SA / 255.0f;
-                real32 DA01 = DA / 255.0f;
+                real32 SA01 = Texel.a * Color.a;
                 real32 InvSA01 = 1.0f - SA01;
-                real32 RA = (SA01 + DA01 - SA01 * DA01) * 255.0f;
-                real32 RR = InvSA01 * DR + SR;
-                real32 RG = InvSA01 * DG + SG;
-                real32 RB = InvSA01 * DB + SB;
+                v4 Blended = V4(
+                    (InvSA01 * Dest.r + Texel.r),
+                    (InvSA01 * Dest.g + Texel.g),
+                    (InvSA01 * Dest.b + Texel.b),
+                    (SA01 + Dest.a - SA01 * Dest.a)
+                );
 
-                *Pixel = (RoundReal32ToUint32(RA) << 24) | (RoundReal32ToUint32(RR) << 16) |
-                    (RoundReal32ToUint32(RG) << 8) | (RoundReal32ToUint32(RB));
+                v4 Blended255 = Linear1ToSRGB255(Blended);
+
+                *Pixel =
+                    (RoundReal32ToUint32(Blended255.a) << 24) |
+                    (RoundReal32ToUint32(Blended255.r) << 16) |
+                    (RoundReal32ToUint32(Blended255.g) << 8) |
+                    (RoundReal32ToUint32(Blended255.b));
             }
             Pixel++;
         }
