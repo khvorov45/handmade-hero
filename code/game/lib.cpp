@@ -949,7 +949,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     v2 XAxis = 350.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
 
-    CoordinateSystem(RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis, V4(1.0f, 1.0f, 0.0f, 1.0f), &GameState->Tree);
+    CoordinateSystem(RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis, V4(1.0f, 0.5f, 1.0f, 0.8f), &GameState->Tree);
 
     RenderGroupToOutput(RenderGroup, DrawBuffer);
 

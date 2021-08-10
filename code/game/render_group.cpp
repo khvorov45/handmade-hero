@@ -400,9 +400,9 @@ internal void DrawRectangleSlowly(
                 real32 SA01 = Texel.a * Color.a;
                 real32 InvSA01 = 1.0f - SA01;
                 v4 Blended = V4(
-                    (InvSA01 * Dest.r + Texel.r),
-                    (InvSA01 * Dest.g + Texel.g),
-                    (InvSA01 * Dest.b + Texel.b),
+                    (InvSA01 * Dest.r + Texel.r * Color.r * Color.a),
+                    (InvSA01 * Dest.g + Texel.g * Color.g * Color.a),
+                    (InvSA01 * Dest.b + Texel.b * Color.b * Color.a),
                     (SA01 + Dest.a - SA01 * Dest.a)
                 );
 
