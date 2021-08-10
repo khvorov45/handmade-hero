@@ -61,26 +61,6 @@ struct render_group {
     uint8* PushBufferBase;
 };
 
-internal v4 SRGB255ToLinear1(v4 Color) {
-    v4 Result;
-    v4 Color01 = Color * (1.0f / 255.0f);
-    Result.r = Square(Color01.r);
-    Result.g = Square(Color01.g);
-    Result.b = Square(Color01.b);
-    Result.a = Color01.a;
-    return Result;
-}
-
-internal v4 Linear1ToSRGB255(v4 Color) {
-    v4 Result01;
-    Result01.r = SquareRoot(Color.r);
-    Result01.g = SquareRoot(Color.g);
-    Result01.b = SquareRoot(Color.b);
-    Result01.a = Color.a;
-    v4 Result = Result01 * 255.0f;
-    return Result;
-}
-
 internal render_group*
 AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize, real32 MetersToPixels) {
     render_group* Result = PushStruct(Arena, render_group);
@@ -388,6 +368,7 @@ internal void DrawRectangleSlowly(
                     TextureYf,
                     Lerp(TexelC01, TextureXf, TexelD01)
                 );
+                Texel *= Color.a;
 
                 v4 Dest = V4(
                     (real32)((*Pixel >> 16) & 0xFF),
@@ -397,13 +378,12 @@ internal void DrawRectangleSlowly(
                 );
                 Dest = SRGB255ToLinear1(Dest);
 
-                real32 SA01 = Texel.a * Color.a;
-                real32 InvSA01 = 1.0f - SA01;
+                real32 InvSA01 = 1.0f - Texel.a;
                 v4 Blended = V4(
-                    (InvSA01 * Dest.r + Texel.r * Color.r * Color.a),
-                    (InvSA01 * Dest.g + Texel.g * Color.g * Color.a),
-                    (InvSA01 * Dest.b + Texel.b * Color.b * Color.a),
-                    (SA01 + Dest.a - SA01 * Dest.a)
+                    (InvSA01 * Dest.r + Texel.r * Color.r),
+                    (InvSA01 * Dest.g + Texel.g * Color.g),
+                    (InvSA01 * Dest.b + Texel.b * Color.b),
+                    (Texel.a + Dest.a - Texel.a * Dest.a)
                 );
 
                 v4 Blended255 = Linear1ToSRGB255(Blended);
@@ -474,26 +454,38 @@ internal void DrawBitmap(
         uint32* Source = (uint32*)SourceRow;
         for (int32 X = StartX; X < EndX; ++X) {
 
-            real32 SA = CAlpha * (real32)((*Source >> 24));
-            real32 SR = CAlpha * (real32)((*Source >> 16) & 0xFF);
-            real32 SG = CAlpha * (real32)((*Source >> 8) & 0xFF);
-            real32 SB = CAlpha * (real32)((*Source) & 0xFF);
+            v4 Texel = V4(
+                (real32)((*Source >> 16) & 0xFF),
+                (real32)((*Source >> 8) & 0xFF),
+                (real32)((*Source) & 0xFF),
+                (real32)((*Source >> 24))
+            );
 
-            real32 DA = (real32)((*Dest >> 24) & 0xFF);
-            real32 DR = (real32)((*Dest >> 16) & 0xFF);
-            real32 DG = (real32)((*Dest >> 8) & 0xFF);
-            real32 DB = (real32)((*Dest) & 0xFF);
+            Texel = SRGB255ToLinear1(Texel);
+            Texel *= CAlpha;
 
-            real32 SA01 = SA / 255.0f;
-            real32 DA01 = DA / 255.0f;
-            real32 InvSA01 = 1.0f - SA01;
-            real32 RA = (SA01 + DA01 - SA01 * DA01) * 255.0f;
-            real32 RR = InvSA01 * DR + SR;
-            real32 RG = InvSA01 * DG + SG;
-            real32 RB = InvSA01 * DB + SB;
+            v4 Destv4 = V4(
+                (real32)((*Dest >> 16) & 0xFF),
+                (real32)((*Dest >> 8) & 0xFF),
+                (real32)((*Dest) & 0xFF),
+                (real32)((*Dest >> 24) & 0xFF)
+            );
+            Destv4 = SRGB255ToLinear1(Destv4);
 
-            *Dest = (RoundReal32ToUint32(RA) << 24) | (RoundReal32ToUint32(RR) << 16) |
-                (RoundReal32ToUint32(RG) << 8) | (RoundReal32ToUint32(RB));
+            real32 InvSA01 = 1.0f - Texel.a;
+            v4 Result = V4(
+                InvSA01 * Destv4.r + Texel.r,
+                InvSA01 * Destv4.g + Texel.g,
+                InvSA01 * Destv4.b + Texel.b,
+                (Texel.a + Destv4.a - Texel.a * Destv4.a)
+            );
+            Result = Linear1ToSRGB255(Result);
+
+            *Dest =
+                (RoundReal32ToUint32(Result.a) << 24) |
+                (RoundReal32ToUint32(Result.r) << 16) |
+                (RoundReal32ToUint32(Result.g) << 8) |
+                (RoundReal32ToUint32(Result.b));
 
             ++Dest;
             ++Source;

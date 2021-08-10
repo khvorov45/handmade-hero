@@ -18,7 +18,13 @@ union v3 {
 
 union v4 {
     struct { real32 x, y, z, w; };
-    struct { real32 r, g, b, a; };
+    struct {
+        union {
+            v3 rgb;
+            struct { real32 r, g, b; };
+        };
+        real32 a;
+    };
     real32 E[4];
 };
 
@@ -121,6 +127,11 @@ inline v2& operator*=(v2& A, real32 B) {
 }
 
 inline v3& operator*=(v3& A, real32 B) {
+    A = A * B;
+    return A;
+}
+
+inline v4& operator*=(v4& A, real32 B) {
     A = A * B;
     return A;
 }

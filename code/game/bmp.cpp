@@ -37,6 +37,26 @@ struct loaded_bitmap {
     int32 Pitch;
 };
 
+internal v4 SRGB255ToLinear1(v4 Color) {
+    v4 Result;
+    v4 Color01 = Color * (1.0f / 255.0f);
+    Result.r = Square(Color01.r);
+    Result.g = Square(Color01.g);
+    Result.b = Square(Color01.b);
+    Result.a = Color01.a;
+    return Result;
+}
+
+internal v4 Linear1ToSRGB255(v4 Color) {
+    v4 Result01;
+    Result01.r = SquareRoot(Color.r);
+    Result01.g = SquareRoot(Color.g);
+    Result01.b = SquareRoot(Color.b);
+    Result01.a = Color.a;
+    v4 Result = Result01 * 255.0f;
+    return Result;
+}
+
 internal loaded_bitmap DEBUGLoadBMP(
     thread_context* Thread,
     debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
@@ -79,16 +99,22 @@ internal loaded_bitmap DEBUGLoadBMP(
     uint32* Pixel = Pixels;
     for (int32 Y = 0; Y < Header->Height; ++Y) {
         for (int32 X = 0; X < Header->Width; ++X) {
-            real32 Alpha = (real32)((*Pixel >> AlphaShift) & 0xFF);
-            real32 Red = (real32)((*Pixel >> RedShift) & 0xFF);
-            real32 Green = (real32)((*Pixel >> GreenShift) & 0xFF);
-            real32 Blue = (real32)((*Pixel >> BlueShift) & 0xFF);
-            real32 Alpha01 = Alpha / 255.0f;
+            v4 Texel = V4(
+                (real32)((*Pixel >> RedShift) & 0xFF),
+                (real32)((*Pixel >> GreenShift) & 0xFF),
+                (real32)((*Pixel >> BlueShift) & 0xFF),
+                (real32)((*Pixel >> AlphaShift) & 0xFF)
+            );
+
+            Texel = SRGB255ToLinear1(Texel);
+            Texel.rgb *= Texel.a;
+            Texel = Linear1ToSRGB255(Texel);
+
             *Pixel++ =
-                (RoundReal32ToUint32(Alpha) << 24) |
-                (RoundReal32ToUint32(Red * Alpha01) << 16) |
-                (RoundReal32ToUint32(Green * Alpha01) << 8) |
-                (RoundReal32ToUint32(Blue * Alpha01));
+                (RoundReal32ToUint32(Texel.a) << 24) |
+                (RoundReal32ToUint32(Texel.r) << 16) |
+                (RoundReal32ToUint32(Texel.g) << 8) |
+                (RoundReal32ToUint32(Texel.b));
         }
     }
     Result.Memory = (uint8*)Pixels + (-Result.Pitch) * (Result.Height - 1);
