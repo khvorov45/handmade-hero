@@ -379,13 +379,7 @@ internal void DrawRectangleSlowly(
                 );
                 Dest = SRGB255ToLinear1(Dest);
 
-                real32 InvSA01 = 1.0f - Texel.a;
-                v4 Blended = V4(
-                    (InvSA01 * Dest.r + Texel.r),
-                    (InvSA01 * Dest.g + Texel.g),
-                    (InvSA01 * Dest.b + Texel.b),
-                    (Texel.a + Dest.a - Texel.a * Dest.a)
-                );
+                v4 Blended = (1.0f - Texel.a) * Dest + Texel;
 
                 v4 Blended255 = Linear1ToSRGB255(Blended);
 
