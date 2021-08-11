@@ -248,6 +248,8 @@ internal void DrawRectangleSlowly(
     v2 Origin, v2 XAxis, v2 YAxis,
     v4 Color, loaded_bitmap* Texture
 ) {
+    Color.rgb *= Color.a;
+
     int32 WidthMax = Buffer->Width - 1;
     int32 HeightMax = Buffer->Height - 1;
     int32 XMin = WidthMax;
@@ -368,7 +370,7 @@ internal void DrawRectangleSlowly(
                     TextureYf,
                     Lerp(TexelC01, TextureXf, TexelD01)
                 );
-                Texel *= Color.a;
+                Texel = Hadamard(Texel, Color);
 
                 v4 Dest = V4(
                     (real32)((*Pixel >> 16) & 0xFF),
@@ -380,9 +382,9 @@ internal void DrawRectangleSlowly(
 
                 real32 InvSA01 = 1.0f - Texel.a;
                 v4 Blended = V4(
-                    (InvSA01 * Dest.r + Texel.r * Color.r),
-                    (InvSA01 * Dest.g + Texel.g * Color.g),
-                    (InvSA01 * Dest.b + Texel.b * Color.b),
+                    (InvSA01 * Dest.r + Texel.r),
+                    (InvSA01 * Dest.g + Texel.g),
+                    (InvSA01 * Dest.b + Texel.b),
                     (Texel.a + Dest.a - Texel.a * Dest.a)
                 );
 

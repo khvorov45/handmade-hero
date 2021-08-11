@@ -193,6 +193,15 @@ inline real32 Inner(v3 A, v3 B) {
     return A.x * B.x + A.y * B.y + A.z * B.z;
 }
 
+inline v4 Hadamard(v4 A, v4 B) {
+    v4 Result;
+    Result.x = A.x * B.x;
+    Result.y = A.y * B.y;
+    Result.z = A.z * B.z;
+    Result.w = A.w * B.w;
+    return Result;
+}
+
 inline v3 Hadamard(v3 A, v3 B) {
     v3 Result = {};
     Result.x = A.x * B.x;

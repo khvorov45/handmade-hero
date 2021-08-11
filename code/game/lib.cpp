@@ -757,7 +757,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 
                     if (FurthestBuffer) {
-                        FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
+                        //FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
                     PushRectOutline(
                         RenderGroup, RelP.xy, 0.0f, GameState->World->ChunkDimInMeters.xy,
