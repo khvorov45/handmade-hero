@@ -682,7 +682,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     v2 ScreenCenter = 0.5f * V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height);
 
-    Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 0.0f));
+    Clear(RenderGroup, V4(0.5f, 0.5f, 0.5f, 0.0f));
 
     real32 PixelsToMeters = 1.0f / GameState->MetersToPixels;
     real32 ScreenWidthInMeters = Buffer->Width * PixelsToMeters;
@@ -750,7 +750,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 
                     if (FurthestBuffer) {
-                        //FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
+                        FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
                     PushRectOutline(
                         RenderGroup, RelP.xy, 0.0f, GameState->World->ChunkDimInMeters.xy,
@@ -935,11 +935,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     GameState->Time += Input->dtForFrame * 0.1f;
-    real32 Disp = 130.0f * Cos(GameState->Time);
+    real32 Disp = 0;//130.0f * Cos(GameState->Time);
 
     v2 Origin = ScreenCenter + V2(Disp, 0);
-    real32 Angle = GameState->Time;
-    v2 XAxis = 350.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
+    real32 Angle = 0;//GameState->Time;
+    v2 XAxis = 150.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
 
     CoordinateSystem(RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis, V4(1.0f, 1.0f, 1.0f, 1.0f), &GameState->Tree);
