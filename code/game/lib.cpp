@@ -318,13 +318,6 @@ FillGroundChunk(
     EndTemporaryMemory(GroundMemory);
 }
 
-internal void RequestGroundBuffers(world_position CenterP, rectangle3 Bounds) {
-    Bounds = Offset(Bounds, CenterP.Offset_);
-    CenterP.Offset_ = V3(0, 0, 0);
-    //for (uint32 ) {}
-    //FillGroundChunk(TranState, GameState, TranState->GroundBuffers, &GameState->CameraP);
-}
-
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
     GameOutputSound(SoundBuffer);
@@ -941,7 +934,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Basis->P = GetEntityGroundPoint(Entity);
     }
 
-    GameState->Time += Input->dtForFrame;
+    GameState->Time += Input->dtForFrame * 0.1f;
     real32 Disp = 130.0f * Cos(GameState->Time);
 
     v2 Origin = ScreenCenter + V2(Disp, 0);
@@ -949,7 +942,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     v2 XAxis = 350.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
 
-    CoordinateSystem(RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis, V4(1.0f, 0.5f, 1.0f, 0.8f), &GameState->Tree);
+    CoordinateSystem(RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis, V4(1.0f, 1.0f, 1.0f, 1.0f), &GameState->Tree);
 
     RenderGroupToOutput(RenderGroup, DrawBuffer);
 

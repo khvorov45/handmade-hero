@@ -495,6 +495,7 @@ internal void DrawBitmap(
         SourceRow += BMP->Pitch;
     }
 }
+
 internal void DrawMatte(
     loaded_bitmap* Buffer, loaded_bitmap* BMP,
     real32 RealStartX, real32 RealStartY,
@@ -625,8 +626,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
         }
+        }
     }
-}
