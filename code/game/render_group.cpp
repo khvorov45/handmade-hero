@@ -467,13 +467,7 @@ internal void DrawBitmap(
             );
             Destv4 = SRGB255ToLinear1(Destv4);
 
-            real32 InvSA01 = 1.0f - Texel.a;
-            v4 Result = V4(
-                InvSA01 * Destv4.r + Texel.r,
-                InvSA01 * Destv4.g + Texel.g,
-                InvSA01 * Destv4.b + Texel.b,
-                (Texel.a + Destv4.a - Texel.a * Destv4.a)
-            );
+            v4 Result = (1.0f - Texel.a) * Destv4 + Texel;
             Result = Linear1ToSRGB255(Result);
 
             *Dest =
