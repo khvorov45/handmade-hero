@@ -41,7 +41,9 @@ struct render_entry_coordinate_system {
     v4 Color;
     loaded_bitmap* Texture;
     loaded_bitmap* NormalMap;
-    v2 Points[16];
+    environment_map* Top;
+    environment_map* Middle;
+    environment_map* Bottom;
 };
 
 struct render_entry_bitmap {
@@ -191,7 +193,7 @@ internal void PushRectOutline(
 
 internal void CoordinateSystem(
     render_group* Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color, loaded_bitmap* Texture,
-    loaded_bitmap* NormalMap
+    loaded_bitmap* NormalMap, environment_map* Top, environment_map* Middle, environment_map* Bottom
 ) {
     render_entry_coordinate_system* Entry = PushRenderElement(Group, render_entry_coordinate_system);
     if (Entry) {
@@ -201,12 +203,9 @@ internal void CoordinateSystem(
         Entry->Color = Color;
         Entry->Texture = Texture;
         Entry->NormalMap = NormalMap;
-        uint32 PIndex = 0;
-        for (real32 Y = 0.0f; Y < 1.0f; Y += 0.25f) {
-            for (real32 X = 0.0f; X < 1.0f; X += 0.25f) {
-                Entry->Points[PIndex++] = V2(X, Y);
-            }
-        }
+        Entry->Top = Top;
+        Entry->Middle = Middle;
+        Entry->Bottom = Bottom;
     }
 }
 
@@ -261,6 +260,12 @@ internal v4 Unpack4x8(uint32 Packed) {
     return Result;
 }
 
+internal v3
+SampleEnvironmentMap(v2 ScreenSpaceUV, v3 Normal, real32 Roughness, environment_map* Map) {
+    v3 Result = Normal;
+    return Result;
+}
+
 internal void DrawRectangleSlowly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
@@ -275,6 +280,9 @@ internal void DrawRectangleSlowly(
     int32 XMax = 0;
     int32 YMin = HeightMax;
     int32 YMax = 0;
+
+    real32 InvWidthMax = 1.0f / (real32)WidthMax;
+    real32 InvHeightMax = 1.0f / (real32)HeightMax;
 
     v2 P[4] = {
         Origin,
@@ -330,6 +338,9 @@ internal void DrawRectangleSlowly(
             real32 Edge2 = Inner(d - XAxis - YAxis, Perp(XAxis));
             real32 Edge3 = Inner(d - YAxis, Perp(YAxis));
             if (Edge0 < 0 && Edge1 < 0 && Edge2 < 0 && Edge3 < 0) {
+
+                v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, (real32)Y * InvHeightMax);
+
                 real32 U = Inner(d, XAxis) * InvXAxisLengthSq;
                 real32 V = Inner(d, YAxis) * InvYAxisLengthSq;
 #if 0
@@ -387,6 +398,27 @@ internal void DrawRectangleSlowly(
                         TextureYf,
                         Lerp(NormalCv4, TextureXf, NormalDv4)
                     );
+
+                    environment_map* FarMap = 0;
+                    real32 tFarMap = 0.0f;
+                    real32 tEnvMap = Normal.z;
+                    if (tEnvMap < 0.25f) {
+                        FarMap = Bottom;
+                        tFarMap = 1.0f - tEnvMap / 0.25f;
+                    } else if (tEnvMap > 0.75f) {
+                        FarMap = Top;
+                        tFarMap = 1.0f - (1.0f - tEnvMap) / 0.25f;
+                    }
+
+                    v3 LightColor =
+                        SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
+                    if (FarMap) {
+                        v3 FarMapColor =
+                            SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, FarMap);
+                        LightColor = Lerp(LightColor, tFarMap, FarMapColor);
+                    }
+
+                    Texel.rgb = Hadamard(Texel.rgb, LightColor);
                 }
 
                 Texel = Hadamard(Texel, Color);
@@ -626,7 +658,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
             DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            DrawRectangleSlowly(OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color, Entry->Texture, Entry->NormalMap, 0, 0, 0);
+            DrawRectangleSlowly(OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color, Entry->Texture, Entry->NormalMap, Entry->Top, Entry->Middle, Entry->Bottom);
 
 #if 0
             for (uint32 PIndex = 0; PIndex < ArrayCount(Entry->Points); PIndex++) {

@@ -17,7 +17,13 @@ union v3 {
 };
 
 union v4 {
-    struct { real32 x, y, z, w; };
+    struct {
+        union {
+            v3 xyz;
+            struct { real32 x, y, z; };
+        };
+        real32 w;
+    };
     struct {
         union {
             v3 rgb;
@@ -239,6 +245,11 @@ inline real32 Square(real32 A) {
 
 inline real32 Lerp(real32 A, real32 t, real32 B) {
     real32 Result = (1.0f - t) * A + t * B;
+    return Result;
+}
+
+inline v3 Lerp(v3 A, real32 t, v3 B) {
+    v3 Result = (1.0f - t) * A + t * B;
     return Result;
 }
 
