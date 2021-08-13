@@ -258,6 +258,12 @@ inline v4 Lerp(v4 A, real32 t, v4 B) {
     return Result;
 }
 
+inline v3 Normalize(v3 A) {
+    real32 InvLength = 1.0f / Length(A);
+    v3 Result = A * InvLength;
+    return Result;
+}
+
 struct rectangle2 {
     v2 Min;
     v2 Max;

@@ -239,6 +239,33 @@ MakeEmptyBitmap(memory_arena* Arena, int32 Width, int32 Height, bool32 ClearToZe
     return Result;
 }
 
+internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
+    real32 InvWidth = 1.0f / (real32)Bitmap->Width;
+    real32 InvHeight = 1.0f / (real32)Bitmap->Height;
+    uint8* Row = (uint8*)Bitmap->Memory;
+    for (int32 Y = 0; Y < Bitmap->Height; Y++) {
+        uint32* Pixel = (uint32*)Row;
+        for (int32 X = 0; Y < Bitmap->Width; X++) {
+            v2 BitmapUV = V2(InvWidth * (real32)X, InvHeight * (real32)Y);
+            v3 Normal = V3(2.0f * BitmapUV.x - 1.0f, 2.0f * BitmapUV.y - 1.0f, 0.0f);
+            Normal.z = SquareRoot(1.0f - Minimum(1.0f, Square(Normal.x) + Square(Normal.y))); //AbsoluteValue(Normal.x) + AbsoluteValue(Normal.y);
+            // Normalize(Normal);
+            v4 Color = V4(
+                (Normal.x + 1) * 0.5f * 255.0f,
+                (Normal.y + 1) * 0.5f * 255.0f,
+                Normal.z * 127.0f,
+                Roughness * 255.0f
+            );
+            *Pixel++ =
+                (RoundReal32ToUint32(Color.a) << 24) |
+                (RoundReal32ToUint32(Color.r) << 16) |
+                (RoundReal32ToUint32(Color.g) << 8) |
+                (RoundReal32ToUint32(Color.b));;
+        }
+        Row += Bitmap->Pitch;
+    }
+}
+
 internal void
 FillGroundChunk(
     transient_state* TranState, game_state* GameState,
