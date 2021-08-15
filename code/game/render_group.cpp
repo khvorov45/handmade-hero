@@ -17,7 +17,8 @@ enum render_group_entry_type {
     RenderGroupEntryType_render_entry_clear,
     RenderGroupEntryType_render_entry_bitmap,
     RenderGroupEntryType_render_entry_rectangle,
-    RenderGroupEntryType_render_entry_coordinate_system
+    RenderGroupEntryType_render_entry_coordinate_system,
+    RenderGroupEntryType_render_entry_saturation
 };
 
 struct render_group_entry_header {
@@ -26,6 +27,10 @@ struct render_group_entry_header {
 
 struct render_entry_clear {
     v4 Color;
+};
+
+struct render_entry_saturation {
+    real32 Level;
 };
 
 struct render_entry_coordinate_system {
@@ -159,6 +164,13 @@ internal void Clear(render_group* Group, v4 Color) {
     render_entry_clear* Entry = PushRenderElement(Group, render_entry_clear);
     if (Entry) {
         Entry->Color = Color;
+    }
+}
+
+internal void Saturation(render_group* Group, real32 Level) {
+    render_entry_saturation* Entry = PushRenderElement(Group, render_entry_saturation);
+    if (Entry) {
+        Entry->Level = Level;
     }
 }
 
@@ -570,6 +582,43 @@ internal void DrawBitmap(
     }
 }
 
+internal void ChangeSaturation(loaded_bitmap* Buffer, real32 Level) {
+
+    uint8* DestRow = (uint8*)Buffer->Memory;
+
+    for (int32 Y = 0; Y < Buffer->Height; ++Y) {
+        uint32* Dest = (uint32*)DestRow;
+
+        for (int32 X = 0; X < Buffer->Width; ++X) {
+
+            v4 Destv4 = V4(
+                (real32)((*Dest >> 16) & 0xFF),
+                (real32)((*Dest >> 8) & 0xFF),
+                (real32)((*Dest) & 0xFF),
+                (real32)((*Dest >> 24) & 0xFF)
+            );
+            Destv4 = SRGB255ToLinear1(Destv4);
+
+            real32 Avg = (Destv4.r + Destv4.g + Destv4.b) / 3.0f;
+            v3 Avg3 = V3(Avg, Avg, Avg);
+            v3 Delta = Destv4.rgb - Avg3;
+            Delta *= Level;
+
+            v4 Result = V4(Delta + Avg3, Destv4.a);
+            Result = Linear1ToSRGB255(Result);
+
+            *Dest =
+                (RoundReal32ToUint32(Result.a) << 24) |
+                (RoundReal32ToUint32(Result.r) << 16) |
+                (RoundReal32ToUint32(Result.g) << 8) |
+                (RoundReal32ToUint32(Result.b));
+
+            ++Dest;
+        }
+        DestRow += Buffer->Pitch;
+    }
+}
+
 internal void DrawMatte(
     loaded_bitmap* Buffer, loaded_bitmap* BMP,
     real32 RealStartX, real32 RealStartY,
@@ -659,6 +708,14 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                 OutputTarget, V2(0, 0), V2i(OutputTarget->Width, OutputTarget->Height),
                 Entry->Color
             );
+
+            BaseAddress += sizeof(*Entry);
+        } break;
+
+        case RenderGroupEntryType_render_entry_saturation: {
+            render_entry_saturation* Entry = (render_entry_saturation*)Data;
+
+            ChangeSaturation(OutputTarget, Entry->Level);
 
             BaseAddress += sizeof(*Entry);
         } break;
