@@ -629,10 +629,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             GroundBuffer->P = NullPosition();
         }
 
-        GameState->TreeNormal = MakeEmptyBitmap(
-            &TranState->TranArena, GameState->Tree.Width, GameState->Tree.Height, false
+        GameState->TestDiffuse = MakeEmptyBitmap(&TranState->TranArena, 256, 256, false);
+        DrawRectangle(&GameState->TestDiffuse, V2(0, 0), V2i(GameState->TestDiffuse.Width, GameState->TestDiffuse.Height), V4(0.5f, 0.5f, 0.5f, 1.0f));
+        GameState->TestNormal = MakeEmptyBitmap(
+            &TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false
         );
-        MakeSphereNormalMap(&GameState->TreeNormal, 0.0f);
+        MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
 
         TranState->EnvMapWidth = 512;
         TranState->EnvMapHeight = 256;
@@ -732,7 +734,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     v2 ScreenCenter = 0.5f * V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height);
 
-    Clear(RenderGroup, V4(0.5f, 0.5f, 0.5f, 0.0f));
+    Clear(RenderGroup, V4(0.25f, 0.25f, 0.25f, 0.0f));
 
     real32 PixelsToMeters = 1.0f / GameState->MetersToPixels;
     real32 ScreenWidthInMeters = Buffer->Width * PixelsToMeters;
@@ -1027,7 +1029,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CoordinateSystem(
         RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis,
         V4(1.0f, 1.0f, 1.0f, 1.0f),
-        &GameState->Tree, &GameState->TreeNormal,
+        &GameState->TestDiffuse, &GameState->TestNormal,
         TranState->EnvMaps + 2,
         TranState->EnvMaps + 1,
         TranState->EnvMaps + 0
