@@ -634,6 +634,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         );
         MakeSphereNormalMap(&GameState->TreeNormal, 0.0f);
 
+        TranState->EnvMapWidth = 512;
+        TranState->EnvMapHeight = 256;
+        for (uint32 MapIndex = 0; MapIndex < ArrayCount(TranState->EnvMaps); MapIndex++) {
+            environment_map* Map = TranState->EnvMaps + MapIndex;
+            uint32 Width = TranState->EnvMapWidth;
+            uint32 Height = TranState->EnvMapHeight;
+            for (uint32 LODIndex = 0; LODIndex < ArrayCount(Map->LOD); LODIndex++) {
+                Map->LOD[LODIndex] = MakeEmptyBitmap(&TranState->TranArena, Width, Height, false);
+                Width >>= 1;
+                Height >>= 1;
+            }
+        }
+
         TranState->IsInitialized = true;
     }
 
@@ -979,12 +992,66 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     v2 XAxis = 150.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
 
+    v4 MapColor[3] = {
+        V4(1.0f, 0, 0, 1.0f),
+        V4(0, 1.0f, 0, 1.0f),
+        V4(0, 0, 1.0f, 1.0f),
+    };
+#if 1
+    for (uint32 MapIndex = 0;
+        MapIndex < ArrayCount(TranState->EnvMaps);
+        MapIndex++) {
+
+        environment_map* Map = TranState->EnvMaps + MapIndex;
+        loaded_bitmap* LOD = Map->LOD + 0;
+        uint32 CheckerWidth = 16;
+        uint32 CheckerHeight = 16;
+        bool32 RowCheckerOn = false;
+        for (int32 Y = 0; Y < LOD->Height; Y += CheckerHeight) {
+            bool32 CheckerOn = RowCheckerOn;
+            for (int32 X = 0; X < LOD->Width; X += CheckerWidth) {
+                v2 MinP = V2i(X, Y);
+                v2 MaxP = MinP + V2i(CheckerWidth, CheckerHeight);
+                v4 Color = MapColor[MapIndex];
+                if (CheckerOn) {
+                    Color = V4(0, 0, 0, 1.0f);
+                }
+                CheckerOn = !CheckerOn;
+                DrawRectangle(LOD, MinP, MaxP, Color);
+            }
+            RowCheckerOn = !RowCheckerOn;
+        }
+    }
+#endif
+
     CoordinateSystem(
         RenderGroup, Origin - 0.5f * XAxis - 0.5f * YAxis, XAxis, YAxis,
         V4(1.0f, 1.0f, 1.0f, 1.0f),
         &GameState->Tree, &GameState->TreeNormal,
-        0, 0, 0
+        TranState->EnvMaps + 2,
+        TranState->EnvMaps + 1,
+        TranState->EnvMaps + 0
     );
+
+    v2 MapP = V2(0, 0);
+    for (uint32 MapIndex = 0;
+        MapIndex < ArrayCount(TranState->EnvMaps);
+        MapIndex++) {
+        environment_map* Map = TranState->EnvMaps + MapIndex;
+        loaded_bitmap* LOD = Map->LOD + 0;
+        XAxis = 0.5f * V2i(LOD->Width, 0);
+        YAxis = 0.5f * V2i(0, LOD->Height);
+        CoordinateSystem(
+            RenderGroup,
+            MapP,
+            XAxis,
+            YAxis,
+            V4(1.0f, 1.0f, 1.0f, 1.0f),
+            LOD,
+            0, 0, 0, 0
+        );
+        MapP += YAxis + V2(0.0f, 6.0f);
+    }
 
     RenderGroupToOutput(RenderGroup, DrawBuffer);
 

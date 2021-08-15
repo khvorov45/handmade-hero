@@ -223,11 +223,18 @@ struct game_state {
     real32 Time;
 };
 
+struct environment_map {
+    loaded_bitmap LOD[4];
+};
+
 struct transient_state {
     bool32 IsInitialized;
     memory_arena TranArena;
     uint32 GroundBufferCount;
     ground_buffer* GroundBuffers;
+    uint32 EnvMapWidth;
+    uint32 EnvMapHeight;
+    environment_map EnvMaps[3];
 };
 
 internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
@@ -519,8 +526,8 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             }
             if (CameraFollowingEntity.High->P.y > 5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY += 9;
-            } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
-                NewCameraP.AbsTileY -= 9;
+        } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
+            NewCameraP.AbsTileY -= 9;
         }
 #else
             real32 CamZOffset = NewCameraP.Offset_.z;
@@ -530,7 +537,7 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             GameState->CameraP = NewCameraP;
     }
 }
-    }
+}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
