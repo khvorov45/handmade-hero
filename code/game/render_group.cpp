@@ -294,13 +294,23 @@ internal v4 SRGBBilinearBlend(bilinear_sample TexelSample, real32 fX, real32 fY)
 }
 
 internal v3
-SampleEnvironmentMap(v2 ScreenSpaceUV, v3 Normal, real32 Roughness, environment_map* Map) {
+SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, environment_map* Map) {
     uint32 LODIndex = RoundReal32ToUint32(Roughness * (real32)(ArrayCount(Map->LOD) - 1));
     Assert(LODIndex < ArrayCount(Map->LOD));
     loaded_bitmap* LOD = Map->LOD + LODIndex;
 
-    real32 MapXreal = (real32)(LOD->Width / 2) + Normal.x * (real32)(LOD->Width / 2);
-    real32 MapYreal = (real32)(LOD->Height / 2) + Normal.y * (real32)(LOD->Height / 2);
+    Assert(SampleDirection.y > 0);
+    real32 DistanceFromMapInZ = 1.0f;
+    real32 UVsPerMeter = 0.01f;
+    real32 Coef = UVsPerMeter * DistanceFromMapInZ / SampleDirection.y;
+    v2 Offset = Coef * V2(SampleDirection.x, SampleDirection.z);
+    v2 UV = Offset + ScreenSpaceUV;
+
+    UV.x = Clamp01(UV.x);
+    UV.y = Clamp01(UV.y);
+
+    real32 MapXreal = UV.x * (real32)(LOD->Width - 2);
+    real32 MapYreal = UV.y * (real32)(LOD->Height - 2);
 
     int32 MapXFloored = FloorReal32ToInt32(MapXreal);
     int32 MapYFloored = FloorReal32ToInt32(MapYreal);
@@ -440,13 +450,18 @@ internal void DrawRectangleSlowly(
                     );
 
                     Normal = UnscaleAndBiasNormal(Normal);
+                    Normal.xyz = Normalize(Normal.xyz);
+
+                    v3 BounceDirection = 2.0f * Normal.z * Normal.xyz;
+                    BounceDirection.z -= 1.0f;
 
                     environment_map* FarMap = 0;
                     real32 tFarMap = 0.0f;
-                    real32 tEnvMap = Normal.y;
+                    real32 tEnvMap = BounceDirection.y;
                     if (tEnvMap < -0.5f) {
                         FarMap = Bottom;
                         tFarMap = -2.0f * tEnvMap - 1.0f;
+                        BounceDirection.y = -BounceDirection.y;
                     } else if (tEnvMap > 0.5f) {
                         FarMap = Top;
                         tFarMap = (tEnvMap - 0.5f) * 2.0f;
@@ -456,7 +471,7 @@ internal void DrawRectangleSlowly(
                     //SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
                     if (FarMap) {
                         v3 FarMapColor =
-                            SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, FarMap);
+                            SampleEnvironmentMap(ScreenSpaceUV, BounceDirection, Normal.w, FarMap);
                         LightColor = Lerp(LightColor, tFarMap, FarMapColor);
                     }
 
@@ -764,6 +779,6 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
+            }
         }
-    }
-}
+        }

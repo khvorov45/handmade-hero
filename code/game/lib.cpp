@@ -247,7 +247,7 @@ internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
         uint32* Pixel = (uint32*)Row;
         for (int32 X = 0; X < Bitmap->Width; X++) {
             v2 BitmapUV = V2(InvWidth * (real32)X, InvHeight * (real32)Y);
-            v3 Normal = V3(0.0f, 0.0f, 1.0f);
+            v3 Normal = V3(0.0f, 0.707f, 0.707f);
             real32 Nx = 2.0f * BitmapUV.x - 1.0f;
             real32 Ny = 2.0f * BitmapUV.y - 1.0f;
             real32 RootTerm = 1.0f - Square(Nx) - Square(Ny);
@@ -987,7 +987,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     GameState->Time += Input->dtForFrame * 0.1f;
-    real32 Disp = 0;//130.0f * Cos(GameState->Time);
+    real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
 
     v2 Origin = ScreenCenter + V2(Disp, 0);
     real32 Angle = 0;//GameState->Time;
