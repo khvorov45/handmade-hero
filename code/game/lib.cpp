@@ -271,6 +271,45 @@ internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
     }
 }
 
+internal void MakePyramidNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
+    real32 InvWidth = 1.0f / ((real32)Bitmap->Width - 1.0f);
+    real32 InvHeight = 1.0f / ((real32)Bitmap->Height - 1.0f);
+    uint8* Row = (uint8*)Bitmap->Memory;
+    for (int32 Y = 0; Y < Bitmap->Height; Y++) {
+        uint32* Pixel = (uint32*)Row;
+        for (int32 X = 0; X < Bitmap->Width; X++) {
+            v2 BitmapUV = V2(InvWidth * (real32)X, InvHeight * (real32)Y);
+            int32 InvX = Bitmap->Width - 1 - X;
+            v3 Normal = V3(0.0f, 0.0f, 0.707f);
+            if (X < Y) {
+                if (InvX < Y) {
+                    Normal.x = -0.707f;
+                } else {
+                    Normal.y = 0.707f;
+                }
+            } else {
+                if (InvX < Y) {
+                    Normal.y = -0.707f;
+                } else {
+                    Normal.x = 0.707f;
+                }
+            }
+            v4 Color = V4(
+                (Normal.x + 1) * 0.5f * 255.0f,
+                (Normal.y + 1) * 0.5f * 255.0f,
+                (Normal.z + 1) * 0.5f * 255.0f,
+                Roughness * 255.0f
+            );
+            *Pixel++ =
+                (RoundReal32ToUint32(Color.a) << 24) |
+                (RoundReal32ToUint32(Color.r) << 16) |
+                (RoundReal32ToUint32(Color.g) << 8) |
+                (RoundReal32ToUint32(Color.b));;
+        }
+        Row += Bitmap->Pitch;
+    }
+}
+
 internal void
 FillGroundChunk(
     transient_state* TranState, game_state* GameState,
@@ -634,7 +673,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->TestNormal = MakeEmptyBitmap(
             &TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false
         );
-        MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
+        MakePyramidNormalMap(&GameState->TestNormal, 0.0f);
 
         TranState->EnvMapWidth = 512;
         TranState->EnvMapHeight = 256;
@@ -954,7 +993,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha * 0.5f + BobSin * 0.2f);
             PushBitmap(RenderGroup, &HeroBitmaps->Head, { 0, 0 }, 0.2f * BobSin, HeroBitmaps->Align);
-        }
+                }
         break;
         case EntityType_Monster:
         {
@@ -977,14 +1016,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-        }
+            }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
         Basis->P = GetEntityGroundPoint(Entity);
-    }
+        }
 
     GameState->Time += Input->dtForFrame * 0.1f;
     real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
@@ -1068,4 +1107,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
-}
+        }
