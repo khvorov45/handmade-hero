@@ -239,7 +239,7 @@ MakeEmptyBitmap(memory_arena* Arena, int32 Width, int32 Height, bool32 ClearToZe
     return Result;
 }
 
-internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
+internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness, real32 Cx = 1.0f, real32 Cy = 1.0f) {
     real32 InvWidth = 1.0f / ((real32)Bitmap->Width - 1.0f);
     real32 InvHeight = 1.0f / ((real32)Bitmap->Height - 1.0f);
     uint8* Row = (uint8*)Bitmap->Memory;
@@ -248,8 +248,8 @@ internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
         for (int32 X = 0; X < Bitmap->Width; X++) {
             v2 BitmapUV = V2(InvWidth * (real32)X, InvHeight * (real32)Y);
             v3 Normal = V3(0.0f, 0.707f, 0.707f);
-            real32 Nx = 2.0f * BitmapUV.x - 1.0f;
-            real32 Ny = 2.0f * BitmapUV.y - 1.0f;
+            real32 Nx = Cx * (2.0f * BitmapUV.x - 1.0f);
+            real32 Ny = Cy * (2.0f * BitmapUV.y - 1.0f);
             real32 RootTerm = 1.0f - Square(Nx) - Square(Ny);
             if (RootTerm >= 0.0f) {
                 real32 Nz = SquareRoot(RootTerm);
@@ -673,7 +673,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->TestNormal = MakeEmptyBitmap(
             &TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false
         );
-        MakePyramidNormalMap(&GameState->TestNormal, 0.0f);
+        MakeSphereNormalMap(&GameState->TestNormal, 0.0f, 0.0f, 1.0f);
 
         TranState->EnvMapWidth = 512;
         TranState->EnvMapHeight = 256;
@@ -993,7 +993,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha * 0.5f + BobSin * 0.2f);
             PushBitmap(RenderGroup, &HeroBitmaps->Head, { 0, 0 }, 0.2f * BobSin, HeroBitmaps->Align);
-                }
+        }
         break;
         case EntityType_Monster:
         {
@@ -1016,14 +1016,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-            }
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
         Basis->P = GetEntityGroundPoint(Entity);
-        }
+    }
 
     GameState->Time += Input->dtForFrame * 0.1f;
     real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
@@ -1107,4 +1107,4 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
-        }
+}
