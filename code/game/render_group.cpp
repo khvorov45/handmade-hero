@@ -287,8 +287,8 @@ SampleEnvironmentMap(v2 ScreenSpaceUV, v3 Normal, real32 Roughness, environment_
     Assert(LODIndex < ArrayCount(Map->LOD));
     loaded_bitmap* LOD = Map->LOD + LODIndex;
 
-    real32 MapXreal = 0.0f;
-    real32 MapYreal = 0.0f;
+    real32 MapXreal = (real32)(LOD->Width / 2) + Normal.x * (real32)(LOD->Width / 2);
+    real32 MapYreal = (real32)(LOD->Height / 2) + Normal.y * (real32)(LOD->Height / 2);
 
     int32 MapXFloored = FloorReal32ToInt32(MapXreal);
     int32 MapYFloored = FloorReal32ToInt32(MapYreal);
