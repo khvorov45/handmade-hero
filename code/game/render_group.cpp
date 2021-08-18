@@ -293,14 +293,14 @@ internal v4 SRGBBilinearBlend(bilinear_sample TexelSample, real32 fX, real32 fY)
     return Result;
 }
 
-internal v3
-SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, environment_map* Map) {
+internal v3 SampleEnvironmentMap(
+    v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, environment_map* Map,
+    real32 DistanceFromMapInZ
+) {
     uint32 LODIndex = RoundReal32ToUint32(Roughness * (real32)(ArrayCount(Map->LOD) - 1));
     Assert(LODIndex < ArrayCount(Map->LOD));
     loaded_bitmap* LOD = Map->LOD + LODIndex;
 
-    Assert(SampleDirection.y > 0);
-    real32 DistanceFromMapInZ = 1.0f;
     real32 UVsPerMeter = 0.01f;
     real32 Coef = UVsPerMeter * DistanceFromMapInZ / SampleDirection.y;
     v2 Offset = Coef * V2(SampleDirection.x, SampleDirection.z);
@@ -320,6 +320,9 @@ SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, env
 
     Assert(MapXFloored >= 0 && MapXFloored < LOD->Width);
     Assert(MapYFloored >= 0 && MapYFloored < LOD->Height);
+
+    uint8* TexelPtr = (uint8*)LOD->Memory + MapYFloored * LOD->Pitch + MapXFloored * BITMAP_BYTES_PER_PIXEL;
+    *(uint32*)TexelPtr = 0xFFFFFFFF;
 
     bilinear_sample Sample = BilinearSample(LOD, MapXFloored, MapYFloored);
     v4 Result = SRGBBilinearBlend(Sample, fX, fY);
@@ -465,14 +468,16 @@ internal void DrawRectangleSlowly(
 
                     v3 BounceDirection = 2.0f * Normal.z * Normal.xyz;
                     BounceDirection.z -= 1.0f;
-
+                    BounceDirection.z = -BounceDirection.z;
+#if 1
                     environment_map* FarMap = 0;
+                    real32 DistanceFromMapInZ = 1.0f;
                     real32 tFarMap = 0.0f;
                     real32 tEnvMap = BounceDirection.y;
                     if (tEnvMap < -0.5f) {
                         FarMap = Bottom;
                         tFarMap = -2.0f * tEnvMap - 1.0f;
-                        BounceDirection.y = -BounceDirection.y;
+                        DistanceFromMapInZ = -DistanceFromMapInZ;
                     } else if (tEnvMap > 0.5f) {
                         FarMap = Top;
                         tFarMap = (tEnvMap - 0.5f) * 2.0f;
@@ -481,13 +486,22 @@ internal void DrawRectangleSlowly(
                     v3 LightColor = V3(0, 0, 0);
                     //SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
                     if (FarMap) {
-                        v3 FarMapColor =
-                            SampleEnvironmentMap(ScreenSpaceUV, BounceDirection, Normal.w, FarMap);
+                        v3 FarMapColor = SampleEnvironmentMap(
+                            ScreenSpaceUV, BounceDirection, Normal.w, FarMap, DistanceFromMapInZ
+                        );
                         LightColor = Lerp(LightColor, tFarMap, FarMapColor);
                     }
-
                     Texel.rgb = Texel.rgb + Texel.a * LightColor;
-
+#else
+                    Texel.rgb = V3(0.5f, 0.5f, 0.5f) + (0.5f * BounceDirection);
+                    Texel.b = 0.0f;
+                    Texel.r = 0.0f;
+                    if (BounceDirection.y < 0.1 && BounceDirection.y > -0.1) {
+                        Texel.rgb = V3(1.0f, 1.0f, 1.0f);
+                    } else {
+                        Texel.rgb = V3(0.0f, 0.0f, 0.0f);
+                    }
+#endif
                 }
 
                 Texel = Hadamard(Texel, Color);

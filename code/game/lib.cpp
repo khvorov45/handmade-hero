@@ -673,7 +673,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->TestNormal = MakeEmptyBitmap(
             &TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false
         );
-        MakeSphereNormalMap(&GameState->TestNormal, 0.0f, 0.0f, 1.0f);
+        MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
 
         TranState->EnvMapWidth = 512;
         TranState->EnvMapHeight = 256;
@@ -1028,7 +1028,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     GameState->Time += Input->dtForFrame * 0.1f;
     real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
 
-    v2 Origin = ScreenCenter + V2(Disp, 0);
+    v2 Origin = ScreenCenter + V2(Disp, Disp);
     real32 Angle = GameState->Time * 5.0f;
     v2 XAxis = 150.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
