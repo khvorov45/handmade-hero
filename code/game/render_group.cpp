@@ -344,6 +344,13 @@ internal void DrawRectangleSlowly(
 ) {
     Color.rgb *= Color.a;
 
+    real32 XAxisLength = Length(XAxis);
+    real32 YAxisLength = Length(YAxis);
+
+    v2 NxAxis = (YAxisLength / XAxisLength) * XAxis;
+    v2 NyAxis = (XAxisLength / YAxisLength) * YAxis;
+    real32 NzScale = 0.5f * (XAxisLength + YAxisLength);
+
     int32 WidthMax = Buffer->Width - 1;
     int32 HeightMax = Buffer->Height - 1;
     int32 XMin = WidthMax;
@@ -450,6 +457,10 @@ internal void DrawRectangleSlowly(
                     );
 
                     Normal = UnscaleAndBiasNormal(Normal);
+
+                    Normal.xy = Normal.x * NxAxis + Normal.y * NyAxis;
+                    Normal.z *= NzScale;
+
                     Normal.xyz = Normalize(Normal.xyz);
 
                     v3 BounceDirection = 2.0f * Normal.z * Normal.xyz;
@@ -779,6 +790,6 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
-            }
         }
-        }
+    }
+}

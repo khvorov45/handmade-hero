@@ -1029,7 +1029,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
 
     v2 Origin = ScreenCenter + V2(Disp, 0);
-    real32 Angle = 0;//GameState->Time;
+    real32 Angle = GameState->Time * 5.0f;
     v2 XAxis = 150.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
 

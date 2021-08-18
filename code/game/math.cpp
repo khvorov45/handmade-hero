@@ -31,6 +31,7 @@ union v4 {
         };
         real32 a;
     };
+    struct { v2 xy; real32 Ignore1, Ignore2; };
     real32 E[4];
 };
 
