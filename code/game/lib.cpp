@@ -1026,10 +1026,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     GameState->Time += Input->dtForFrame * 0.1f;
-    real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
+    real32 Disp = 0.0f;// 130.0f * Cos(10.0f * GameState->Time);
 
     v2 Origin = ScreenCenter + V2(Disp, Disp);
-    real32 Angle = GameState->Time * 5.0f;
+    real32 Angle = GameState->Time * 15.0f;
     v2 XAxis = 150.0f * V2(Cos(Angle), Sin(Angle)); // 300.0f * V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis); //100.0f * V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
 
@@ -1093,6 +1093,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         );
         MapP += YAxis + V2(0.0f, 6.0f);
     }
+    TranState->EnvMaps[0].Pz = -2.0f;
+    TranState->EnvMaps[1].Pz = 0.0f;
+    TranState->EnvMaps[2].Pz = 2.0f;
 
 #if 0
     Saturation(RenderGroup, 1.0f);

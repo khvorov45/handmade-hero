@@ -301,7 +301,7 @@ internal v3 SampleEnvironmentMap(
     Assert(LODIndex < ArrayCount(Map->LOD));
     loaded_bitmap* LOD = Map->LOD + LODIndex;
 
-    real32 UVsPerMeter = 0.01f;
+    real32 UVsPerMeter = 0.1f;
     real32 Coef = UVsPerMeter * DistanceFromMapInZ / SampleDirection.y;
     v2 Offset = Coef * V2(SampleDirection.x, SampleDirection.z);
     v2 UV = Offset + ScreenSpaceUV;
@@ -321,8 +321,10 @@ internal v3 SampleEnvironmentMap(
     Assert(MapXFloored >= 0 && MapXFloored < LOD->Width);
     Assert(MapYFloored >= 0 && MapYFloored < LOD->Height);
 
+#if 1
     uint8* TexelPtr = (uint8*)LOD->Memory + MapYFloored * LOD->Pitch + MapXFloored * BITMAP_BYTES_PER_PIXEL;
     *(uint32*)TexelPtr = 0xFFFFFFFF;
+#endif
 
     bilinear_sample Sample = BilinearSample(LOD, MapXFloored, MapYFloored);
     v4 Result = SRGBBilinearBlend(Sample, fX, fY);
@@ -343,7 +345,8 @@ internal void DrawRectangleSlowly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
     v4 Color, loaded_bitmap* Texture, loaded_bitmap* NormalMap,
-    environment_map* Top, environment_map* Middle, environment_map* Bottom
+    environment_map* Top, environment_map* Middle, environment_map* Bottom,
+    real32 PixelsToMeters
 ) {
     Color.rgb *= Color.a;
 
@@ -363,6 +366,9 @@ internal void DrawRectangleSlowly(
 
     real32 InvWidthMax = 1.0f / (real32)WidthMax;
     real32 InvHeightMax = 1.0f / (real32)HeightMax;
+
+    real32 OriginZ = 0.0f;
+    real32 FixedCastY = InvHeightMax * (Origin + 0.5f * XAxis + 0.5f * YAxis).y;
 
     v2 P[4] = {
         Origin,
@@ -419,7 +425,9 @@ internal void DrawRectangleSlowly(
             real32 Edge3 = Inner(d - YAxis, Perp(YAxis));
             if (Edge0 < 0 && Edge1 < 0 && Edge2 < 0 && Edge3 < 0) {
 
-                v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, (real32)Y * InvHeightMax);
+                v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, FixedCastY);
+
+                real32 ZDiff = PixelsToMeters * ((real32)Y - Origin.y);
 
                 real32 U = Inner(d, XAxis) * InvXAxisLengthSq;
                 real32 V = Inner(d, YAxis) * InvYAxisLengthSq;
@@ -471,27 +479,30 @@ internal void DrawRectangleSlowly(
                     BounceDirection.z = -BounceDirection.z;
 #if 1
                     environment_map* FarMap = 0;
-                    real32 DistanceFromMapInZ = 1.0f;
+                    real32 Pz = OriginZ + ZDiff;
+                    real32 MapZ = 2.0f;
                     real32 tFarMap = 0.0f;
                     real32 tEnvMap = BounceDirection.y;
                     if (tEnvMap < -0.5f) {
                         FarMap = Bottom;
                         tFarMap = -2.0f * tEnvMap - 1.0f;
-                        DistanceFromMapInZ = -DistanceFromMapInZ;
                     } else if (tEnvMap > 0.5f) {
                         FarMap = Top;
                         tFarMap = (tEnvMap - 0.5f) * 2.0f;
                     }
 
+
                     v3 LightColor = V3(0, 0, 0);
                     //SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
                     if (FarMap) {
+                        real32 DistanceFromMapInZ = FarMap->Pz - Pz;
                         v3 FarMapColor = SampleEnvironmentMap(
                             ScreenSpaceUV, BounceDirection, Normal.w, FarMap, DistanceFromMapInZ
                         );
                         LightColor = Lerp(LightColor, tFarMap, FarMapColor);
                     }
                     Texel.rgb = Texel.rgb + Texel.a * LightColor;
+                    Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f * BounceDirection;
 #else
                     Texel.rgb = V3(0.5f, 0.5f, 0.5f) + (0.5f * BounceDirection);
                     Texel.b = 0.0f;
@@ -792,7 +803,11 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color);
             DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color);
             DrawRectangle(OutputTarget, PMax - Dim, PMax + Dim, Entry->Color);
-            DrawRectangleSlowly(OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color, Entry->Texture, Entry->NormalMap, Entry->Top, Entry->Middle, Entry->Bottom);
+            DrawRectangleSlowly(
+                OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color,
+                Entry->Texture, Entry->NormalMap,
+                Entry->Top, Entry->Middle, Entry->Bottom, 1.0f / RenderGroup->MetersToPixels
+            );
 
 #if 0
             for (uint32 PIndex = 0; PIndex < ArrayCount(Entry->Points); PIndex++) {
