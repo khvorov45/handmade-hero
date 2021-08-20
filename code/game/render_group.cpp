@@ -425,10 +425,13 @@ internal void DrawRectangleSlowly(
             real32 Edge2 = Inner(d - XAxis - YAxis, Perp(XAxis));
             real32 Edge3 = Inner(d - YAxis, Perp(YAxis));
             if (Edge0 < 0 && Edge1 < 0 && Edge2 < 0 && Edge3 < 0) {
-
+#if 1
                 v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, FixedCastY);
-
                 real32 ZDiff = PixelsToMeters * ((real32)Y - OriginY);
+#else
+                v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, (real32)Y * InvHeightMax);
+                real32 ZDiff = 0.0f;
+#endif
 
                 real32 U = Inner(d, XAxis) * InvXAxisLengthSq;
                 real32 V = Inner(d, YAxis) * InvYAxisLengthSq;
@@ -541,12 +544,12 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.r) << 16) |
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
-                }
-            Pixel++;
             }
-        Row += Buffer->Pitch;
+            Pixel++;
         }
+        Row += Buffer->Pitch;
     }
+}
 
 internal void
 DrawRectangleOutline(
@@ -821,8 +824,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
     }
+}
