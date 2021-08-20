@@ -491,7 +491,7 @@ internal void DrawRectangleSlowly(
                         FarMap = Top;
                         tFarMap = (tEnvMap - 0.5f) * 2.0f;
                     }
-
+                    tFarMap *= tFarMap;
 
                     v3 LightColor = V3(0, 0, 0);
                     //SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
@@ -541,12 +541,12 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.r) << 16) |
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
-            }
+                }
             Pixel++;
-        }
+            }
         Row += Buffer->Pitch;
+        }
     }
-}
 
 internal void
 DrawRectangleOutline(
@@ -821,8 +821,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
         }
+        }
     }
-}
