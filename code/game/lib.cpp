@@ -271,6 +271,39 @@ internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness, real3
     }
 }
 
+internal void MakeSphereDiffuseMap(loaded_bitmap* Bitmap, real32 Cx = 1.0f, real32 Cy = 1.0f) {
+    real32 InvWidth = 1.0f / ((real32)Bitmap->Width - 1.0f);
+    real32 InvHeight = 1.0f / ((real32)Bitmap->Height - 1.0f);
+    uint8* Row = (uint8*)Bitmap->Memory;
+    for (int32 Y = 0; Y < Bitmap->Height; Y++) {
+        uint32* Pixel = (uint32*)Row;
+        for (int32 X = 0; X < Bitmap->Width; X++) {
+            v2 BitmapUV = V2(InvWidth * (real32)X, InvHeight * (real32)Y);
+            real32 Nx = Cx * (2.0f * BitmapUV.x - 1.0f);
+            real32 Ny = Cy * (2.0f * BitmapUV.y - 1.0f);
+            real32 Alpha = 0.0f;
+            real32 RootTerm = 1.0f - Square(Nx) - Square(Ny);
+            if (RootTerm >= 0.0f) {
+                Alpha = 1.0f;
+            }
+            v3 BaseColor = V3(1.0f, 1.0f, 1.0f);
+            Alpha *= 255.0f;
+            v4 Color = V4(
+                Alpha * BaseColor.x,
+                Alpha * BaseColor.y,
+                Alpha * BaseColor.z,
+                Alpha
+            );
+            *Pixel++ =
+                (RoundReal32ToUint32(Color.a) << 24) |
+                (RoundReal32ToUint32(Color.r) << 16) |
+                (RoundReal32ToUint32(Color.g) << 8) |
+                (RoundReal32ToUint32(Color.b));;
+        }
+        Row += Bitmap->Pitch;
+    }
+}
+
 internal void MakePyramidNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
     real32 InvWidth = 1.0f / ((real32)Bitmap->Width - 1.0f);
     real32 InvHeight = 1.0f / ((real32)Bitmap->Height - 1.0f);
@@ -674,6 +707,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             &TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false
         );
         MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
+        MakeSphereDiffuseMap(&GameState->TestDiffuse);
 
         TranState->EnvMapWidth = 512;
         TranState->EnvMapHeight = 256;

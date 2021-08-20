@@ -503,6 +503,7 @@ internal void DrawRectangleSlowly(
                     }
                     Texel.rgb = Texel.rgb + Texel.a * LightColor;
                     Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f * BounceDirection;
+                    Texel.rgb *= Texel.a;
 #else
                     Texel.rgb = V3(0.5f, 0.5f, 0.5f) + (0.5f * BounceDirection);
                     Texel.b = 0.0f;
