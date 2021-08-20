@@ -321,7 +321,7 @@ internal v3 SampleEnvironmentMap(
     Assert(MapXFloored >= 0 && MapXFloored < LOD->Width);
     Assert(MapYFloored >= 0 && MapYFloored < LOD->Height);
 
-#if 1
+#if 0
     uint8* TexelPtr = (uint8*)LOD->Memory + MapYFloored * LOD->Pitch + MapXFloored * BITMAP_BYTES_PER_PIXEL;
     *(uint32*)TexelPtr = 0xFFFFFFFF;
 #endif
@@ -368,7 +368,8 @@ internal void DrawRectangleSlowly(
     real32 InvHeightMax = 1.0f / (real32)HeightMax;
 
     real32 OriginZ = 0.0f;
-    real32 FixedCastY = InvHeightMax * (Origin + 0.5f * XAxis + 0.5f * YAxis).y;
+    real32 OriginY = (Origin + 0.5f * XAxis + 0.5f * YAxis).y;
+    real32 FixedCastY = InvHeightMax * OriginY;
 
     v2 P[4] = {
         Origin,
@@ -427,7 +428,7 @@ internal void DrawRectangleSlowly(
 
                 v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, FixedCastY);
 
-                real32 ZDiff = PixelsToMeters * ((real32)Y - Origin.y);
+                real32 ZDiff = PixelsToMeters * ((real32)Y - OriginY);
 
                 real32 U = Inner(d, XAxis) * InvXAxisLengthSq;
                 real32 V = Inner(d, YAxis) * InvYAxisLengthSq;
@@ -502,8 +503,10 @@ internal void DrawRectangleSlowly(
                         LightColor = Lerp(LightColor, tFarMap, FarMapColor);
                     }
                     Texel.rgb = Texel.rgb + Texel.a * LightColor;
+#if 0
                     Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f * BounceDirection;
                     Texel.rgb *= Texel.a;
+#endif
 #else
                     Texel.rgb = V3(0.5f, 0.5f, 0.5f) + (0.5f * BounceDirection);
                     Texel.b = 0.0f;

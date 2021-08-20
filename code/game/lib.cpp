@@ -286,7 +286,7 @@ internal void MakeSphereDiffuseMap(loaded_bitmap* Bitmap, real32 Cx = 1.0f, real
             if (RootTerm >= 0.0f) {
                 Alpha = 1.0f;
             }
-            v3 BaseColor = V3(1.0f, 1.0f, 1.0f);
+            v3 BaseColor = V3(0.0f, 0.0f, 0.0f);
             Alpha *= 255.0f;
             v4 Color = V4(
                 Alpha * BaseColor.x,
@@ -1060,7 +1060,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     GameState->Time += Input->dtForFrame * 0.1f;
-    real32 Disp = 0.0f;// 130.0f * Cos(10.0f * GameState->Time);
+    real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
 
     v2 Origin = ScreenCenter + V2(Disp, Disp);
     real32 Angle = GameState->Time * 15.0f;
