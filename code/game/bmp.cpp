@@ -72,8 +72,9 @@ internal loaded_bitmap DEBUGLoadBMP(
     Assert(Header->Compression == 3);
 
     Result.Height = Header->Height;
+    Assert(Result.Height >= 0);
     Result.Width = Header->Width;
-    Result.Pitch = -Result.Width * BITMAP_BYTES_PER_PIXEL;
+    Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
 
     uint32 RedMask = Header->RedMask;
     uint32 GreenMask = Header->GreenMask;
@@ -117,7 +118,7 @@ internal loaded_bitmap DEBUGLoadBMP(
                 (RoundReal32ToUint32(Texel.b));
         }
     }
-    Result.Memory = (uint8*)Pixels + (-Result.Pitch) * (Result.Height - 1);
+    Result.Memory = (uint8*)Pixels;
     return Result;
 }
 

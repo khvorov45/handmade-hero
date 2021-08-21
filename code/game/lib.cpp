@@ -370,7 +370,7 @@ FillGroundChunk(
 
             random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
 
-            v2 Center = V2(ChunkOffsetX * Width, -ChunkOffsetY * Height);
+            v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
 
             for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
 
@@ -400,7 +400,7 @@ FillGroundChunk(
 
             random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
 
-            v2 Center = V2(ChunkOffsetX * Width, -ChunkOffsetY * Height);
+            v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
 
             for (uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
 
@@ -420,6 +420,15 @@ FillGroundChunk(
 
     RenderGroupToOutput(GroundRenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
+}
+
+internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
+    v2 Result = V2(Align.x, (Bitmap->Height - 1) - Align.y);
+    return Result;
+}
+
+internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
+    Bitmap->Align = TopDownAlign(&Bitmap->Head, Align);
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -530,7 +539,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_cape.bmp");
         Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_torso.bmp");
-        Bitmap->Align = { 72, 182 };
+        SetTopDownAlign(Bitmap, V2(72, 182));
 
         ++Bitmap;
         Bitmap->Head =
@@ -539,7 +548,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_cape.bmp");
         Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_back_torso.bmp");
-        Bitmap->Align = { 72, 182 };
+        SetTopDownAlign(Bitmap, V2(72, 182));
 
         ++Bitmap;
         Bitmap->Head =
@@ -548,7 +557,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_cape.bmp");
         Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_left_torso.bmp");
-        Bitmap->Align = { 72, 182 };
+        SetTopDownAlign(Bitmap, V2(72, 182));
 
         ++Bitmap;
         Bitmap->Head =
@@ -557,7 +566,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_cape.bmp");
         Bitmap->Torso =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_front_torso.bmp");
-        Bitmap->Align = { 72, 182 };
+        SetTopDownAlign(Bitmap, V2(72, 182));
 
         uint32 ScreenBaseX = 0;
         uint32 ScreenBaseY = 0;
@@ -877,10 +886,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     if (FurthestBuffer) {
                         FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
+#if 0
                     PushRectOutline(
                         RenderGroup, RelP.xy, 0.0f, GameState->World->ChunkDimInMeters.xy,
                         V4(1.0f, 1.0f, 0.0f, 1.0f)
                     );
+#endif
                 }
             }
         }
@@ -964,7 +975,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Wall:
         {
-            PushBitmap(RenderGroup, &GameState->Tree, { 0, 0 }, 0, { 40, 80 });
+            v2 Alignment = TopDownAlign(&GameState->Tree, V2(40, 80));
+            PushBitmap(RenderGroup, &GameState->Tree, { 0, 0 }, 0, Alignment);
         }
         break;
         case EntityType_Stairwell:
@@ -984,7 +996,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ClearCollisionRules(GameState, Entity->StorageIndex);
             }
             PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
-            PushBitmap(RenderGroup, &GameState->Sword, { 0, 0 }, 0, { 29, 10 });
+            v2 Alignment = TopDownAlign(&GameState->Sword, V2(29, 10));
+            PushBitmap(RenderGroup, &GameState->Sword, { 0, 0 }, 0, Alignment);
         }
         break;
         case EntityType_Familiar:
@@ -1059,6 +1072,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Basis->P = GetEntityGroundPoint(Entity);
     }
 
+#if 1
     GameState->Time += Input->dtForFrame * 0.1f;
     real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
 
@@ -1130,6 +1144,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     TranState->EnvMaps[0].Pz = -2.0f;
     TranState->EnvMaps[1].Pz = 0.0f;
     TranState->EnvMaps[2].Pz = 2.0f;
+
+#endif
 
 #if 0
     Saturation(RenderGroup, 1.0f);

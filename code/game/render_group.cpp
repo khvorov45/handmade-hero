@@ -82,13 +82,9 @@ internal v2 GetRenderEntityBasisP(
 ) {
     v3 EntityBaseP = EntityBasis->Basis->P;
     real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.z + EntityBasis->OffsetZ);
-    real32 EntityGroudX = ScreenCenter.x + EntityBaseP.x * RenderGroup->MetersToPixels * ZFudge;
-    real32 EntityGroudY = ScreenCenter.y - EntityBaseP.y * RenderGroup->MetersToPixels * ZFudge;
-    real32 EntityZ = -EntityBaseP.z * RenderGroup->MetersToPixels;
-    v2 Center = V2(
-        EntityGroudX + EntityBasis->Offset.x,
-        EntityGroudY + EntityBasis->Offset.y + EntityZ * EntityBasis->EntityZC
-    );
+    v2 EntityGround = ScreenCenter + EntityBaseP.xy * RenderGroup->MetersToPixels * ZFudge;
+    real32 EntityZ = EntityBaseP.z * RenderGroup->MetersToPixels;
+    v2 Center = EntityGround + EntityBasis->Offset + V2(0, EntityZ * EntityBasis->EntityZC);
     return Center;
 }
 
@@ -117,13 +113,12 @@ internal inline void PushPiece(
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
-    v2 OffsetFixY = { Offset.x, -Offset.y };
     render_entry_bitmap* Piece = PushRenderElement(Group, render_entry_bitmap);
     if (Piece) {
         Piece->EntityBasis.Basis = Group->DefaultBasis;
         Piece->Color = Color;
         Piece->Bitmap = Bitmap;
-        Piece->EntityBasis.Offset = MetersToPixels * OffsetFixY - Align;
+        Piece->EntityBasis.Offset = MetersToPixels * Offset - Align;
         Piece->EntityBasis.OffsetZ = OffsetZ;
         Piece->EntityBasis.EntityZC = EntityZC;
     }
@@ -147,13 +142,12 @@ internal inline void PushRect(
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
-    v2 OffsetFixY = { Offset.x, -Offset.y };
     render_entry_rectangle* Piece = PushRenderElement(Group, render_entry_rectangle);
     if (Piece) {
         v2 HalfDim = Group->MetersToPixels * Dim * 0.5f;
         Piece->EntityBasis.Basis = Group->DefaultBasis;
         Piece->Color = Color;
-        Piece->EntityBasis.Offset = MetersToPixels * OffsetFixY - V2(HalfDim.x, HalfDim.y);
+        Piece->EntityBasis.Offset = MetersToPixels * Offset - HalfDim;
         Piece->EntityBasis.OffsetZ = OffsetZ;
         Piece->EntityBasis.EntityZC = EntityZC;
         Piece->Dim = Group->MetersToPixels * Dim;
@@ -780,10 +774,10 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
 
         case RenderGroupEntryType_render_entry_bitmap: {
             render_entry_bitmap* Entry = (render_entry_bitmap*)Data;
-#if 0
+#if 1
             v2 P = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
             Assert(Entry->Bitmap);
-            DrawBitmap(OutputTarget, Entry->Bitmap, P.x, P.y, Entry->A);
+            DrawBitmap(OutputTarget, Entry->Bitmap, P.x, P.y, Entry->Color.a);
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
