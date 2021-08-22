@@ -35,6 +35,7 @@ struct loaded_bitmap {
     int32 Width;
     int32 Height;
     int32 Pitch;
+    int32 AlignX, AlignY;
 };
 
 internal v4 SRGB255ToLinear1(v4 Color) {
@@ -60,7 +61,7 @@ internal v4 Linear1ToSRGB255(v4 Color) {
 internal loaded_bitmap DEBUGLoadBMP(
     thread_context* Thread,
     debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
-    char* Filename
+    char* Filename, int32 AlignX = 0, int32 TopDownAlignY = 0
 ) {
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Thread, Filename);
     loaded_bitmap Result = {};
@@ -75,6 +76,8 @@ internal loaded_bitmap DEBUGLoadBMP(
     Assert(Result.Height >= 0);
     Result.Width = Header->Width;
     Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
+    Result.AlignX = AlignX;
+    Result.AlignY = (Result.Height - 1) - TopDownAlignY;
 
     uint32 RedMask = Header->RedMask;
     uint32 GreenMask = Header->GreenMask;

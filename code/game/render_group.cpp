@@ -109,7 +109,7 @@ PushRenderElement_(render_group* Group, uint32 Size, render_group_entry_type Typ
 internal inline void
 PushBitmap(
     render_group* Group, loaded_bitmap* Bitmap,
-    v2 Offset, real32 OffsetZ, v2 Align, v4 Color = V4(1, 1, 1, 1),
+    v2 Offset, real32 OffsetZ, v4 Color = V4(1, 1, 1, 1),
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
@@ -118,7 +118,7 @@ PushBitmap(
         Piece->EntityBasis.Basis = Group->DefaultBasis;
         Piece->Color = Color;
         Piece->Bitmap = Bitmap;
-        Piece->EntityBasis.Offset = MetersToPixels * Offset - Align;
+        Piece->EntityBasis.Offset = MetersToPixels * Offset - V2i(Bitmap->AlignX, Bitmap->AlignY);
         Piece->EntityBasis.OffsetZ = OffsetZ;
         Piece->EntityBasis.EntityZC = EntityZC;
     }
@@ -127,7 +127,7 @@ PushBitmap(
 internal inline void PushRect(
     render_group* Group,
     v2 Offset, real32 OffsetZ, v2 Dim,
-    v4 Color,
+    v4 Color = V4(1, 1, 1, 1),
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
@@ -160,7 +160,7 @@ internal void Saturation(render_group* Group, real32 Level) {
 internal void PushRectOutline(
     render_group* Group,
     v2 Offset, real32 OffsetZ, v2 Dim,
-    v4 Color,
+    v4 Color = V4(1, 1, 1, 1),
     real32 EntityZC = 1.0f
 ) {
     real32 Thickness = 0.1f;

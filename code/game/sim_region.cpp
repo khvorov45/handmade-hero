@@ -7,7 +7,6 @@
 #include "bmp.cpp"
 
 struct hero_bitmaps {
-    v2 Align;
     loaded_bitmap Head;
     loaded_bitmap Cape;
     loaded_bitmap Torso;
@@ -531,16 +530,16 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-        }
+            }
 #else
             real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
             NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+            }
+        }
     }
-}
-}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
