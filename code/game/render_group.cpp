@@ -106,10 +106,10 @@ PushRenderElement_(render_group* Group, uint32 Size, render_group_entry_type Typ
     return Result;
 }
 
-internal inline void PushPiece(
+internal inline void
+PushBitmap(
     render_group* Group, loaded_bitmap* Bitmap,
-    v2 Offset, real32 OffsetZ, v2 Align, v2 Dim,
-    v4 Color,
+    v2 Offset, real32 OffsetZ, v2 Align, v4 Color = V4(1, 1, 1, 1),
     real32 EntityZC = 1.0f
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
@@ -122,17 +122,6 @@ internal inline void PushPiece(
         Piece->EntityBasis.OffsetZ = OffsetZ;
         Piece->EntityBasis.EntityZC = EntityZC;
     }
-}
-
-internal inline void
-PushBitmap(
-    render_group* Group, loaded_bitmap* Bitmap,
-    v2 Offset, real32 OffsetZ, v2 Align, real32 Alpha = 1.0f,
-    real32 EntityZC = 1.0f
-) {
-    PushPiece(
-        Group, Bitmap, Offset, OffsetZ, Align, { 0, 0 }, { 0, 0, 0, Alpha }, EntityZC
-    );
 }
 
 internal inline void PushRect(

@@ -965,7 +965,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
 
 
-            PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
+            PushBitmap(
+                RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align,
+                V4(1, 1, 1, ShadowAlpha), 0.0f
+            );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, { 0, 0 }, 0, HeroBitmaps->Align);
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
             PushBitmap(RenderGroup, &HeroBitmaps->Cape, { 0, 0 }, 0, HeroBitmaps->Align);
@@ -995,7 +998,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 MakeEntityNonSpatial(Entity);
                 ClearCollisionRules(GameState, Entity->StorageIndex);
             }
-            PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha, 0.0f);
+            PushBitmap(
+                RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align,
+                V4(1, 1, 1, ShadowAlpha), 0.0f
+            );
             v2 Alignment = TopDownAlign(&GameState->Sword, V2(29, 10));
             PushBitmap(RenderGroup, &GameState->Sword, { 0, 0 }, 0, Alignment);
         }
@@ -1038,13 +1044,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveSpec.Speed = 150.0f;
             MoveSpec.UnitMaxAccelVector = true;
 
-            PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha * 0.5f + BobSin * 0.2f);
+            PushBitmap(
+                RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align,
+                V4(1, 1, 1, ShadowAlpha * 0.5f + BobSin * 0.2f)
+            );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, { 0, 0 }, 0.2f * BobSin, HeroBitmaps->Align);
         }
         break;
         case EntityType_Monster:
         {
-            PushBitmap(RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align, ShadowAlpha);
+            PushBitmap(
+                RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0, HeroBitmaps->Align,
+                V4(1, 1, 1, ShadowAlpha)
+            );
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, { 0, 0 }, 0, HeroBitmaps->Align);
 
             DrawHitpoints_(Entity, RenderGroup);
