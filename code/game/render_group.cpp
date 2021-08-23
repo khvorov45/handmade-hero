@@ -113,7 +113,7 @@ internal inline void PushBitmap(
         Piece->Color = Color;
         Piece->Bitmap = Bitmap;
         Piece->EntityBasis.Offset =
-            Group->MetersToPixels * Offset - V3i(Bitmap->AlignX, Bitmap->AlignY, 0);
+            Group->MetersToPixels * Offset - V3(Bitmap->Align, 0);
     }
 }
 
@@ -794,8 +794,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
     }
+}

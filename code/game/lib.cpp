@@ -429,8 +429,7 @@ internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
 
 internal void SetTopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
     Align = TopDownAlign(Bitmap, Align);
-    Bitmap->AlignX = (int32)Align.x;
-    Bitmap->AlignY = (int32)Align.y;
+    Bitmap->Align = Align;
 }
 
 internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
@@ -844,8 +843,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             loaded_bitmap* Bitmap = &GroundBuffer->Bitmap;
             v3 Delta = Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
-            Bitmap->AlignX = Bitmap->Width / 2;
-            Bitmap->AlignY = Bitmap->Height / 2;
+            Bitmap->Align.x = (real32)(Bitmap->Width / 2);
+            Bitmap->Align.y = (real32)(Bitmap->Height / 2);
             PushBitmap(RenderGroup, Bitmap, Delta);
         }
     }
