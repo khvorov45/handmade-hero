@@ -794,6 +794,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dZ = 3.0f;
             }
 
+#if 0
             if (Controller->ActionUp.EndedDown) {
                 ConHero->dSword = { 0.0f, 1.0f };
             }
@@ -806,6 +807,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Controller->ActionRight.EndedDown) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
+#else
+            real32 ZoomRate = 0.0f;
+            if (Controller->ActionUp.EndedDown) {
+                ZoomRate = 1.0f;
+            }
+            if (Controller->ActionDown.EndedDown) {
+                ZoomRate = -1.0f;
+            }
+            GameState->ZOffset += ZoomRate * Input->dtForFrame;
+#endif
         }
     }
 
@@ -845,7 +856,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             v3 Delta = Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
             Bitmap->Align.x = (real32)(Bitmap->Width / 2);
             Bitmap->Align.y = (real32)(Bitmap->Height / 2);
-            PushBitmap(RenderGroup, Bitmap, Delta);
+            render_basis* Basis = PushStruct(&TranState->TranArena, render_basis);
+            Basis->P = Delta + V3(0, 0, GameState->ZOffset);
+            RenderGroup->DefaultBasis = Basis;
+            PushBitmap(RenderGroup, Bitmap, V3(0, 0, 0));
         }
     }
 
@@ -1087,10 +1101,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
-        Basis->P = GetEntityGroundPoint(Entity);
+        Basis->P = GetEntityGroundPoint(Entity) + V3(0, 0, GameState->ZOffset);
     }
 
-#if 1
+#if 0
     GameState->Time += Input->dtForFrame * 0.1f;
     real32 Disp = 130.0f * Cos(10.0f * GameState->Time);
 
