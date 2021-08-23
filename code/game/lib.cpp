@@ -183,7 +183,7 @@ internal void DrawHitpoints_(sim_entity* Entity, render_group* RenderGroup) {
                 Color.g = 0.2f;
                 Color.b = 0.2f;
             }
-            PushRect(RenderGroup, HitP, 0, HealthDim, Color, 0.0f);
+            PushRect(RenderGroup, HitP, 0, HealthDim, Color);
             HitP += dHitP;
         }
     }
@@ -976,7 +976,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
             PushBitmap(
                 RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0,
-                V4(1, 1, 1, ShadowAlpha), 0.0f
+                V4(1, 1, 1, ShadowAlpha)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, { 0, 0 }, 0);
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, { 0, 0 }, 0);
@@ -992,8 +992,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Stairwell:
         {
-            PushRect(RenderGroup, V2(0, 0), 0, Entity->WalkableDim, V4(1, 0.5f, 0, 1), 0.0f);
-            PushRect(RenderGroup, V2(0, 0), Entity->WalkableHeight, Entity->WalkableDim, V4(1, 1, 0, 1), 0.0f);
+            PushRect(RenderGroup, V2(0, 0), 0, Entity->WalkableDim, V4(1, 0.5f, 0, 1));
+            PushRect(RenderGroup, V2(0, 0), Entity->WalkableHeight, Entity->WalkableDim, V4(1, 1, 0, 1));
         }
         break;
         case EntityType_Sword:
@@ -1008,7 +1008,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
             PushBitmap(
                 RenderGroup, &GameState->HeroShadow, { 0, 0 }, 0,
-                V4(1, 1, 1, ShadowAlpha), 0.0f
+                V4(1, 1, 1, ShadowAlpha)
             );
             PushBitmap(RenderGroup, &GameState->Sword, { 0, 0 }, 0);
         }
@@ -1073,7 +1073,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         {
             for (uint32 VolumeIndex = 0; VolumeIndex < Entity->Collision->VolumeCount; ++VolumeIndex) {
                 sim_entity_collision_volume* Volume = Entity->Collision->Volumes + VolumeIndex;
-                PushRectOutline(RenderGroup, Volume->OffsetP.xy, 0, Volume->Dim.xy, V4(0, 0.5f, 1, 1), 0.0f);
+                PushRectOutline(RenderGroup, Volume->OffsetP.xy, 0, Volume->Dim.xy, V4(0, 0.5f, 1, 1));
             }
         }
         break;

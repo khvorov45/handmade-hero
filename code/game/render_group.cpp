@@ -10,7 +10,6 @@ struct render_entity_basis {
     render_basis* Basis;
     v2 Offset;
     real32 OffsetZ;
-    real32 EntityZC;
 };
 
 enum render_group_entry_type {
@@ -84,7 +83,7 @@ internal v2 GetRenderEntityBasisP(
     real32 ZFudge = 1.0f + 0.1f * (EntityBaseP.z + EntityBasis->OffsetZ);
     v2 EntityGround = ScreenCenter + EntityBaseP.xy * RenderGroup->MetersToPixels * ZFudge;
     real32 EntityZ = EntityBaseP.z * RenderGroup->MetersToPixels;
-    v2 Center = EntityGround + EntityBasis->Offset + V2(0, EntityZ * EntityBasis->EntityZC);
+    v2 Center = EntityGround + EntityBasis->Offset + V2(0, EntityZ);
     return Center;
 }
 
@@ -109,8 +108,7 @@ PushRenderElement_(render_group* Group, uint32 Size, render_group_entry_type Typ
 internal inline void
 PushBitmap(
     render_group* Group, loaded_bitmap* Bitmap,
-    v2 Offset, real32 OffsetZ, v4 Color = V4(1, 1, 1, 1),
-    real32 EntityZC = 1.0f
+    v2 Offset, real32 OffsetZ, v4 Color = V4(1, 1, 1, 1)
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
     render_entry_bitmap* Piece = PushRenderElement(Group, render_entry_bitmap);
@@ -120,15 +118,13 @@ PushBitmap(
         Piece->Bitmap = Bitmap;
         Piece->EntityBasis.Offset = MetersToPixels * Offset - V2i(Bitmap->AlignX, Bitmap->AlignY);
         Piece->EntityBasis.OffsetZ = OffsetZ;
-        Piece->EntityBasis.EntityZC = EntityZC;
     }
 }
 
 internal inline void PushRect(
     render_group* Group,
     v2 Offset, real32 OffsetZ, v2 Dim,
-    v4 Color = V4(1, 1, 1, 1),
-    real32 EntityZC = 1.0f
+    v4 Color = V4(1, 1, 1, 1)
 ) {
     real32 MetersToPixels = Group->MetersToPixels;
     render_entry_rectangle* Piece = PushRenderElement(Group, render_entry_rectangle);
@@ -138,7 +134,6 @@ internal inline void PushRect(
         Piece->Color = Color;
         Piece->EntityBasis.Offset = MetersToPixels * Offset - HalfDim;
         Piece->EntityBasis.OffsetZ = OffsetZ;
-        Piece->EntityBasis.EntityZC = EntityZC;
         Piece->Dim = Group->MetersToPixels * Dim;
     }
 }
@@ -160,18 +155,17 @@ internal void Saturation(render_group* Group, real32 Level) {
 internal void PushRectOutline(
     render_group* Group,
     v2 Offset, real32 OffsetZ, v2 Dim,
-    v4 Color = V4(1, 1, 1, 1),
-    real32 EntityZC = 1.0f
+    v4 Color = V4(1, 1, 1, 1)
 ) {
     real32 Thickness = 0.1f;
 
     //* Top and bottom
-    PushRect(Group, Offset - V2(0, 0.5f * Dim.y), OffsetZ, V2(Dim.x, Thickness), Color, EntityZC);
-    PushRect(Group, Offset + V2(0, 0.5f * Dim.y), OffsetZ, V2(Dim.x, Thickness), Color, EntityZC);
+    PushRect(Group, Offset - V2(0, 0.5f * Dim.y), OffsetZ, V2(Dim.x, Thickness), Color);
+    PushRect(Group, Offset + V2(0, 0.5f * Dim.y), OffsetZ, V2(Dim.x, Thickness), Color);
 
     //* Left and right
-    PushRect(Group, Offset - V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
-    PushRect(Group, Offset + V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color, EntityZC);
+    PushRect(Group, Offset - V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color);
+    PushRect(Group, Offset + V2(0.5f * Dim.x, 0), OffsetZ, V2(Thickness, Dim.y), Color);
 }
 
 internal void CoordinateSystem(
