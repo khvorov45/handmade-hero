@@ -60,6 +60,14 @@ inline v3 V3(real32 X, real32 Y, real32 Z) {
     return Result;
 };
 
+inline v3 V3i(int32 X, int32 Y, int32 Z) {
+    v3 Result;
+    Result.x = (real32)X;
+    Result.y = (real32)Y;
+    Result.z = (real32)Z;
+    return Result;
+};
+
 inline v3 V3(v2 XY, real32 Z) {
     v3 Result;
     Result.x = XY.x;
