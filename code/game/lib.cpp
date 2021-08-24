@@ -594,7 +594,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex) {
 
-            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown || true ? 2 : 3);
+            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown ? 2 : 3);
 
             bool32 CreatedZDoor = false;
 
@@ -824,7 +824,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     render_group* RenderGroup =
         AllocateRenderGroup(&TranState->TranArena, Megabytes(4), GameState->MetersToPixels);
-
+    RenderGroup->GlobalAlpha = 1.0f;// Clamp01(1.0f - GameState->ZOffset);
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap* DrawBuffer = &DrawBuffer_;
     DrawBuffer->Height = Buffer->Height;
@@ -845,6 +845,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     );
 
     // NOTE(sen) Draw ground
+#if 0
     for (uint32 GroundBufferIndex = 0;
         GroundBufferIndex < TranState->GroundBufferCount;
         GroundBufferIndex++) {
@@ -918,6 +919,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
         }
     }
+#endif
 
     // NOTE(sen) SimRegion
 

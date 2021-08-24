@@ -56,6 +56,7 @@ struct render_entry_rectangle {
 };
 
 struct render_group {
+    real32 GlobalAlpha;
     render_basis* DefaultBasis;
     real32 MetersToPixels;
     uint32 MaxPushBufferSize;
@@ -72,6 +73,7 @@ AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize, real32 Meters
     Result->MetersToPixels = MetersToPixels;
     Result->MaxPushBufferSize = MaxPushBufferSize;
     Result->PushBufferSize = 0;
+    Result->GlobalAlpha = 1.0f;
     return Result;
 }
 
@@ -85,9 +87,9 @@ internal entity_basis_p_result GetRenderEntityBasisP(
 ) {
     entity_basis_p_result Result;
     v3 EntityBaseP = RenderGroup->MetersToPixels * EntityBasis->Basis->P;
-    real32 ZFudge = 1.0f + 0.01f * EntityBaseP.z;
+    real32 ZFudge = 1.0f + 0.002f * EntityBaseP.z;
     v2 EntityGround = ScreenCenter + ZFudge * (EntityBaseP.xy + EntityBasis->Offset.xy);
-    Result.P = EntityGround + V2(0, EntityBaseP.z + EntityBasis->Offset.z);
+    Result.P = EntityGround; // + V2(0, EntityBaseP.z + EntityBasis->Offset.z);
     Result.Scale = ZFudge;
     return Result;
 }
@@ -117,7 +119,7 @@ internal inline void PushBitmap(
     render_entry_bitmap* Piece = PushRenderElement(Group, render_entry_bitmap);
     if (Piece) {
         Piece->EntityBasis.Basis = Group->DefaultBasis;
-        Piece->Color = Color;
+        Piece->Color = Color * Group->GlobalAlpha;
         Piece->Bitmap = Bitmap;
         Piece->EntityBasis.Offset =
             Group->MetersToPixels * Offset - V3(Bitmap->Align, 0);
