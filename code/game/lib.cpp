@@ -815,7 +815,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Controller->ActionDown.EndedDown) {
                 ZoomRate = -1.0f;
             }
-            GameState->ZOffset += ZoomRate * Input->dtForFrame;
 #endif
         }
     }
@@ -824,7 +823,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     render_group* RenderGroup =
         AllocateRenderGroup(&TranState->TranArena, Megabytes(4), GameState->MetersToPixels);
-    RenderGroup->GlobalAlpha = 1.0f;// Clamp01(1.0f - GameState->ZOffset);
+
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap* DrawBuffer = &DrawBuffer_;
     DrawBuffer->Height = Buffer->Height;
@@ -927,9 +926,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     rectangle3 SimBounds = AddRadius(CameraBoundsInMeters, SimBoundsExpansion);
 
     temporary_memory SimMemory = BeginTemporaryMemory(&TranState->TranArena);
+    world_position SimCenterP = GameState->CameraP;
     sim_region* SimRegion = BeginSim(
-        &TranState->TranArena, GameState, World, GameState->CameraP, SimBounds, Input->dtForFrame
+        &TranState->TranArena, GameState, World, SimCenterP, SimBounds, Input->dtForFrame
     );
+
+    v3 CameraP = Subtract(GameState->World, &GameState->CameraP, &SimCenterP);
 
     //* Draw entities
     for (uint32 EntityIndex = 0;
@@ -951,6 +953,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         render_basis* Basis = PushStruct(&TranState->TranArena, render_basis);
         RenderGroup->DefaultBasis = Basis;
+
+        v3 CameraRelativeGroundP = GetEntityGroundPoint(Entity) - CameraP;
+        //real32 FadeStartZ;
+        //real32 FadeEndZ;
+        RenderGroup->GlobalAlpha = Clamp01(1.5f - CameraRelativeGroundP.z);
 
         hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[Entity->FacingDirection];
         switch (Entity->Type) {
@@ -1103,8 +1110,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
         }
 
-        Basis->P = GetEntityGroundPoint(Entity) + V3(0, 0, GameState->ZOffset);
+        Basis->P = GetEntityGroundPoint(Entity);
     }
+
+    RenderGroup->GlobalAlpha = 1.0f;
 
 #if 0
     GameState->Time += Input->dtForFrame * 0.1f;
