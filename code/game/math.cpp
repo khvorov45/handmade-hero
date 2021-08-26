@@ -464,6 +464,15 @@ inline v3 Clamp01(v3 Value) {
     return Result;
 }
 
+internal inline real32 Clamp01MapToRange(real32 Min, real32 t, real32 Max) {
+    real32 Result = 0.0f;
+    real32 Range = Max - Min;
+    if (Range != 0.0f) {
+        Result = Clamp01((t - Min) / Range);
+    }
+    return Result;
+}
+
 inline rectangle2 ToRectangleXY(rectangle3 A) {
     rectangle2 Result;
     Result.Min = A.Min.xy;

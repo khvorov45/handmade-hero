@@ -406,7 +406,7 @@ BeginSim(
 
     SimRegion->UpdatableBounds = AddRadius(
         Bounds,
-        V3(SimRegion->MaxEntityRadius, SimRegion->MaxEntityRadius, SimRegion->MaxEntityRadius)
+        V3(SimRegion->MaxEntityRadius, SimRegion->MaxEntityRadius, 0.0f)
     );
 
     SimRegion->Bounds = AddRadius(

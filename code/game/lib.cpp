@@ -594,17 +594,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex) {
 
-            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown ? 2 : 3);
+            uint32 DoorDirection = RandomChoice(&Series, DoorUp || DoorDown ? 2 : 4);
+            DoorDirection = 3;
 
             bool32 CreatedZDoor = false;
 
-            if (DoorDirection == 2) {
+            if (DoorDirection == 3) {
                 CreatedZDoor = true;
-                if (AbsTileZ == ScreenBaseZ) {
-                    DoorUp = true;
-                } else {
-                    DoorDown = true;
-                }
+                DoorDown = true;
+            } else if (DoorDirection == 2) {
+                CreatedZDoor = true;
+                DoorUp = true;
             } else if (DoorDirection == 1) {
                 DoorRight = true;
             } else {
@@ -624,23 +624,29 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     uint32 AbsTileY = ScreenY * TilesPerHeight + TileY;
 
                     bool32 ShouldBeDoor = false;
-                    if (TileX == 0 && (!DoorLeft || TileY != TilesPerHeight / 2)) {
+                    if ((TileX == 0) && (!DoorLeft || TileY != TilesPerHeight / 2)) {
                         ShouldBeDoor = true;
                     }
-                    if (TileX == TilesPerWidth - 1 && (!DoorRight || TileY != TilesPerHeight / 2)) {
+                    if ((TileX == TilesPerWidth - 1) && (!DoorRight || TileY != TilesPerHeight / 2)) {
                         ShouldBeDoor = true;
                     }
-                    if (TileY == 0 && (!DoorBottom || TileX != TilesPerWidth / 2)) {
+                    if ((TileY == 0) && (!DoorBottom || TileX != TilesPerWidth / 2)) {
                         ShouldBeDoor = true;
                     }
-                    if (TileY == TilesPerHeight - 1 && (!DoorTop || TileX != TilesPerWidth / 2)) {
+                    if ((TileY == TilesPerHeight - 1) && (!DoorTop || TileX != TilesPerWidth / 2)) {
                         ShouldBeDoor = true;
                     }
 
                     if (ShouldBeDoor) {
-                        AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
+                        if ((TileY % 2) || (TileX % 2)) {
+                            AddWall_(GameState, AbsTileX, AbsTileY, AbsTileZ);
+                        }
                     } else if (CreatedZDoor) {
-                        if (TileX == 10 && TileY == 5) {
+                        if (AbsTileZ % 2 == 1 && (TileX == 10 && TileY == 5)) {
+                            AddStair(
+                                GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ
+                            );
+                        } else if ((AbsTileZ % 2 == 0 && (TileX == 8 && TileY == 5))) {
                             AddStair(
                                 GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ
                             );
@@ -663,12 +669,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 DoorDown = false;
             }
 
-            if (DoorDirection == 2) {
-                if (AbsTileZ == ScreenBaseZ) {
-                    AbsTileZ = ScreenBaseZ + 1;
-                } else {
-                    AbsTileZ = ScreenBaseZ;
-                }
+            if (DoorDirection == 3) {
+                AbsTileZ -= 1;
+            } else if (DoorDirection == 2) {
+                AbsTileZ += 1;
             } else if (DoorDirection == 1) {
                 ScreenX += 1;
             } else {
@@ -840,8 +844,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     real32 ScreenHeightInMeters = Buffer->Height * PixelsToMeters;
     rectangle3 CameraBoundsInMeters = RectCenterDim(
         V3(0, 0, 0),
-        V3(ScreenWidthInMeters, ScreenHeightInMeters, 0)
+        V3(ScreenWidthInMeters, ScreenHeightInMeters, 0.0f)
     );
+    CameraBoundsInMeters.Min.z = -3.0f * GameState->TypicalFloorHeight;
+    CameraBoundsInMeters.Max.z = 1.0f * GameState->TypicalFloorHeight;
 
     // NOTE(sen) Draw ground
 #if 0
@@ -922,7 +928,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     // NOTE(sen) SimRegion
 
-    v3 SimBoundsExpansion = V3(15.0f, 15.0f, 15.0f);
+    v3 SimBoundsExpansion = V3(15.0f, 15.0f, 0.0f);
     rectangle3 SimBounds = AddRadius(CameraBoundsInMeters, SimBoundsExpansion);
 
     temporary_memory SimMemory = BeginTemporaryMemory(&TranState->TranArena);
@@ -955,9 +961,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         RenderGroup->DefaultBasis = Basis;
 
         v3 CameraRelativeGroundP = GetEntityGroundPoint(Entity) - CameraP;
-        //real32 FadeStartZ;
-        //real32 FadeEndZ;
-        RenderGroup->GlobalAlpha = Clamp01(1.5f - CameraRelativeGroundP.z);
+        real32 FadeTopEndZ = 0.75f * GameState->TypicalFloorHeight;
+        real32 FadeTopStartZ = 0.5f * GameState->TypicalFloorHeight;
+        real32 FadeBottomStartZ = -2.0f * GameState->TypicalFloorHeight;
+        real32 FadeBottomEndZ = -2.25f * GameState->TypicalFloorHeight;
+
+        RenderGroup->GlobalAlpha = 1.0f;
+        if (CameraRelativeGroundP.z > FadeTopStartZ) {
+            RenderGroup->GlobalAlpha = Clamp01MapToRange(FadeTopEndZ, CameraRelativeGroundP.z, FadeTopStartZ);
+        } else if (CameraRelativeGroundP.z < FadeBottomStartZ) {
+            RenderGroup->GlobalAlpha = Clamp01MapToRange(FadeBottomEndZ, CameraRelativeGroundP.z, FadeBottomStartZ);
+        }
 
         hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[Entity->FacingDirection];
         switch (Entity->Type) {
