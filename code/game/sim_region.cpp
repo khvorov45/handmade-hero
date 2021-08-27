@@ -203,9 +203,6 @@ struct game_state {
     loaded_bitmap Sword;
     loaded_bitmap Stairwell;
 
-    real32 MetersToPixels;
-    real32 PixelsToMeters;
-
     pairwise_collision_rule* CollisionRuleHash[256];
     pairwise_collision_rule* FirstFreeCollisionRule;
 

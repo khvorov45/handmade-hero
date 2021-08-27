@@ -35,7 +35,8 @@ struct loaded_bitmap {
     int32 Width;
     int32 Height;
     int32 Pitch;
-    v2 Align;
+    v2 AlignPercentage;
+    real32 WidthOverHeight;
 };
 
 internal v4 SRGB255ToLinear1(v4 Color) {
@@ -58,6 +59,13 @@ internal v4 Linear1ToSRGB255(v4 Color) {
     return Result;
 }
 
+internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
+    v2 Result = V2(Align.x, (Bitmap->Height - 1) - Align.y);
+    Result.x = SafeRatio0(Result.x, (real32)Bitmap->Width);
+    Result.y = SafeRatio0(Result.y, (real32)Bitmap->Height);
+    return Result;
+}
+
 internal loaded_bitmap DEBUGLoadBMP(
     thread_context* Thread,
     debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
@@ -75,8 +83,9 @@ internal loaded_bitmap DEBUGLoadBMP(
     Result.Height = Header->Height;
     Assert(Result.Height >= 0);
     Result.Width = Header->Width;
+    Result.WidthOverHeight = SafeRatio0((real32)Result.Width, (real32)Result.Height);
     Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
-    Result.Align = V2i(AlignX, (Result.Height - 1) - TopDownAlignY);
+    Result.AlignPercentage = TopDownAlign(&Result, V2i(AlignX, TopDownAlignY));
 
     uint32 RedMask = Header->RedMask;
     uint32 GreenMask = Header->GreenMask;
