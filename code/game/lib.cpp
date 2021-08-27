@@ -646,7 +646,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                             AddStair(
                                 GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ
                             );
-                        } else if ((AbsTileZ % 2 == 0 && (TileX == 8 && TileY == 5))) {
+                        } else if ((AbsTileZ % 2 == 0 && (TileX == 7 && TileY == 5))) {
                             AddStair(
                                 GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ
                             );
@@ -819,6 +819,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Controller->ActionDown.EndedDown) {
                 ZoomRate = -1.0f;
             }
+            if (Controller->ActionLeft.EndedDown) {
+                ConHero->dSword = { -1.0f, 0.0f };
+            }
+            if (Controller->ActionRight.EndedDown) {
+                ConHero->dSword = { 1.0f, 0.0f };
+            }
 #endif
         }
     }
@@ -922,7 +928,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #endif
                 }
             }
-        }
+}
     }
 #endif
 
@@ -1074,8 +1080,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHeroDSq = TestDSq;
                         ClosestHero = TestEntity;
                     }
-                }
-            }
+        }
+        }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -1092,7 +1098,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 V4(1, 1, 1, ShadowAlpha * 0.5f + BobSin * 0.2f)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, V3(0, 0, 0.2f * BobSin));
-        }
+    }
         break;
         case EntityType_Monster:
         {

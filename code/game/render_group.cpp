@@ -80,17 +80,26 @@ AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize, real32 Meters
 struct entity_basis_p_result {
     v2 P;
     real32 Scale;
+    bool32 Valid;
 };
 
 internal entity_basis_p_result GetRenderEntityBasisP(
     render_group* RenderGroup, render_entity_basis* EntityBasis, v2 ScreenCenter
 ) {
-    entity_basis_p_result Result;
+    entity_basis_p_result Result = {};
+    real32 FocalLength = RenderGroup->MetersToPixels * 20.0f;
+    real32 CameraDistanceAboveTarget = RenderGroup->MetersToPixels * 20.0f;
     v3 EntityBaseP = RenderGroup->MetersToPixels * EntityBasis->Basis->P;
-    real32 ZFudge = 1.0f + 0.002f * EntityBaseP.z;
-    v2 EntityGround = ScreenCenter + ZFudge * (EntityBaseP.xy + EntityBasis->Offset.xy);
-    Result.P = EntityGround; // + V2(0, EntityBaseP.z + EntityBasis->Offset.z);
-    Result.Scale = ZFudge;
+    // NOTE(sen) +Z = out of screen
+    real32 DistanceToPZ = CameraDistanceAboveTarget - EntityBaseP.z;
+    v3 RawXY = V3(EntityBaseP.xy + EntityBasis->Offset.xy, 1.0f);
+    real32 NearClipPlane = RenderGroup->MetersToPixels * 0.2f;
+    if (DistanceToPZ > NearClipPlane) {
+        v3 ProjectedXY = RawXY * (FocalLength / DistanceToPZ);
+        Result.P = ScreenCenter + ProjectedXY.xy;
+        Result.Valid = true;
+        Result.Scale = ProjectedXY.z;
+    }
     return Result;
 }
 
