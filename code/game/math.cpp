@@ -297,6 +297,13 @@ inline rectangle2 RectMinMax(v2 Min, v2 Max) {
     return Rect;
 }
 
+inline rectangle3 RectMinMax(v3 Min, v3 Max) {
+    rectangle3 Rect;
+    Rect.Max = Max;
+    Rect.Min = Min;
+    return Rect;
+}
+
 inline rectangle2 RectMinDim(v2 Min, v2 Dim) {
     rectangle2 Rect;
     Rect.Max = Min + Dim;
@@ -355,6 +362,14 @@ inline bool32 RectanglesIntersect(rectangle3 A, rectangle3 B) {
         (B.Max.z <= A.Min.z) || (B.Min.z >= A.Max.z)
         );
     return Result;
+}
+
+inline v2 GetDim(rectangle2 Rect) {
+    return Rect.Max - Rect.Min;
+}
+
+inline v3 GetDim(rectangle3 Rect) {
+    return Rect.Max - Rect.Min;
 }
 
 inline v2 GetMinCorner(rectangle2 Rect) {
