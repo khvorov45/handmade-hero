@@ -365,7 +365,7 @@ internal v4 UnscaleAndBiasNormal(v4 Normal) {
     Result.w = Inv255 * Normal.w;
     return Result;
 }
-
+unsigned long long __rdtsc();
 internal void DrawRectangleSlowly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
@@ -373,6 +373,8 @@ internal void DrawRectangleSlowly(
     environment_map* Top, environment_map* Middle, environment_map* Bottom,
     real32 PixelsToMeters
 ) {
+    BEGIN_TIMED_BLOCK(DrawRectangleSlowly);
+
     Color.rgb *= Color.a;
 
     real32 XAxisLength = Length(XAxis);
@@ -442,6 +444,7 @@ internal void DrawRectangleSlowly(
     for (int32 Y = YMin; Y <= YMax; ++Y) {
         uint32* Pixel = (uint32*)Row;
         for (int32 X = XMin; X <= XMax; ++X) {
+            BEGIN_TIMED_BLOCK(TestPixel);
 
             v2 PixelP = V2i(X, Y);
             v2 d = PixelP - Origin;
@@ -450,6 +453,8 @@ internal void DrawRectangleSlowly(
             real32 Edge2 = Inner(d - XAxis - YAxis, Perp(XAxis));
             real32 Edge3 = Inner(d - YAxis, Perp(YAxis));
             if (Edge0 < 0 && Edge1 < 0 && Edge2 < 0 && Edge3 < 0) {
+                BEGIN_TIMED_BLOCK(FillPixel);
+
 #if 1
                 v2 ScreenSpaceUV = V2((real32)X * InvWidthMax, FixedCastY);
                 real32 ZDiff = PixelsToMeters * ((real32)Y - OriginY);
@@ -481,6 +486,7 @@ internal void DrawRectangleSlowly(
 
                 v4 Texel = SRGBBilinearBlend(TexelSample, TextureXf, TextureYf);
 
+#if 0
                 if (NormalMap) {
                     bilinear_sample NormalSample =
                         BilinearSample(NormalMap, TextureXFloored, TextureYFloored);
@@ -546,7 +552,7 @@ internal void DrawRectangleSlowly(
                     }
 #endif
                 }
-
+#endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
                 Texel.g = Clamp01(Texel.g);
@@ -569,11 +575,15 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.r) << 16) |
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
+                END_TIMED_BLOCK(FillPixel);
+
             }
             Pixel++;
+            END_TIMED_BLOCK(TestPixel);
         }
         Row += Buffer->Pitch;
     }
+    END_TIMED_BLOCK(DrawRectangleSlowly);
 }
 
 internal void
@@ -773,7 +783,7 @@ internal void DrawMatte(
 }
 
 internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* OutputTarget) {
-
+    BEGIN_TIMED_BLOCK(RenderGroupToOutput);
     v2 ScreenDim = V2i(OutputTarget->Width, OutputTarget->Height);
     real32 PixelsToMeters = 1.0f / RenderGroup->MetersToPixels;
 
@@ -864,4 +874,5 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             InvalidDefaultCase;
         }
     }
+    END_TIMED_BLOCK(RenderGroupToOutput);
 }

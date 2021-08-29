@@ -827,6 +827,22 @@ internal void Win32DebugSyncDisplay(
 }
 #endif
 
+internal void HandleDebugCycleCounters(game_memory* GameMemory) {
+#if HANDMADE_INTERNAL
+    OutputDebugStringA("DEBUG CYCLE COUNTS:\n");
+    for (int32 CounterIndex = 0; CounterIndex < ArrayCount(GameMemory->Counters); CounterIndex++) {
+        debug_cycle_counter* Counter = GameMemory->Counters + CounterIndex;
+        if (Counter->HitCount) {
+            char TextBuffer[256];
+            _snprintf_s(TextBuffer, sizeof(TextBuffer), "    %d: %I64ucy %uh %I64ucy/h\n", CounterIndex, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount);
+            OutputDebugStringA(TextBuffer);
+        }
+        Counter->CycleCount = 0;
+        Counter->HitCount = 0;
+    }
+#endif
+}
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
     win32_state Win32State = {};
@@ -885,7 +901,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     ReleaseDC(Window, RefreshDC);
     if (Win32RefreshRate > 1) {
         MonitorRefreshHz = Win32RefreshRate;
-    }
+}
 #endif
 
     real32 GameRefreshHz = 30;
@@ -1153,6 +1169,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         }
         if (GameCode.UpdateAndRender != 0) {
             GameCode.UpdateAndRender(&Thread, &GameMemory, NewInput, &GraphicsBuffer);
+            HandleDebugCycleCounters(&GameMemory);
         }
 
         //* Input

@@ -343,8 +343,7 @@ internal void MakePyramidNormalMap(loaded_bitmap* Bitmap, real32 Roughness) {
     }
 }
 
-internal void
-FillGroundChunk(
+internal void FillGroundChunk(
     transient_state* TranState, game_state* GameState,
     ground_buffer* GroundBuffer, world_position* ChunkP
 ) {
@@ -355,11 +354,11 @@ FillGroundChunk(
     render_group* GroundRenderGroup =
         AllocateRenderGroup(&TranState->TranArena, Megabytes(4), Buffer->Width, Buffer->Height);
 
-    Clear(GroundRenderGroup, V4(1.0f, 1.0f, 0.0f, 1.0f));
+    Clear(GroundRenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
 
     GroundBuffer->P = *ChunkP;
 
-#if 1
+#if 0
     real32 Width = GameState->World->ChunkDimInMeters.x;
     real32 Height = GameState->World->ChunkDimInMeters.y;
     v2 HalfDim = 0.5f * V2(Width, Height);
@@ -432,12 +431,11 @@ internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
     SetTopDownAlign(&Bitmap->Torso, Align);
 }
 
-extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
-    game_state* GameState = (game_state*)Memory->PermanentStorage;
-    GameOutputSound(SoundBuffer);
-}
-
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
+#if HANDMADE_INTERNAL
+    DebugGlobalMemory = Memory;
+#endif
+    BEGIN_TIMED_BLOCK(GameUpdateAndRender);
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     Assert(
         &Input->Controllers[0].Terminator - &Input->Controllers[0].MoveUp ==
@@ -1219,4 +1217,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
+
+    END_TIMED_BLOCK(GameUpdateAndRender);
+}
+
+extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
+    game_state* GameState = (game_state*)Memory->PermanentStorage;
+    GameOutputSound(SoundBuffer);
 }
