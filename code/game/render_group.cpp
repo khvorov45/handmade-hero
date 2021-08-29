@@ -87,7 +87,7 @@ internal render_group* AllocateRenderGroup(
     Result->GameCamera.FocalLength = 0.6f;
     Result->GameCamera.DistanceAboveTarget = 9.0f;
     Result->RenderCamera = Result->GameCamera;
-    Result->RenderCamera.DistanceAboveTarget = 30.0f;
+    // Result->RenderCamera.DistanceAboveTarget = 30.0f;
     real32 WidthOfMonitor = 0.635f;
     Result->MetersToPixels = (real32)(ResolutionPixelsX)*WidthOfMonitor; // NOTE(sen) Should be a division
     real32 PixelsToMeters = 1.0f / Result->MetersToPixels;

@@ -4,6 +4,7 @@
 #include "../types.h"
 #include "../intrinsics.h"
 #include "lib.hpp"
+#include "math.cpp"
 
 #pragma pack(push, 1)
 struct bitmap_header {
@@ -69,7 +70,7 @@ internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
 internal loaded_bitmap DEBUGLoadBMP(
     thread_context* Thread,
     debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
-    char* Filename, int32 AlignX = 0, int32 TopDownAlignY = 0
+    char* Filename, int32 AlignX, int32 TopDownAlignY
 ) {
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Thread, Filename);
     loaded_bitmap Result = {};
@@ -130,6 +131,16 @@ internal loaded_bitmap DEBUGLoadBMP(
         }
     }
     Result.Memory = (uint8*)Pixels;
+    return Result;
+}
+
+internal loaded_bitmap DEBUGLoadBMP(
+    thread_context* Thread,
+    debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
+    char* Filename
+) {
+    loaded_bitmap Result = DEBUGLoadBMP(Thread, DEBUGPlatformReadEntireFile, Filename, 0, 0);
+    Result.AlignPercentage = V2(0.5f, 0.5f);
     return Result;
 }
 
