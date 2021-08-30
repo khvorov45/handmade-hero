@@ -783,11 +783,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     ConHero->ddP.x = 1;
                 }
             }
-
+#if 0
             if (Controller->Start.EndedDown) {
                 ConHero->dZ = 3.0f;
             }
-
+#endif
 #if 0
             if (Controller->ActionUp.EndedDown) {
                 ConHero->dSword = { 0.0f, 1.0f };
