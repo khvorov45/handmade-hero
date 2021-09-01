@@ -664,6 +664,7 @@ internal void DrawRectangleQuickly(
     __m128 Inv255_4x = _mm_set1_ps(Inv255);
     __m128 One_4x = _mm_set1_ps(1.0f);
     __m128 Zero_4x = _mm_set1_ps(0.0f);
+    __m128 Half_4x = _mm_set1_ps(0.5f);
 
     __m128 Colorr_4x = _mm_set1_ps(Color.r);
     __m128 Colorg_4x = _mm_set1_ps(Color.b);
@@ -840,39 +841,18 @@ internal void DrawRectangleQuickly(
             Blendedb = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedb));
             Blendeda = _mm_mul_ps(One255_4x, Blendeda);
 
-#if 1
-            uint32 Rs[4] = { 0x50505050, 0x51515151, 0x52525252, 0x53535353 };
-            uint32 Gs[4] = { 0xC0C0C0C0, 0xC1C1C1C1, 0xC2C2C2C2, 0xC3C3C3C3 };
-            uint32 Bs[4] = { 0xB0B0B0B0, 0xB1B1B1B1, 0xB2B2B2B2, 0xB3B3B3B3 };
-            uint32 As[4] = { 0xA0A0A0A0, 0xA1A1A1A1, 0xA2A2A2A2, 0xA3A3A3A3 };
-            Blendedr = *(__m128*)Rs;
-            Blendedg = *(__m128*)Gs;
-            Blendedb = *(__m128*)Bs;
-            Blendeda = *(__m128*)As;
-#endif
+            __m128i Intr = _mm_cvttps_epi32(_mm_add_ps(Blendedr, Half_4x));
+            __m128i Intg = _mm_cvttps_epi32(_mm_add_ps(Blendedg, Half_4x));
+            __m128i Intb = _mm_cvttps_epi32(_mm_add_ps(Blendedb, Half_4x));
+            __m128i Inta = _mm_cvttps_epi32(_mm_add_ps(Blendeda, Half_4x));
 
-            __m128i R1B1R0B0 = _mm_unpacklo_epi32(_mm_castps_si128(Blendedb), _mm_castps_si128(Blendedr));
-            __m128i A1G1A0G0 = _mm_unpacklo_epi32(_mm_castps_si128(Blendedg), _mm_castps_si128(Blendeda));
+            __m128i Out = _mm_or_si128(
+                _mm_or_si128(_mm_slli_epi32(Intr, 16), _mm_slli_epi32(Intg, 8)),
+                _mm_or_si128(Intb, _mm_slli_epi32(Inta, 24))
+            );
 
-            __m128i R3B3R2B2 = _mm_unpackhi_epi32(_mm_castps_si128(Blendedb), _mm_castps_si128(Blendedr));
-            __m128i A3G3A2G2 = _mm_unpackhi_epi32(_mm_castps_si128(Blendedg), _mm_castps_si128(Blendeda));
+            _mm_storeu_si128((__m128i*)Pixel, Out);
 
-            __m128i ARGB0 = _mm_unpacklo_epi32(R1B1R0B0, A1G1A0G0);
-            __m128i ARGB1 = _mm_unpackhi_epi32(R1B1R0B0, A1G1A0G0);
-
-            __m128i ARGB2 = _mm_unpacklo_epi32(R3B3R2B2, A3G3A2G2);
-            __m128i ARGB3 = _mm_unpackhi_epi32(R3B3R2B2, A3G3A2G2);
-
-            for (int32 PIndex = 0; PIndex < 4; ++PIndex) {
-                //if (ShouldFill[PIndex])
-                {
-                    *(Pixel + PIndex) =
-                        (RoundReal32ToUint32(M(Blendeda, PIndex)) << 24) |
-                        (RoundReal32ToUint32(M(Blendedr, PIndex)) << 16) |
-                        (RoundReal32ToUint32(M(Blendedg, PIndex)) << 8) |
-                        (RoundReal32ToUint32(M(Blendedb, PIndex)) << 0);
-                }
-            }
             Pixel += 4;
         }
         Row += Buffer->Pitch;
