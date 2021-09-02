@@ -664,6 +664,7 @@ internal void DrawRectangleQuickly(
     __m128 Inv255_4x = _mm_set1_ps(Inv255);
     __m128 One_4x = _mm_set1_ps(1.0f);
     __m128 Zero_4x = _mm_set1_ps(0.0f);
+    __m128i MaskFF_4x = _mm_set1_epi32(0xFF);
 
     __m128 Colorr_4x = _mm_set1_ps(Color.r);
     __m128 Colorg_4x = _mm_set1_ps(Color.b);
@@ -678,6 +679,9 @@ internal void DrawRectangleQuickly(
     __m128 Originx_4x = _mm_set1_ps(Origin.x);
     __m128 Originy_4x = _mm_set1_ps(Origin.y);
 
+    __m128 WidthM2 = _mm_set1_ps((real32)Texture->Width - 2);
+    __m128 HeightM2 = _mm_set1_ps((real32)Texture->Height - 2);
+
 #define M(a, i) (((real32*)(&(a)))[i])
 #define Mi(a, i) (((uint32*)(&(a)))[i])
 
@@ -686,36 +690,6 @@ internal void DrawRectangleQuickly(
     for (int32 Y = YMin; Y <= YMax; ++Y) {
         uint32* Pixel = (uint32*)Row;
         for (int32 XI = XMin; XI <= XMax; XI += 4) {
-
-            __m128 TexelAr = _mm_set1_ps(0.0f);
-            __m128 TexelAg = _mm_set1_ps(0.0f);
-            __m128 TexelAb = _mm_set1_ps(0.0f);
-            __m128 TexelAa = _mm_set1_ps(0.0f);
-
-            __m128 TexelBr = _mm_set1_ps(0.0f);
-            __m128 TexelBg = _mm_set1_ps(0.0f);
-            __m128 TexelBb = _mm_set1_ps(0.0f);
-            __m128 TexelBa = _mm_set1_ps(0.0f);
-
-            __m128 TexelCr = _mm_set1_ps(0.0f);
-            __m128 TexelCg = _mm_set1_ps(0.0f);
-            __m128 TexelCb = _mm_set1_ps(0.0f);
-            __m128 TexelCa = _mm_set1_ps(0.0f);
-
-            __m128 TexelDr = _mm_set1_ps(0.0f);
-            __m128 TexelDg = _mm_set1_ps(0.0f);
-            __m128 TexelDb = _mm_set1_ps(0.0f);
-            __m128 TexelDa = _mm_set1_ps(0.0f);
-
-            __m128 Destr = _mm_set1_ps(0.0f);
-            __m128 Destg = _mm_set1_ps(0.0f);
-            __m128 Destb = _mm_set1_ps(0.0f);
-            __m128 Desta = _mm_set1_ps(0.0f);
-
-            __m128 TextureXf = _mm_set1_ps(0.0f);
-            __m128 TextureYf = _mm_set1_ps(0.0f);
-
-            bool32 ShouldFill[4];
 
             __m128 PixelPx = _mm_set_ps(
                 (real32)(XI + 3),
@@ -730,62 +704,67 @@ internal void DrawRectangleQuickly(
             __m128 V = _mm_add_ps(_mm_mul_ps(dx, nYAxisx_4x), _mm_mul_ps(dy, nYAxisy_4x));
 
             __m128i OriginalDest = _mm_loadu_si128((__m128i*)Pixel);
-            __m128i WriteMask = _mm_set1_epi32(0);
+            __m128i WriteMask = _mm_castps_si128(_mm_and_ps(
+                _mm_and_ps(_mm_cmpgt_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x)),
+                _mm_and_ps(_mm_cmpgt_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x))
+            ));
+
+            U = _mm_min_ps(_mm_max_ps(U, Zero_4x), One_4x);
+            V = _mm_min_ps(_mm_max_ps(V, Zero_4x), One_4x);
+
+            __m128i SampleA;
+            __m128i SampleB;
+            __m128i SampleC;
+            __m128i SampleD;
+
+            __m128 TextureX = _mm_mul_ps(U, WidthM2);
+            __m128 TextureY = _mm_mul_ps(V, HeightM2);
+
+            __m128i TextureXFloored = _mm_cvttps_epi32(TextureX);
+            __m128i TextureYFloored = _mm_cvttps_epi32(TextureY);
+
+            __m128 TextureXf = _mm_sub_ps(TextureX, _mm_cvtepi32_ps(TextureXFloored));
+            __m128 TextureYf = _mm_sub_ps(TextureY, _mm_cvtepi32_ps(TextureYFloored));
 
             for (int32 PIndex = 0; PIndex < 4; ++PIndex) {
 
-                ShouldFill[PIndex] = false;
+                int32 FetchX = Mi(TextureXFloored, PIndex);
+                int32 FetchY = Mi(TextureYFloored, PIndex);
 
-                if (M(U, PIndex) >= 0.0f && M(U, PIndex) <= 1.0f && M(V, PIndex) >= 0.0f && M(V, PIndex) <= 1.0f) {
-                    ShouldFill[PIndex] = true;
+                Assert(FetchX >= 0 && FetchX < Texture->Width);
+                Assert(FetchY >= 0 && FetchY < Texture->Height);
 
-                    real32 TextureX = M(U, PIndex) * (real32)(Texture->Width - 2);
-                    real32 TextureY = M(V, PIndex) * (real32)(Texture->Height - 2);
-
-                    int32 TextureXFloored = FloorReal32ToInt32(TextureX);
-                    int32 TextureYFloored = FloorReal32ToInt32(TextureY);
-
-                    M(TextureXf, PIndex) = TextureX - (real32)TextureXFloored;
-                    M(TextureYf, PIndex) = TextureY - (real32)TextureYFloored;
-
-                    Assert(TextureXFloored >= 0 && TextureXFloored < Texture->Width);
-                    Assert(TextureYFloored >= 0 && TextureYFloored < Texture->Height);
-
-                    uint8* TexelPtr = (uint8*)Texture->Memory + TextureYFloored * Texture->Pitch + TextureXFloored * BITMAP_BYTES_PER_PIXEL;
-                    uint32 SampleA = *(uint32*)TexelPtr;
-                    uint32 SampleB = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
-                    uint32 SampleC = *(uint32*)(TexelPtr + Texture->Pitch);
-                    uint32 SampleD = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
-
-                    M(TexelAr, PIndex) = (real32)((SampleA >> 16) & 0xFF);
-                    M(TexelAg, PIndex) = (real32)((SampleA >> 8) & 0xFF);
-                    M(TexelAb, PIndex) = (real32)(SampleA & 0xFF);
-                    M(TexelAa, PIndex) = (real32)(SampleA >> 24);
-
-                    M(TexelBr, PIndex) = (real32)((SampleB >> 16) & 0xFF);
-                    M(TexelBg, PIndex) = (real32)((SampleB >> 8) & 0xFF);
-                    M(TexelBb, PIndex) = (real32)(SampleB & 0xFF);
-                    M(TexelBa, PIndex) = (real32)(SampleB >> 24);
-
-                    M(TexelCr, PIndex) = (real32)((SampleC >> 16) & 0xFF);
-                    M(TexelCg, PIndex) = (real32)((SampleC >> 8) & 0xFF);
-                    M(TexelCb, PIndex) = (real32)(SampleC & 0xFF);
-                    M(TexelCa, PIndex) = (real32)(SampleC >> 24);
-
-                    M(TexelDr, PIndex) = (real32)((SampleD >> 16) & 0xFF);
-                    M(TexelDg, PIndex) = (real32)((SampleD >> 8) & 0xFF);
-                    M(TexelDb, PIndex) = (real32)(SampleD & 0xFF);
-                    M(TexelDa, PIndex) = (real32)(SampleD >> 24);
-
-                    uint32* DestPixel = Pixel + PIndex;
-                    M(Destr, PIndex) = (real32)((*DestPixel >> 16) & 0xFF);
-                    M(Destg, PIndex) = (real32)((*DestPixel >> 8) & 0xFF);
-                    M(Destb, PIndex) = (real32)(*DestPixel & 0xFF);
-                    M(Desta, PIndex) = (real32)(*DestPixel >> 24);
-
-                    Mi(WriteMask, PIndex) = 0xFFFFFFFF;
-                }
+                uint8* TexelPtr = (uint8*)Texture->Memory + FetchY * Texture->Pitch + FetchX * BITMAP_BYTES_PER_PIXEL;
+                Mi(SampleA, PIndex) = *(uint32*)TexelPtr;
+                Mi(SampleB, PIndex) = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
+                Mi(SampleC, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch);
+                Mi(SampleD, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
             }
+
+            __m128 TexelAr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 16), MaskFF_4x));
+            __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 8), MaskFF_4x));
+            __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(SampleA, MaskFF_4x));
+            __m128 TexelAa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 24), MaskFF_4x));
+
+            __m128 TexelBr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 16), MaskFF_4x));
+            __m128 TexelBg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 8), MaskFF_4x));
+            __m128 TexelBb = _mm_cvtepi32_ps(_mm_and_si128(SampleB, MaskFF_4x));
+            __m128 TexelBa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 24), MaskFF_4x));
+
+            __m128 TexelCr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 16), MaskFF_4x));
+            __m128 TexelCg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 8), MaskFF_4x));
+            __m128 TexelCb = _mm_cvtepi32_ps(_mm_and_si128(SampleC, MaskFF_4x));
+            __m128 TexelCa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 24), MaskFF_4x));
+
+            __m128 TexelDr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 16), MaskFF_4x));
+            __m128 TexelDg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 8), MaskFF_4x));
+            __m128 TexelDb = _mm_cvtepi32_ps(_mm_and_si128(SampleD, MaskFF_4x));
+            __m128 TexelDa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 24), MaskFF_4x));
+
+            __m128 Destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 16), MaskFF_4x));
+            __m128 Destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 8), MaskFF_4x));
+            __m128 Destb = _mm_cvtepi32_ps(_mm_and_si128(OriginalDest, MaskFF_4x));
+            __m128 Desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 24), MaskFF_4x));
 
 #define mmSquare(a) _mm_mul_ps((a), (a))
 
