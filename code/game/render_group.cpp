@@ -664,7 +664,6 @@ internal void DrawRectangleQuickly(
     __m128 Inv255_4x = _mm_set1_ps(Inv255);
     __m128 One_4x = _mm_set1_ps(1.0f);
     __m128 Zero_4x = _mm_set1_ps(0.0f);
-    __m128 Half_4x = _mm_set1_ps(0.5f);
 
     __m128 Colorr_4x = _mm_set1_ps(Color.r);
     __m128 Colorg_4x = _mm_set1_ps(Color.b);
@@ -680,6 +679,8 @@ internal void DrawRectangleQuickly(
     __m128 Originy_4x = _mm_set1_ps(Origin.y);
 
 #define M(a, i) (((real32*)(&(a)))[i])
+#define Mi(a, i) (((uint32*)(&(a)))[i])
+
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
     BEGIN_TIMED_BLOCK(ProcessPixel);
     for (int32 Y = YMin; Y <= YMax; ++Y) {
@@ -727,6 +728,9 @@ internal void DrawRectangleQuickly(
             __m128 dy = _mm_sub_ps(PixelPy, Originy_4x);
             __m128 U = _mm_add_ps(_mm_mul_ps(dx, nXAxisx_4x), _mm_mul_ps(dy, nXAxisy_4x));
             __m128 V = _mm_add_ps(_mm_mul_ps(dx, nYAxisx_4x), _mm_mul_ps(dy, nYAxisy_4x));
+
+            __m128i OriginalDest = _mm_loadu_si128((__m128i*)Pixel);
+            __m128i WriteMask = _mm_set1_epi32(0);
 
             for (int32 PIndex = 0; PIndex < 4; ++PIndex) {
 
@@ -778,6 +782,8 @@ internal void DrawRectangleQuickly(
                     M(Destg, PIndex) = (real32)((*DestPixel >> 8) & 0xFF);
                     M(Destb, PIndex) = (real32)(*DestPixel & 0xFF);
                     M(Desta, PIndex) = (real32)(*DestPixel >> 24);
+
+                    Mi(WriteMask, PIndex) = 0xFFFFFFFF;
                 }
             }
 
@@ -841,17 +847,22 @@ internal void DrawRectangleQuickly(
             Blendedb = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedb));
             Blendeda = _mm_mul_ps(One255_4x, Blendeda);
 
-            __m128i Intr = _mm_cvttps_epi32(_mm_add_ps(Blendedr, Half_4x));
-            __m128i Intg = _mm_cvttps_epi32(_mm_add_ps(Blendedg, Half_4x));
-            __m128i Intb = _mm_cvttps_epi32(_mm_add_ps(Blendedb, Half_4x));
-            __m128i Inta = _mm_cvttps_epi32(_mm_add_ps(Blendeda, Half_4x));
+            __m128i Intr = _mm_cvtps_epi32(Blendedr);
+            __m128i Intg = _mm_cvtps_epi32(Blendedg);
+            __m128i Intb = _mm_cvtps_epi32(Blendedb);
+            __m128i Inta = _mm_cvtps_epi32(Blendeda);
 
             __m128i Out = _mm_or_si128(
                 _mm_or_si128(_mm_slli_epi32(Intr, 16), _mm_slli_epi32(Intg, 8)),
                 _mm_or_si128(Intb, _mm_slli_epi32(Inta, 24))
             );
 
-            _mm_storeu_si128((__m128i*)Pixel, Out);
+            __m128i MaskedOut = _mm_or_si128(
+                _mm_and_si128(WriteMask, Out),
+                _mm_andnot_si128(WriteMask, OriginalDest)
+            );
+
+            _mm_storeu_si128((__m128i*)Pixel, MaskedOut);
 
             Pixel += 4;
         }
