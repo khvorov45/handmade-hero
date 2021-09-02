@@ -404,6 +404,7 @@ internal void DrawRectangleSlowly(
         Origin + XAxis + YAxis,
         Origin + YAxis
     };
+
     for (uint32 PIndex = 0; PIndex < ArrayCount(P); PIndex++) {
         v2 TestP = P[PIndex];
         int32 FloorX = FloorReal32ToInt32(TestP.x);
@@ -441,6 +442,7 @@ internal void DrawRectangleSlowly(
     real32 InvYAxisLengthSq = 1 / LengthSq(YAxis);
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
+    BEGIN_TIMED_BLOCK(ProcessPixel);
     for (int32 Y = YMin; Y <= YMax; ++Y) {
         uint32* Pixel = (uint32*)Row;
         for (int32 X = XMin; X <= XMax; ++X) {
@@ -579,6 +581,7 @@ internal void DrawRectangleSlowly(
         }
         Row += Buffer->Pitch;
     }
+    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
 #include <xmmintrin.h>
@@ -1085,7 +1088,14 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             entity_basis_p_result Basis = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenDim);
             Assert(Entry->Bitmap);
 #if 0
-            DrawBitmap(OutputTarget, Entry->Bitmap, Basis.x, Basis.y, Entry->Color.a);
+            DrawRectangleSlowly(
+                OutputTarget,
+                Basis.P,
+                Basis.Scale * V2(Entry->Size.x, 0),
+                Basis.Scale * V2(0, Entry->Size.y),
+                Entry->Color,
+                Entry->Bitmap, 0, 0, 0, 0, PixelsToMeters
+            );
 #else
             DrawRectangleQuickly(
                 OutputTarget,
