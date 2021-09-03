@@ -776,11 +776,6 @@ internal void DrawRectangleQuickly(
             U = _mm_min_ps(_mm_max_ps(U, Zero_4x), One_4x);
             V = _mm_min_ps(_mm_max_ps(V, Zero_4x), One_4x);
 
-            __m128i SampleA;
-            __m128i SampleB;
-            __m128i SampleC;
-            __m128i SampleD;
-
             __m128 TextureX = _mm_mul_ps(U, WidthM2);
             __m128 TextureY = _mm_mul_ps(V, HeightM2);
 
@@ -789,7 +784,11 @@ internal void DrawRectangleQuickly(
 
             __m128 TextureXf = _mm_sub_ps(TextureX, _mm_cvtepi32_ps(TextureXFloored));
             __m128 TextureYf = _mm_sub_ps(TextureY, _mm_cvtepi32_ps(TextureYFloored));
-
+#if 1
+            __m128i SampleA;
+            __m128i SampleB;
+            __m128i SampleC;
+            __m128i SampleD;
 #if COUNT_CYCLES
             SampleA = 0;
             SampleB = 0;
@@ -811,6 +810,8 @@ internal void DrawRectangleQuickly(
                 Mi(SampleD, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
             }
 #endif
+
+
             __m128 TexelAr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 16), MaskFF_4x));
             __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 8), MaskFF_4x));
             __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(SampleA, MaskFF_4x));
@@ -903,7 +904,9 @@ internal void DrawRectangleQuickly(
                 _mm_or_si128(_mm_slli_epi32(Intr, 16), _mm_slli_epi32(Intg, 8)),
                 _mm_or_si128(Intb, _mm_slli_epi32(Inta, 24))
             );
-
+#else
+            __m128i Out = _mm_or_si128(TextureXFloored, TextureYFloored);
+#endif
             __m128i MaskedOut = _mm_or_si128(
                 _mm_and_si128(WriteMask, Out),
                 _mm_andnot_si128(WriteMask, OriginalDest)
