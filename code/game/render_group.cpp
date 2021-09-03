@@ -667,6 +667,7 @@ internal void DrawRectangleQuickly(
     __m128 Inv255_4x = _mm_set1_ps(Inv255);
     __m128 One_4x = _mm_set1_ps(1.0f);
     __m128 Zero_4x = _mm_set1_ps(0.0f);
+    __m128 Four_4x = _mm_set1_ps(4.0f);
     __m128i MaskFF_4x = _mm_set1_epi32(0xFF);
 
     __m128 Colorr_4x = _mm_set1_ps(Color.r);
@@ -689,18 +690,21 @@ internal void DrawRectangleQuickly(
 #define Mi(a, i) (((uint32*)(&(a)))[i])
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
+    __m128 PixelPy = _mm_set1_ps((real32)YMin);
+
     BEGIN_TIMED_BLOCK(ProcessPixel);
     for (int32 Y = YMin; Y <= YMax; ++Y) {
+
         uint32* Pixel = (uint32*)Row;
+        __m128 PixelPx = _mm_set_ps(
+            (real32)(XMin + 3),
+            (real32)(XMin + 2),
+            (real32)(XMin + 1),
+            (real32)(XMin + 0)
+        );
+
         for (int32 XI = XMin; XI <= XMax; XI += 4) {
 
-            __m128 PixelPx = _mm_set_ps(
-                (real32)(XI + 3),
-                (real32)(XI + 2),
-                (real32)(XI + 1),
-                (real32)(XI + 0)
-            );
-            __m128 PixelPy = _mm_set1_ps((real32)Y);
             __m128 dx = _mm_sub_ps(PixelPx, Originx_4x);
             __m128 dy = _mm_sub_ps(PixelPy, Originy_4x);
             __m128 U = _mm_add_ps(_mm_mul_ps(dx, nXAxisx_4x), _mm_mul_ps(dy, nXAxisy_4x));
@@ -847,8 +851,10 @@ internal void DrawRectangleQuickly(
             _mm_storeu_si128((__m128i*)Pixel, MaskedOut);
 
             Pixel += 4;
+            PixelPx = _mm_add_ps(PixelPx, Four_4x);
         }
         Row += Buffer->Pitch;
+        PixelPy = _mm_add_ps(PixelPy, One_4x);
     }
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleQuickly);
@@ -1142,12 +1148,12 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            }
+        }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
-        }
     }
+}
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
