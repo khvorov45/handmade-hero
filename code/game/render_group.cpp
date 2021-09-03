@@ -712,8 +712,8 @@ internal void DrawRectangleQuickly(
 
             __m128i OriginalDest = _mm_loadu_si128((__m128i*)Pixel);
             __m128i WriteMask = _mm_castps_si128(_mm_and_ps(
-                _mm_and_ps(_mm_cmpgt_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x)),
-                _mm_and_ps(_mm_cmpgt_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x))
+                _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x)),
+                _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x))
             ));
 
             U = _mm_min_ps(_mm_max_ps(U, Zero_4x), One_4x);
@@ -1148,12 +1148,12 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-        }
+            }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
-    }
-}
+        }
+        }
     END_TIMED_BLOCK(RenderGroupToOutput);
-}
+    }
