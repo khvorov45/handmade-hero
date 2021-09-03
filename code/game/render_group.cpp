@@ -1235,9 +1235,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
-    END_TIMED_BLOCK(RenderGroupToOutput);
     }
+    END_TIMED_BLOCK(RenderGroupToOutput);
+}
