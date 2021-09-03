@@ -790,7 +790,12 @@ internal void DrawRectangleQuickly(
             __m128 TextureXf = _mm_sub_ps(TextureX, _mm_cvtepi32_ps(TextureXFloored));
             __m128 TextureYf = _mm_sub_ps(TextureY, _mm_cvtepi32_ps(TextureYFloored));
 
-#if !COUNT_CYCLES
+#if COUNT_CYCLES
+            SampleA = 0;
+            SampleB = 0;
+            SampleC = 0;
+            SampleD = 0;
+#else
             for (int32 PIndex = 0; PIndex < 4; ++PIndex) {
 
                 int32 FetchX = Mi(TextureXFloored, PIndex);
@@ -805,11 +810,6 @@ internal void DrawRectangleQuickly(
                 Mi(SampleC, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch);
                 Mi(SampleD, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
             }
-#else
-            SampleA = 0;
-            SampleB = 0;
-            SampleC = 0;
-            SampleD = 0;
 #endif
             __m128 TexelAr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 16), MaskFF_4x));
             __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 8), MaskFF_4x));
@@ -1235,9 +1235,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
         }
-    }
+        }
     END_TIMED_BLOCK(RenderGroupToOutput);
-}
+    }
