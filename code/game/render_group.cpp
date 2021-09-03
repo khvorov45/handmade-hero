@@ -773,6 +773,8 @@ internal void DrawRectangleQuickly(
             SampleC = TextureXFloored;
             SampleD = TextureXFloored;
 #endif
+
+#if 0
             __m128i TexelArb = _mm_and_si128(SampleA, MaskFF00FF_4x);
             __m128i TexelAag = _mm_and_si128(SampleA, MaskFF00FF00_4x);
             TexelArb = _mm_mullo_epi16(TexelArb, TexelArb);
@@ -797,11 +799,6 @@ internal void DrawRectangleQuickly(
             __m128 TexelDa = _mm_cvtepi32_ps(_mm_srli_epi32(TexelDag, 24));
             TexelDag = _mm_mulhi_epu16(TexelDag, TexelDag);
 
-            __m128 Destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 16), MaskFF_4x));
-            __m128 Destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 8), MaskFF_4x));
-            __m128 Destb = _mm_cvtepi32_ps(_mm_and_si128(OriginalDest, MaskFF_4x));
-            __m128 Desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 24), MaskFF_4x));
-
             __m128 TexelAr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelArb, 16));
             __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(TexelAag, MaskFFFF_4x));
             __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(TexelArb, MaskFFFF_4x));
@@ -817,6 +814,45 @@ internal void DrawRectangleQuickly(
             __m128 TexelDr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelDrb, 16));
             __m128 TexelDg = _mm_cvtepi32_ps(_mm_and_si128(TexelDag, MaskFFFF_4x));
             __m128 TexelDb = _mm_cvtepi32_ps(_mm_and_si128(TexelDrb, MaskFFFF_4x));
+#else
+            __m128 TexelAr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 16), MaskFF_4x));
+            __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 8), MaskFF_4x));
+            __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(SampleA, MaskFF_4x));
+            __m128 TexelAa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 24), MaskFF_4x));
+
+            __m128 TexelBr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 16), MaskFF_4x));
+            __m128 TexelBg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 8), MaskFF_4x));
+            __m128 TexelBb = _mm_cvtepi32_ps(_mm_and_si128(SampleB, MaskFF_4x));
+            __m128 TexelBa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 24), MaskFF_4x));
+
+            __m128 TexelCr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 16), MaskFF_4x));
+            __m128 TexelCg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 8), MaskFF_4x));
+            __m128 TexelCb = _mm_cvtepi32_ps(_mm_and_si128(SampleC, MaskFF_4x));
+            __m128 TexelCa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 24), MaskFF_4x));
+
+            __m128 TexelDr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 16), MaskFF_4x));
+            __m128 TexelDg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 8), MaskFF_4x));
+            __m128 TexelDb = _mm_cvtepi32_ps(_mm_and_si128(SampleD, MaskFF_4x));
+            __m128 TexelDa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 24), MaskFF_4x));
+
+            TexelAr = mmSquare(TexelAr);
+            TexelAg = mmSquare(TexelAg);
+            TexelAb = mmSquare(TexelAb);
+            TexelBr = mmSquare(TexelBr);
+            TexelBg = mmSquare(TexelBg);
+            TexelBb = mmSquare(TexelBb);
+            TexelCr = mmSquare(TexelCr);
+            TexelCg = mmSquare(TexelCg);
+            TexelCb = mmSquare(TexelCb);
+            TexelDr = mmSquare(TexelDr);
+            TexelDg = mmSquare(TexelDg);
+            TexelDb = mmSquare(TexelDb);
+#endif
+
+            __m128 Destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 16), MaskFF_4x));
+            __m128 Destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 8), MaskFF_4x));
+            __m128 Destb = _mm_cvtepi32_ps(_mm_and_si128(OriginalDest, MaskFF_4x));
+            __m128 Desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 24), MaskFF_4x));
 
             __m128 ifx = _mm_sub_ps(One_4x, TextureXf);
             __m128 ify = _mm_sub_ps(One_4x, TextureYf);
@@ -1174,9 +1210,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
-    END_TIMED_BLOCK(RenderGroupToOutput);
     }
+    END_TIMED_BLOCK(RenderGroupToOutput);
+}
