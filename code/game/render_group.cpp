@@ -610,6 +610,13 @@ struct counts {
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
+#if 0
+#include "../../iacaMarks.h"
+#else
+#define IACA_VC64_START
+#define IACA_VC64_END
+#endif
+
 internal void DrawRectangleQuickly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
@@ -763,7 +770,7 @@ internal void DrawRectangleQuickly(
 #define _mm_loadu_si128(a) 0
 #define _mm_storeu_si128(a, b)
 #endif
-
+            IACA_VC64_START;
             __m128 U = _mm_add_ps(_mm_mul_ps(PixelPx, nXAxisx_4x), _mm_mul_ps(PixelPy, nXAxisy_4x));
             __m128 V = _mm_add_ps(_mm_mul_ps(PixelPx, nYAxisx_4x), _mm_mul_ps(PixelPy, nYAxisy_4x));
 
@@ -939,6 +946,7 @@ internal void DrawRectangleQuickly(
             real32 mm_sqrt_ps = Sum((real32)Counts.mm_sqrt_ps * 3);
 #endif
             Pixel += 4;
+            IACA_VC64_END;
         }
         Row += Buffer->Pitch;
 
