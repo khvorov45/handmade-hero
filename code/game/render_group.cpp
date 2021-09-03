@@ -773,7 +773,6 @@ internal void DrawRectangleQuickly(
             SampleC = TextureXFloored;
             SampleD = TextureXFloored;
 #endif
-            //SampleA = _mm_set_epi32(0x01010101, 0x02020202, 0x10101010, 0x20202020);
             __m128i TexelArb = _mm_and_si128(SampleA, MaskFF00FF_4x);
             __m128i TexelAag = _mm_and_si128(SampleA, MaskFF00FF00_4x);
             TexelArb = _mm_mullo_epi16(TexelArb, TexelArb);
@@ -1175,9 +1174,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
         }
-    }
+        }
     END_TIMED_BLOCK(RenderGroupToOutput);
-}
+    }
