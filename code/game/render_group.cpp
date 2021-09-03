@@ -851,9 +851,9 @@ internal void DrawRectangleQuickly(
             __m128 Blendedb = _mm_add_ps(_mm_mul_ps(InvTexelA, Destb), Texelb);
             __m128 Blendeda = _mm_add_ps(_mm_mul_ps(InvTexelA, Desta), Texela);
 
-            Blendedr = _mm_sqrt_ps(Blendedr);
-            Blendedg = _mm_sqrt_ps(Blendedg);
-            Blendedb = _mm_sqrt_ps(Blendedb);
+            Blendedr = _mm_mul_ps(_mm_rsqrt_ps(Blendedr), Blendedr);
+            Blendedg = _mm_mul_ps(_mm_rsqrt_ps(Blendedg), Blendedg);
+            Blendedb = _mm_mul_ps(_mm_rsqrt_ps(Blendedb), Blendedb);
 
             __m128i Intr = _mm_cvtps_epi32(Blendedr);
             __m128i Intg = _mm_cvtps_epi32(Blendedg);
