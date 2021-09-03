@@ -701,6 +701,9 @@ internal void DrawRectangleQuickly(
     __m128 WidthM2 = _mm_set1_ps((real32)Texture->Width - 2);
     __m128 HeightM2 = _mm_set1_ps((real32)Texture->Height - 2);
 
+    uint8* TextureMemory = (uint8*)Texture->Memory;
+    int32 TexturePitch = Texture->Pitch;
+
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
     __m128 PixelPy = _mm_set1_ps((real32)YMin);
     PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
@@ -758,11 +761,11 @@ internal void DrawRectangleQuickly(
                 Assert(FetchX >= 0 && FetchX < Texture->Width);
                 Assert(FetchY >= 0 && FetchY < Texture->Height);
 
-                uint8* TexelPtr = (uint8*)Texture->Memory + FetchY * Texture->Pitch + FetchX * BITMAP_BYTES_PER_PIXEL;
+                uint8* TexelPtr = TextureMemory + FetchY * TexturePitch + FetchX * BITMAP_BYTES_PER_PIXEL;
                 Mi(SampleA, PIndex) = *(uint32*)TexelPtr;
                 Mi(SampleB, PIndex) = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
-                Mi(SampleC, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch);
-                Mi(SampleD, PIndex) = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
+                Mi(SampleC, PIndex) = *(uint32*)(TexelPtr + TexturePitch);
+                Mi(SampleD, PIndex) = *(uint32*)(TexelPtr + TexturePitch + BITMAP_BYTES_PER_PIXEL);
             }
 #else
             SampleA = TextureXFloored;
