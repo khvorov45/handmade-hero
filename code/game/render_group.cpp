@@ -678,6 +678,9 @@ internal void DrawRectangleQuickly(
     __m128 Zero_4x = _mm_set1_ps(0.0f);
     __m128 Four_4x = _mm_set1_ps(4.0f);
     __m128i MaskFF_4x = _mm_set1_epi32(0xFF);
+    __m128i MaskFFFF_4x = _mm_set1_epi32(0xFFFF);
+    __m128i MaskFF00FF_4x = _mm_set1_epi32(0x00FF00FF);
+    __m128i MaskFF00FF00_4x = _mm_set1_epi32(0xFF00FF00);
     __m128 MaxColorValue_4x = _mm_set1_ps(255.0f * 255.0f);
 
     real32 NormalizeC = 1 / 255.0f;
@@ -767,43 +770,51 @@ internal void DrawRectangleQuickly(
             SampleC = TextureXFloored;
             SampleD = TextureXFloored;
 #endif
-            __m128 TexelAr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 16), MaskFF_4x));
-            __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 8), MaskFF_4x));
-            __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(SampleA, MaskFF_4x));
-            __m128 TexelAa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleA, 24), MaskFF_4x));
+            //SampleA = _mm_set_epi32(0x01010101, 0x02020202, 0x10101010, 0x20202020);
+            __m128i TexelArb = _mm_and_si128(SampleA, MaskFF00FF_4x);
+            __m128i TexelAag = _mm_and_si128(SampleA, MaskFF00FF00_4x);
+            TexelArb = _mm_mullo_epi16(TexelArb, TexelArb);
+            __m128 TexelAa = _mm_cvtepi32_ps(_mm_srli_epi32(TexelAag, 24));
+            TexelAag = _mm_mulhi_epu16(TexelAag, TexelAag);
 
-            __m128 TexelBr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 16), MaskFF_4x));
-            __m128 TexelBg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 8), MaskFF_4x));
-            __m128 TexelBb = _mm_cvtepi32_ps(_mm_and_si128(SampleB, MaskFF_4x));
-            __m128 TexelBa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleB, 24), MaskFF_4x));
+            __m128i TexelBrb = _mm_and_si128(SampleB, MaskFF00FF_4x);
+            __m128i TexelBag = _mm_and_si128(SampleB, MaskFF00FF00_4x);
+            TexelBrb = _mm_mullo_epi16(TexelBrb, TexelBrb);
+            __m128 TexelBa = _mm_cvtepi32_ps(_mm_srli_epi32(TexelBag, 24));
+            TexelBag = _mm_mulhi_epu16(TexelBag, TexelBag);
 
-            __m128 TexelCr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 16), MaskFF_4x));
-            __m128 TexelCg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 8), MaskFF_4x));
-            __m128 TexelCb = _mm_cvtepi32_ps(_mm_and_si128(SampleC, MaskFF_4x));
-            __m128 TexelCa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleC, 24), MaskFF_4x));
+            __m128i TexelCrb = _mm_and_si128(SampleC, MaskFF00FF_4x);
+            __m128i TexelCag = _mm_and_si128(SampleC, MaskFF00FF00_4x);
+            TexelCrb = _mm_mullo_epi16(TexelCrb, TexelCrb);
+            __m128 TexelCa = _mm_cvtepi32_ps(_mm_srli_epi32(TexelCag, 24));
+            TexelCag = _mm_mulhi_epu16(TexelCag, TexelCag);
 
-            __m128 TexelDr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 16), MaskFF_4x));
-            __m128 TexelDg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 8), MaskFF_4x));
-            __m128 TexelDb = _mm_cvtepi32_ps(_mm_and_si128(SampleD, MaskFF_4x));
-            __m128 TexelDa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(SampleD, 24), MaskFF_4x));
+            __m128i TexelDrb = _mm_and_si128(SampleD, MaskFF00FF_4x);
+            __m128i TexelDag = _mm_and_si128(SampleD, MaskFF00FF00_4x);
+            TexelDrb = _mm_mullo_epi16(TexelDrb, TexelDrb);
+            __m128 TexelDa = _mm_cvtepi32_ps(_mm_srli_epi32(TexelDag, 24));
+            TexelDag = _mm_mulhi_epu16(TexelDag, TexelDag);
 
             __m128 Destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 16), MaskFF_4x));
             __m128 Destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 8), MaskFF_4x));
             __m128 Destb = _mm_cvtepi32_ps(_mm_and_si128(OriginalDest, MaskFF_4x));
             __m128 Desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 24), MaskFF_4x));
 
-            TexelAr = mmSquare(TexelAr);
-            TexelAg = mmSquare(TexelAg);
-            TexelAb = mmSquare(TexelAb);
-            TexelBr = mmSquare(TexelBr);
-            TexelBg = mmSquare(TexelBg);
-            TexelBb = mmSquare(TexelBb);
-            TexelCr = mmSquare(TexelCr);
-            TexelCg = mmSquare(TexelCg);
-            TexelCb = mmSquare(TexelCb);
-            TexelDr = mmSquare(TexelDr);
-            TexelDg = mmSquare(TexelDg);
-            TexelDb = mmSquare(TexelDb);
+            __m128 TexelAr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelArb, 16));
+            __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(TexelAag, MaskFFFF_4x));
+            __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(TexelArb, MaskFFFF_4x));
+
+            __m128 TexelBr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelBrb, 16));
+            __m128 TexelBg = _mm_cvtepi32_ps(_mm_and_si128(TexelBag, MaskFFFF_4x));
+            __m128 TexelBb = _mm_cvtepi32_ps(_mm_and_si128(TexelBrb, MaskFFFF_4x));
+
+            __m128 TexelCr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelCrb, 16));
+            __m128 TexelCg = _mm_cvtepi32_ps(_mm_and_si128(TexelCag, MaskFFFF_4x));
+            __m128 TexelCb = _mm_cvtepi32_ps(_mm_and_si128(TexelCrb, MaskFFFF_4x));
+
+            __m128 TexelDr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelDrb, 16));
+            __m128 TexelDg = _mm_cvtepi32_ps(_mm_and_si128(TexelDag, MaskFFFF_4x));
+            __m128 TexelDb = _mm_cvtepi32_ps(_mm_and_si128(TexelDrb, MaskFFFF_4x));
 
             __m128 ifx = _mm_sub_ps(One_4x, TextureXf);
             __m128 ify = _mm_sub_ps(One_4x, TextureYf);
