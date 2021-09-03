@@ -678,13 +678,14 @@ internal void DrawRectangleQuickly(
     __m128 Zero_4x = _mm_set1_ps(0.0f);
     __m128 Four_4x = _mm_set1_ps(4.0f);
     __m128i MaskFF_4x = _mm_set1_epi32(0xFF);
+    __m128 MaxColorValue_4x = _mm_set1_ps(255.0f * 255.0f);
 
     real32 NormalizeC = 1 / 255.0f;
     real32 NormalizeCSq = Square(NormalizeC);
-    __m128 Colorr_4x = _mm_set1_ps(NormalizeCSq * Color.r);
-    __m128 Colorg_4x = _mm_set1_ps(NormalizeCSq * Color.b);
-    __m128 Colorb_4x = _mm_set1_ps(NormalizeCSq * Color.g);
-    __m128 Colora_4x = _mm_set1_ps(NormalizeC * Color.a);
+    __m128 Colorr_4x = _mm_set1_ps(Color.r);
+    __m128 Colorg_4x = _mm_set1_ps(Color.b);
+    __m128 Colorb_4x = _mm_set1_ps(Color.g);
+    __m128 Colora_4x = _mm_set1_ps(Color.a);
 
     __m128 nXAxisx_4x = _mm_set1_ps(nXAxis.x);
     __m128 nXAxisy_4x = _mm_set1_ps(nXAxis.y);
@@ -822,25 +823,23 @@ internal void DrawRectangleQuickly(
             Texelb = _mm_mul_ps(Texelb, Colorb_4x);
             Texela = _mm_mul_ps(Texela, Colora_4x);
 
-            Texelr = _mm_min_ps(_mm_max_ps(Texelr, Zero_4x), One_4x);
-            Texelg = _mm_min_ps(_mm_max_ps(Texelg, Zero_4x), One_4x);
-            Texelb = _mm_min_ps(_mm_max_ps(Texelb, Zero_4x), One_4x);
+            Texelr = _mm_min_ps(_mm_max_ps(Texelr, Zero_4x), MaxColorValue_4x);
+            Texelg = _mm_min_ps(_mm_max_ps(Texelg, Zero_4x), MaxColorValue_4x);
+            Texelb = _mm_min_ps(_mm_max_ps(Texelb, Zero_4x), MaxColorValue_4x);
 
-            Destr = mmSquare(_mm_mul_ps(Inv255_4x, Destr));
-            Destg = mmSquare(_mm_mul_ps(Inv255_4x, Destg));
-            Destb = mmSquare(_mm_mul_ps(Inv255_4x, Destb));
-            Desta = _mm_mul_ps(Inv255_4x, Desta);
+            Destr = mmSquare(Destr);
+            Destg = mmSquare(Destg);
+            Destb = mmSquare(Destb);
 
-            __m128 InvTexelA = _mm_sub_ps(One_4x, Texela);
+            __m128 InvTexelA = _mm_sub_ps(One_4x, _mm_mul_ps(Inv255_4x, Texela));
             __m128 Blendedr = _mm_add_ps(_mm_mul_ps(InvTexelA, Destr), Texelr);
             __m128 Blendedg = _mm_add_ps(_mm_mul_ps(InvTexelA, Destg), Texelg);
             __m128 Blendedb = _mm_add_ps(_mm_mul_ps(InvTexelA, Destb), Texelb);
             __m128 Blendeda = _mm_add_ps(_mm_mul_ps(InvTexelA, Desta), Texela);
 
-            Blendedr = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedr));
-            Blendedg = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedg));
-            Blendedb = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedb));
-            Blendeda = _mm_mul_ps(One255_4x, Blendeda);
+            Blendedr = _mm_sqrt_ps(Blendedr);
+            Blendedg = _mm_sqrt_ps(Blendedg);
+            Blendedb = _mm_sqrt_ps(Blendedb);
 
             __m128i Intr = _mm_cvtps_epi32(Blendedr);
             __m128i Intg = _mm_cvtps_epi32(Blendedg);
