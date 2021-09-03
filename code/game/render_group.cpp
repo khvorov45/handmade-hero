@@ -691,9 +691,10 @@ internal void DrawRectangleQuickly(
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
     __m128 PixelPy = _mm_set1_ps((real32)YMin);
+    PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
 
     BEGIN_TIMED_BLOCK(ProcessPixel);
-    for (int32 Y = YMin; Y <= YMax; ++Y) {
+    for (int32 Y = YMin; Y <= YMax; ++Y, PixelPy = _mm_add_ps(PixelPy, One_4x)) {
 
         uint32* Pixel = (uint32*)Row;
         __m128 PixelPx = _mm_set_ps(
@@ -702,13 +703,12 @@ internal void DrawRectangleQuickly(
             (real32)(XMin + 1),
             (real32)(XMin + 0)
         );
+        PixelPx = _mm_sub_ps(PixelPx, Originx_4x);
 
-        for (int32 XI = XMin; XI <= XMax; XI += 4) {
+        for (int32 XI = XMin; XI <= XMax; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
 
-            __m128 dx = _mm_sub_ps(PixelPx, Originx_4x);
-            __m128 dy = _mm_sub_ps(PixelPy, Originy_4x);
-            __m128 U = _mm_add_ps(_mm_mul_ps(dx, nXAxisx_4x), _mm_mul_ps(dy, nXAxisy_4x));
-            __m128 V = _mm_add_ps(_mm_mul_ps(dx, nYAxisx_4x), _mm_mul_ps(dy, nYAxisy_4x));
+            __m128 U = _mm_add_ps(_mm_mul_ps(PixelPx, nXAxisx_4x), _mm_mul_ps(PixelPy, nXAxisy_4x));
+            __m128 V = _mm_add_ps(_mm_mul_ps(PixelPx, nYAxisx_4x), _mm_mul_ps(PixelPy, nYAxisy_4x));
 
             __m128i OriginalDest = _mm_loadu_si128((__m128i*)Pixel);
             __m128i WriteMask = _mm_castps_si128(_mm_and_ps(
@@ -851,10 +851,9 @@ internal void DrawRectangleQuickly(
             _mm_storeu_si128((__m128i*)Pixel, MaskedOut);
 
             Pixel += 4;
-            PixelPx = _mm_add_ps(PixelPx, Four_4x);
         }
         Row += Buffer->Pitch;
-        PixelPy = _mm_add_ps(PixelPy, One_4x);
+
     }
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleQuickly);
@@ -1151,9 +1150,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
-    END_TIMED_BLOCK(RenderGroupToOutput);
     }
+    END_TIMED_BLOCK(RenderGroupToOutput);
+}
