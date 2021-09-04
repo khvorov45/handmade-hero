@@ -764,7 +764,10 @@ internal void DrawRectangleQuickly(
 #if 1
             // NOTE(sen) mul by BITMAP_BYTES_PER_PIXEL
             __m128i FetchX = _mm_slli_epi32(TextureXFloored, 2);
-            __m128i FetchY = _mm_mullo_epi32(TextureYFloored, TexturePitch_4x);
+            __m128i FetchY = _mm_or_si128(
+                _mm_mullo_epi16(TextureYFloored, TexturePitch_4x),
+                _mm_slli_epi32(_mm_mulhi_epi16(TextureYFloored, TexturePitch_4x), 16)
+            );
             __m128i Fetch_4x = _mm_add_epi32(FetchX, FetchY);
 
             int32 Fetch0 = Mi(Fetch_4x, 0);
