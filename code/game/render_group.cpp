@@ -703,6 +703,7 @@ internal void DrawRectangleQuickly(
 
     uint8* TextureMemory = (uint8*)Texture->Memory;
     int32 TexturePitch = Texture->Pitch;
+    __m128i TexturePitch_4x = _mm_set1_epi32(TexturePitch);
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
     __m128 PixelPy = _mm_set1_ps((real32)YMin);
@@ -751,20 +752,20 @@ internal void DrawRectangleQuickly(
 
 
 #if 1
+            // NOTE(sen) mul by BITMAP_BYTES_PER_PIXEL
+            __m128i FetchX = _mm_slli_epi32(TextureXFloored, 2);
+            __m128i FetchY = _mm_mullo_epi32(TextureYFloored, TexturePitch_4x);
+            __m128i Fetch_4x = _mm_add_epi32(FetchX, FetchY);
 
-            int32 FetchX0 = Mi(TextureXFloored, 0);
-            int32 FetchY0 = Mi(TextureYFloored, 0);
-            int32 FetchX1 = Mi(TextureXFloored, 1);
-            int32 FetchY1 = Mi(TextureYFloored, 1);
-            int32 FetchX2 = Mi(TextureXFloored, 2);
-            int32 FetchY2 = Mi(TextureYFloored, 2);
-            int32 FetchX3 = Mi(TextureXFloored, 3);
-            int32 FetchY3 = Mi(TextureYFloored, 3);
+            int32 Fetch0 = Mi(Fetch_4x, 0);
+            int32 Fetch1 = Mi(Fetch_4x, 1);
+            int32 Fetch2 = Mi(Fetch_4x, 2);
+            int32 Fetch3 = Mi(Fetch_4x, 3);
 
-            uint8* TexelPtr0 = TextureMemory + FetchY0 * TexturePitch + FetchX0 * BITMAP_BYTES_PER_PIXEL;
-            uint8* TexelPtr1 = TextureMemory + FetchY1 * TexturePitch + FetchX1 * BITMAP_BYTES_PER_PIXEL;
-            uint8* TexelPtr2 = TextureMemory + FetchY2 * TexturePitch + FetchX2 * BITMAP_BYTES_PER_PIXEL;
-            uint8* TexelPtr3 = TextureMemory + FetchY3 * TexturePitch + FetchX3 * BITMAP_BYTES_PER_PIXEL;
+            uint8* TexelPtr0 = TextureMemory + Fetch0;
+            uint8* TexelPtr1 = TextureMemory + Fetch1;
+            uint8* TexelPtr2 = TextureMemory + Fetch2;
+            uint8* TexelPtr3 = TextureMemory + Fetch3;
 
             __m128i SampleA = _mm_setr_epi32(
                 *(uint32*)TexelPtr0,
