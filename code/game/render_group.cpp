@@ -614,10 +614,8 @@ internal void DrawRectangleQuickly(
 
     int32 WidthMax = Buffer->Width - 1 - 3;
     int32 HeightMax = Buffer->Height - 1 - 3;
-    int32 XMin = WidthMax;
-    int32 XMax = 0;
-    int32 YMin = HeightMax;
-    int32 YMax = 0;
+
+    rectangle2i FillRect = { WidthMax, HeightMax, 0, 0 };
 
     real32 InvWidthMax = 1.0f / (real32)WidthMax;
     real32 InvHeightMax = 1.0f / (real32)HeightMax;
@@ -638,36 +636,26 @@ internal void DrawRectangleQuickly(
         int32 CeilX = CeilReal32ToInt32(TestP.x);
         int32 FloorY = FloorReal32ToInt32(TestP.y);
         int32 CeilY = CeilReal32ToInt32(TestP.y);
-        if (XMin > FloorX) {
-            XMin = FloorX;
+        if (FillRect.MinX > FloorX) {
+            FillRect.MinX = FloorX;
         }
-        if (XMax < CeilX) {
-            XMax = CeilX;
+        if (FillRect.MaxX < CeilX) {
+            FillRect.MaxX = CeilX;
         }
-        if (YMin > FloorY) {
-            YMin = FloorY;
+        if (FillRect.MinY > FloorY) {
+            FillRect.MinY = FloorY;
         }
-        if (YMax < CeilY) {
-            YMax = CeilY;
+        if (FillRect.MaxY < CeilY) {
+            FillRect.MaxY = CeilY;
         }
     }
 
-    if (XMin < 0) {
-        XMin = 0;
-    }
-    if (YMin < 0) {
-        YMin = 0;
-    }
-    if (XMax > WidthMax) {
-        XMax = WidthMax;
-    }
-    if (YMax > HeightMax) {
-        YMax = HeightMax;
-    }
+    rectangle2i ClipRect = { 128, 128, 256, 256 };
+    FillRect = Intersect(FillRect, ClipRect);
 
     // NOTE(sen) Alternating scanlines
-    if (!Even == (YMin & 1)) {
-        YMin += 1;
+    if (!Even == (FillRect.MinY & 1)) {
+        FillRect.MinY += 1;
     }
 
     real32 InvXAxisLengthSq = 1 / LengthSq(XAxis);
@@ -711,25 +699,25 @@ internal void DrawRectangleQuickly(
     int32 TexturePitch = Texture->Pitch;
     __m128i TexturePitch_4x = _mm_set1_epi32(TexturePitch);
 
-    uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
+    uint8* Row = (uint8*)Buffer->Memory + FillRect.MinY * Buffer->Pitch + FillRect.MinX * BITMAP_BYTES_PER_PIXEL;
     int32 RowAdvance = Buffer->Pitch * 2;
 
-    __m128 PixelPy = _mm_set1_ps((real32)YMin);
+    __m128 PixelPy = _mm_set1_ps((real32)FillRect.MinY);
     PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
 
     BEGIN_TIMED_BLOCK(ProcessPixel);
-    for (int32 Y = YMin; Y <= YMax; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
+    for (int32 Y = FillRect.MinY; Y <= FillRect.MaxY; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
 
         uint32* Pixel = (uint32*)Row;
         __m128 PixelPx = _mm_set_ps(
-            (real32)(XMin + 3),
-            (real32)(XMin + 2),
-            (real32)(XMin + 1),
-            (real32)(XMin + 0)
+            (real32)(FillRect.MinX + 3),
+            (real32)(FillRect.MinX + 2),
+            (real32)(FillRect.MinX + 1),
+            (real32)(FillRect.MinX + 0)
         );
         PixelPx = _mm_sub_ps(PixelPx, Originx_4x);
 
-        for (int32 XI = XMin; XI <= XMax; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
+        for (int32 XI = FillRect.MinX; XI <= FillRect.MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
 
 #define M(a, i) (((real32*)(&(a)))[i])
 #define Mi(a, i) (((uint32*)(&(a)))[i])
@@ -945,9 +933,8 @@ internal void DrawRectangleQuickly(
             IACA_VC64_END;
         }
         Row += RowAdvance;
-
     }
-    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1) / 2);
+    END_TIMED_BLOCK_COUNTED(ProcessPixel, GetClampedRectArea(FillRect) / 2);
     END_TIMED_BLOCK(DrawRectangleQuickly);
 }
 

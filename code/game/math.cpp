@@ -285,6 +285,11 @@ struct rectangle2 {
     v2 Max;
 };
 
+struct rectangle2i {
+    int32 MinX, MinY;
+    int32 MaxX, MaxY;
+};
+
 struct rectangle3 {
     v3 Min;
     v3 Max;
@@ -361,6 +366,32 @@ inline bool32 RectanglesIntersect(rectangle3 A, rectangle3 B) {
         (B.Max.y <= A.Min.y) || (B.Min.y >= A.Max.y) ||
         (B.Max.z <= A.Min.z) || (B.Min.z >= A.Max.z)
         );
+    return Result;
+}
+
+internal inline rectangle2i Intersect(rectangle2i A, rectangle2i B) {
+    rectangle2i Result = A;
+    Result.MinX = (A.MinX < B.MinX) ? B.MinX : A.MinX;
+    Result.MinY = (A.MinY < B.MinY) ? B.MinY : A.MinY;
+    Result.MaxX = (A.MaxX > B.MaxX) ? B.MaxX : A.MaxX;
+    Result.MaxY = (A.MaxY > B.MaxY) ? B.MaxY : A.MaxY;
+    return Result;
+}
+
+internal inline rectangle2i Union(rectangle2i A, rectangle2i B) {
+    rectangle2i Result = A;
+    Result.MinX = (A.MinX < B.MinX) ? A.MinX : B.MinX;
+    Result.MinY = (A.MinY < B.MinY) ? A.MinY : B.MinY;
+    Result.MaxX = (A.MaxX > B.MaxX) ? A.MaxX : B.MaxX;
+    Result.MaxY = (A.MaxY > B.MaxY) ? A.MaxY : B.MaxY;
+    return Result;
+}
+
+internal inline int32 GetClampedRectArea(rectangle2i A) {
+    uint32 Result = 0;
+    if (A.MaxX >= A.MinX && A.MaxY >= A.MinY) {
+        Result = (A.MaxX - A.MinX + 1) * (A.MaxY - A.MinY + 1);
+    }
     return Result;
 }
 
