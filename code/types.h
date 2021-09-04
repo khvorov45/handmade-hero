@@ -14,6 +14,9 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
+typedef intptr_t intptr;
+typedef uintptr_t uintptr;
+
 typedef size_t memory_index;
 
 typedef int32 bool32;
