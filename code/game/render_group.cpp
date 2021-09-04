@@ -705,7 +705,11 @@ internal void DrawRectangleQuickly(
     for (int32 Y = MinY; Y < MaxY; Y += 2) {
 
         uint32* Pixel = (uint32*)Row;
-        __m128 PixelPy = _mm_set1_ps((real32)Y - Origin.y);
+        __m128 PixelPy = _mm_set1_ps((real32)Y);
+        PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
+        __m128 PynX = _mm_mul_ps(PixelPy, nXAxisy_4x);
+        __m128 PynY = _mm_mul_ps(PixelPy, nYAxisy_4x);
+
         __m128 PixelPx = _mm_set_ps(
             (real32)(MinX + 3),
             (real32)(MinX + 2),
@@ -721,8 +725,8 @@ internal void DrawRectangleQuickly(
 #define mmSquare(a) _mm_mul_ps((a), (a))
 
             IACA_VC64_START;
-            __m128 U = _mm_add_ps(_mm_mul_ps(PixelPx, nXAxisx_4x), _mm_mul_ps(PixelPy, nXAxisy_4x));
-            __m128 V = _mm_add_ps(_mm_mul_ps(PixelPx, nYAxisx_4x), _mm_mul_ps(PixelPy, nYAxisy_4x));
+            __m128 U = _mm_add_ps(_mm_mul_ps(PixelPx, nXAxisx_4x), PynX);
+            __m128 V = _mm_add_ps(_mm_mul_ps(PixelPx, nYAxisx_4x), PynY);
 
             __m128i OriginalDest = _mm_loadu_si128((__m128i*)Pixel);
             __m128i WriteMask = _mm_castps_si128(_mm_and_ps(
@@ -1236,9 +1240,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
         }
-    }
+        }
     END_TIMED_BLOCK(RenderGroupToOutput);
-}
+    }
