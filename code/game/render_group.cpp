@@ -695,8 +695,7 @@ internal void DrawRectangleQuickly(
     uint8* Row = (uint8*)Buffer->Memory + FillRect.MinY * Buffer->Pitch + FillRect.MinX * BITMAP_BYTES_PER_PIXEL;
     int32 RowAdvance = Buffer->Pitch * 2;
 
-    __m128 PixelPy = _mm_set1_ps((real32)FillRect.MinY);
-    PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
+    __m128 PixelPy = _mm_set1_ps((real32)FillRect.MinY - Origin.y);
 
     int32 MinX = FillRect.MinX;
     int32 MinY = FillRect.MinY;
