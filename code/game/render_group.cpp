@@ -187,7 +187,7 @@ internal void PushRectOutline(
     v4 Color = V4(1, 1, 1, 1)
 ) {
     real32 Thickness = 0.1f;
-
+#if 0
     //* Top and bottom
     PushRect(Group, Offset - V3(0, 0.5f * Dim.y, 0), V2(Dim.x, Thickness), Color);
     PushRect(Group, Offset + V3(0, 0.5f * Dim.y, 0), V2(Dim.x, Thickness), Color);
@@ -195,6 +195,7 @@ internal void PushRectOutline(
     //* Left and right
     PushRect(Group, Offset - V3(0.5f * Dim.x, 0, 0), V2(Thickness, Dim.y), Color);
     PushRect(Group, Offset + V3(0.5f * Dim.x, 0, 0), V2(Thickness, Dim.y), Color);
+#endif
 }
 
 internal void CoordinateSystem(
