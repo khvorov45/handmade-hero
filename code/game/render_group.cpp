@@ -651,6 +651,24 @@ internal void DrawRectangleQuickly(
         FillRect.MinY += 1;
     }
 
+    if (!HasArea(FillRect)) {
+        return;
+    }
+
+    int32 FillWidth = FillRect.MaxX - FillRect.MinX;
+    int32 FillWidthAlign = FillWidth & 3;
+    __m128i StartupClipMask = _mm_set1_epi32(-1);
+    if (FillWidthAlign > 0) {
+        int32 Adjustment = (4 - FillWidthAlign);
+        switch (Adjustment) {
+        case 1: StartupClipMask = _mm_slli_si128(StartupClipMask, 1 * 4); break;
+        case 2: StartupClipMask = _mm_slli_si128(StartupClipMask, 2 * 4); break;
+        case 3: StartupClipMask = _mm_slli_si128(StartupClipMask, 3 * 4); break;
+        };
+        FillWidth += Adjustment;
+        FillRect.MinX = FillRect.MaxX - FillWidth;
+    }
+
     real32 InvXAxisLengthSq = 1 / LengthSq(XAxis);
     real32 InvYAxisLengthSq = 1 / LengthSq(YAxis);
 
@@ -695,11 +713,10 @@ internal void DrawRectangleQuickly(
     uint8* Row = (uint8*)Buffer->Memory + FillRect.MinY * Buffer->Pitch + FillRect.MinX * BITMAP_BYTES_PER_PIXEL;
     int32 RowAdvance = Buffer->Pitch * 2;
 
-
-    int32 MinX = FillRect.MinX;
+    int32 MaxY = FillRect.MaxY;
     int32 MinY = FillRect.MinY;
     int32 MaxX = FillRect.MaxX;
-    int32 MaxY = FillRect.MaxY;
+    int32 MinX = FillRect.MinX;
 
     BEGIN_TIMED_BLOCK(ProcessPixel);
     for (int32 Y = MinY; Y < MaxY; Y += 2) {
@@ -718,6 +735,8 @@ internal void DrawRectangleQuickly(
         );
         PixelPx = _mm_sub_ps(PixelPx, Originx_4x);
 
+        __m128i ClipMask = StartupClipMask;
+
         for (int32 XI = MinX; XI < MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
 
 #define M(a, i) (((real32*)(&(a)))[i])
@@ -733,6 +752,7 @@ internal void DrawRectangleQuickly(
                 _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x)),
                 _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x))
             ));
+            WriteMask = _mm_and_si128(WriteMask, ClipMask);
 
             U = _mm_min_ps(_mm_max_ps(U, Zero_4x), One_4x);
             V = _mm_min_ps(_mm_max_ps(V, Zero_4x), One_4x);
@@ -931,6 +951,7 @@ internal void DrawRectangleQuickly(
             _mm_storeu_si128((__m128i*)Pixel, MaskedOut);
 
             Pixel += 4;
+            ClipMask = _mm_set1_epi32(0xFFFFFFFF);
             IACA_VC64_END;
         }
         Row += RowAdvance;
@@ -1240,9 +1261,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
-    END_TIMED_BLOCK(RenderGroupToOutput);
     }
+    END_TIMED_BLOCK(RenderGroupToOutput);
+}

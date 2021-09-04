@@ -395,6 +395,12 @@ internal inline int32 GetClampedRectArea(rectangle2i A) {
     return Result;
 }
 
+internal inline bool32 HasArea(rectangle2i A) {
+    uint32 Result = (A.MaxX > A.MinX) && (A.MaxY > A.MinY);
+    return Result;
+}
+
+
 inline v2 GetDim(rectangle2 Rect) {
     return Rect.Max - Rect.Min;
 }
