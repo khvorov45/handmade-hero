@@ -612,8 +612,8 @@ internal void DrawRectangleQuickly(
     v2 NyAxis = (XAxisLength / YAxisLength) * YAxis;
     real32 NzScale = 0.5f * (XAxisLength + YAxisLength);
 
-    int32 WidthMax = Buffer->Width - 1 - 3;
-    int32 HeightMax = Buffer->Height - 1 - 3;
+    int32 WidthMax = Buffer->Width - 3;
+    int32 HeightMax = Buffer->Height - 3;
 
     rectangle2i FillRect = { WidthMax, HeightMax, 0, 0 };
 
@@ -626,9 +626,9 @@ internal void DrawRectangleQuickly(
     for (uint32 PIndex = 0; PIndex < ArrayCount(P); PIndex++) {
         v2 TestP = P[PIndex];
         int32 FloorX = FloorReal32ToInt32(TestP.x);
-        int32 CeilX = CeilReal32ToInt32(TestP.x);
+        int32 CeilX = CeilReal32ToInt32(TestP.x) + 1;
         int32 FloorY = FloorReal32ToInt32(TestP.y);
-        int32 CeilY = CeilReal32ToInt32(TestP.y);
+        int32 CeilY = CeilReal32ToInt32(TestP.y) + 1;
         if (FillRect.MinX > FloorX) {
             FillRect.MinX = FloorX;
         }
@@ -699,7 +699,7 @@ internal void DrawRectangleQuickly(
     PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
 
     BEGIN_TIMED_BLOCK(ProcessPixel);
-    for (int32 Y = FillRect.MinY; Y <= FillRect.MaxY; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
+    for (int32 Y = FillRect.MinY; Y < FillRect.MaxY; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
 
         uint32* Pixel = (uint32*)Row;
         __m128 PixelPx = _mm_set_ps(
@@ -710,7 +710,7 @@ internal void DrawRectangleQuickly(
         );
         PixelPx = _mm_sub_ps(PixelPx, Originx_4x);
 
-        for (int32 XI = FillRect.MinX; XI <= FillRect.MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
+        for (int32 XI = FillRect.MinX; XI < FillRect.MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
 
 #define M(a, i) (((real32*)(&(a)))[i])
 #define Mi(a, i) (((uint32*)(&(a)))[i])
@@ -1232,9 +1232,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-            } break;
+        } break;
             InvalidDefaultCase;
         }
-        }
-    END_TIMED_BLOCK(RenderGroupToOutput);
     }
+    END_TIMED_BLOCK(RenderGroupToOutput);
+}

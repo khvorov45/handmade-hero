@@ -388,9 +388,9 @@ internal inline rectangle2i Union(rectangle2i A, rectangle2i B) {
 }
 
 internal inline int32 GetClampedRectArea(rectangle2i A) {
-    uint32 Result = 0;
-    if (A.MaxX >= A.MinX && A.MaxY >= A.MinY) {
-        Result = (A.MaxX - A.MinX + 1) * (A.MaxY - A.MinY + 1);
+    uint32 Result = (A.MaxX - A.MinX) * (A.MaxY - A.MinY);
+    if (Result < 0) {
+        Result = 0;
     }
     return Result;
 }
