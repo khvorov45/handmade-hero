@@ -698,19 +698,24 @@ internal void DrawRectangleQuickly(
     __m128 PixelPy = _mm_set1_ps((real32)FillRect.MinY);
     PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
 
+    int32 MinX = FillRect.MinX;
+    int32 MinY = FillRect.MinY;
+    int32 MaxX = FillRect.MaxX;
+    int32 MaxY = FillRect.MaxY;
+
     BEGIN_TIMED_BLOCK(ProcessPixel);
-    for (int32 Y = FillRect.MinY; Y < FillRect.MaxY; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
+    for (int32 Y = MinY; Y < MaxY; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
 
         uint32* Pixel = (uint32*)Row;
         __m128 PixelPx = _mm_set_ps(
-            (real32)(FillRect.MinX + 3),
-            (real32)(FillRect.MinX + 2),
-            (real32)(FillRect.MinX + 1),
-            (real32)(FillRect.MinX + 0)
+            (real32)(MinX + 3),
+            (real32)(MinX + 2),
+            (real32)(MinX + 1),
+            (real32)(MinX + 0)
         );
         PixelPx = _mm_sub_ps(PixelPx, Originx_4x);
 
-        for (int32 XI = FillRect.MinX; XI < FillRect.MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
+        for (int32 XI = MinX; XI < MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
 
 #define M(a, i) (((real32*)(&(a)))[i])
 #define Mi(a, i) (((uint32*)(&(a)))[i])
