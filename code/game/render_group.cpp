@@ -588,7 +588,7 @@ internal void DrawRectangleSlowly(
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-#if 0
+#if 1
 #include "../../iacaMarks.h"
 #else
 #define IACA_VC64_START
@@ -748,25 +748,48 @@ internal void DrawRectangleQuickly(
             __m128 TextureXf = _mm_sub_ps(TextureX, _mm_cvtepi32_ps(TextureXFloored));
             __m128 TextureYf = _mm_sub_ps(TextureY, _mm_cvtepi32_ps(TextureYFloored));
 #if 1
-            __m128i SampleA;
-            __m128i SampleB;
-            __m128i SampleC;
-            __m128i SampleD;
+
+
 #if 1
-            for (int32 PIndex = 0; PIndex < 4; ++PIndex) {
 
-                int32 FetchX = Mi(TextureXFloored, PIndex);
-                int32 FetchY = Mi(TextureYFloored, PIndex);
+            int32 FetchX0 = Mi(TextureXFloored, 0);
+            int32 FetchY0 = Mi(TextureYFloored, 0);
+            int32 FetchX1 = Mi(TextureXFloored, 1);
+            int32 FetchY1 = Mi(TextureYFloored, 1);
+            int32 FetchX2 = Mi(TextureXFloored, 2);
+            int32 FetchY2 = Mi(TextureYFloored, 2);
+            int32 FetchX3 = Mi(TextureXFloored, 3);
+            int32 FetchY3 = Mi(TextureYFloored, 3);
 
-                Assert(FetchX >= 0 && FetchX < Texture->Width);
-                Assert(FetchY >= 0 && FetchY < Texture->Height);
+            uint8* TexelPtr0 = TextureMemory + FetchY0 * TexturePitch + FetchX0 * BITMAP_BYTES_PER_PIXEL;
+            uint8* TexelPtr1 = TextureMemory + FetchY1 * TexturePitch + FetchX1 * BITMAP_BYTES_PER_PIXEL;
+            uint8* TexelPtr2 = TextureMemory + FetchY2 * TexturePitch + FetchX2 * BITMAP_BYTES_PER_PIXEL;
+            uint8* TexelPtr3 = TextureMemory + FetchY3 * TexturePitch + FetchX3 * BITMAP_BYTES_PER_PIXEL;
 
-                uint8* TexelPtr = TextureMemory + FetchY * TexturePitch + FetchX * BITMAP_BYTES_PER_PIXEL;
-                Mi(SampleA, PIndex) = *(uint32*)TexelPtr;
-                Mi(SampleB, PIndex) = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
-                Mi(SampleC, PIndex) = *(uint32*)(TexelPtr + TexturePitch);
-                Mi(SampleD, PIndex) = *(uint32*)(TexelPtr + TexturePitch + BITMAP_BYTES_PER_PIXEL);
-            }
+            __m128i SampleA = _mm_setr_epi32(
+                *(uint32*)TexelPtr0,
+                *(uint32*)TexelPtr1,
+                *(uint32*)TexelPtr2,
+                *(uint32*)TexelPtr3
+            );
+            __m128i SampleB = _mm_setr_epi32(
+                *(uint32*)(TexelPtr0 + BITMAP_BYTES_PER_PIXEL),
+                *(uint32*)(TexelPtr1 + BITMAP_BYTES_PER_PIXEL),
+                *(uint32*)(TexelPtr2 + BITMAP_BYTES_PER_PIXEL),
+                *(uint32*)(TexelPtr3 + BITMAP_BYTES_PER_PIXEL)
+            );
+            __m128i SampleC = _mm_setr_epi32(
+                *(uint32*)(TexelPtr0 + TexturePitch),
+                *(uint32*)(TexelPtr1 + TexturePitch),
+                *(uint32*)(TexelPtr2 + TexturePitch),
+                *(uint32*)(TexelPtr3 + TexturePitch)
+            );
+            __m128i SampleD = _mm_setr_epi32(
+                *(uint32*)(TexelPtr0 + TexturePitch + BITMAP_BYTES_PER_PIXEL),
+                *(uint32*)(TexelPtr1 + TexturePitch + BITMAP_BYTES_PER_PIXEL),
+                *(uint32*)(TexelPtr2 + TexturePitch + BITMAP_BYTES_PER_PIXEL),
+                *(uint32*)(TexelPtr3 + TexturePitch + BITMAP_BYTES_PER_PIXEL)
+            );
 #else
             SampleA = TextureXFloored;
             SampleB = TextureXFloored;
@@ -774,7 +797,7 @@ internal void DrawRectangleQuickly(
             SampleD = TextureXFloored;
 #endif
 
-#if 0
+#if 1
             __m128i TexelArb = _mm_and_si128(SampleA, MaskFF00FF_4x);
             __m128i TexelAag = _mm_and_si128(SampleA, MaskFF00FF00_4x);
             TexelArb = _mm_mullo_epi16(TexelArb, TexelArb);
