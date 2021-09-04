@@ -617,13 +617,6 @@ internal void DrawRectangleQuickly(
 
     rectangle2i FillRect = { WidthMax, HeightMax, 0, 0 };
 
-    real32 InvWidthMax = 1.0f / (real32)WidthMax;
-    real32 InvHeightMax = 1.0f / (real32)HeightMax;
-
-    real32 OriginZ = 0.0f;
-    real32 OriginY = (Origin + 0.5f * XAxis + 0.5f * YAxis).y;
-    real32 FixedCastY = InvHeightMax * OriginY;
-
     v2 P[4] = {
         Origin,
         Origin + XAxis,
@@ -1239,9 +1232,9 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             }
 #endif
             BaseAddress += sizeof(*Entry);
-        } break;
+            } break;
             InvalidDefaultCase;
         }
-    }
+        }
     END_TIMED_BLOCK(RenderGroupToOutput);
-}
+    }
