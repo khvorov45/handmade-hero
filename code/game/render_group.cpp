@@ -238,25 +238,18 @@ GetCameraRectagleAtTarget(render_group* Group) {
 internal void DrawRectangle(
     loaded_bitmap* Buffer,
     v2 vMin, v2 vMax,
-    v4 Color
+    v4 Color,
+    rectangle2i ClipRect, bool32 Even
 ) {
-    int32 MinX = RoundReal32ToInt32(vMin.x);
-    int32 MinY = RoundReal32ToInt32(vMin.y);
-    int32 MaxX = RoundReal32ToInt32(vMax.x);
-    int32 MaxY = RoundReal32ToInt32(vMax.y);
+    rectangle2i FillRect;
+    FillRect.MinX = RoundReal32ToInt32(vMin.x);
+    FillRect.MinY = RoundReal32ToInt32(vMin.y);
+    FillRect.MaxX = RoundReal32ToInt32(vMax.x);
+    FillRect.MaxY = RoundReal32ToInt32(vMax.y);
 
-    if (MinX < 0) {
-        MinX = 0;
-    }
-    if (MinY < 0) {
-        MinY = 0;
-    }
-
-    if (MaxX > Buffer->Width) {
-        MaxX = Buffer->Width;
-    }
-    if (MaxY > Buffer->Height) {
-        MaxY = Buffer->Height;
+    FillRect = Intersect(FillRect, ClipRect);
+    if (!Even == (FillRect.MinY & 1)) {
+        FillRect.MinY += 1;
     }
 
     uint32 Color32 =
@@ -265,13 +258,13 @@ internal void DrawRectangle(
         (RoundReal32ToUint32(Color.g * 255.0f) << 8) |
         (RoundReal32ToUint32(Color.b * 255.0f));
 
-    uint8* Row = (uint8*)Buffer->Memory + MinY * Buffer->Pitch + MinX * BITMAP_BYTES_PER_PIXEL;
-    for (int32 Y = MinY; Y < MaxY; ++Y) {
+    uint8* Row = (uint8*)Buffer->Memory + FillRect.MinY * Buffer->Pitch + FillRect.MinX * BITMAP_BYTES_PER_PIXEL;
+    for (int32 Y = FillRect.MinY; Y < FillRect.MaxY; Y += 2) {
         uint32* Pixel = (uint32*)Row;
-        for (int32 X = MinX; X < MaxX; ++X) {
+        for (int32 X = FillRect.MinX; X < FillRect.MaxX; ++X) {
             *Pixel++ = Color32;
         }
-        Row += Buffer->Pitch;
+        Row += 2 * Buffer->Pitch;
     }
 }
 
@@ -599,7 +592,8 @@ internal void DrawRectangleQuickly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
     v4 Color, loaded_bitmap* Texture,
-    real32 PixelsToMeters, bool32 Even
+    real32 PixelsToMeters,
+    rectangle2i ClipRect, bool32 Even
 ) {
     BEGIN_TIMED_BLOCK(DrawRectangleQuickly);
 
@@ -615,7 +609,7 @@ internal void DrawRectangleQuickly(
     int32 WidthMax = Buffer->Width - 3;
     int32 HeightMax = Buffer->Height - 3;
 
-    rectangle2i FillRect = { WidthMax, HeightMax, 0, 0 };
+    rectangle2i FillRect = InvertedInfinityRectangle();
 
     v2 P[4] = {
         Origin,
@@ -643,7 +637,6 @@ internal void DrawRectangleQuickly(
         }
     }
 
-    rectangle2i ClipRect = { 128, 128, 256, 256 };
     FillRect = Intersect(FillRect, ClipRect);
 
     // NOTE(sen) Alternating scanlines
@@ -960,20 +953,6 @@ internal void DrawRectangleQuickly(
     END_TIMED_BLOCK(DrawRectangleQuickly);
 }
 
-
-internal void
-DrawRectangleOutline(
-    loaded_bitmap* Buffer,
-    v2 vMin, v2 vMax,
-    v3 Color,
-    real32 T = 2.0f
-) {
-    DrawRectangle(Buffer, V2(vMin.x - T, vMax.y - T), V2(vMax.x + T, vMax.y + T), V4(Color, 1.0f));
-    DrawRectangle(Buffer, V2(vMin.x - T, vMin.y - T), V2(vMax.x + T, vMin.y + T), V4(Color, 1.0f));
-    DrawRectangle(Buffer, V2(vMin.x - T, vMin.y - T), V2(vMin.x + T, vMax.y + T), V4(Color, 1.0f));
-    DrawRectangle(Buffer, V2(vMax.x - T, vMin.y - T), V2(vMax.x + T, vMax.y + T), V4(Color, 1.0f));
-}
-
 internal void DrawBitmap(
     loaded_bitmap* Buffer, loaded_bitmap* BMP,
     real32 RealStartX, real32 RealStartY,
@@ -1157,7 +1136,10 @@ internal void DrawMatte(
     }
 }
 
-internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* OutputTarget) {
+internal void RenderGroupToOutput(
+    render_group* RenderGroup, loaded_bitmap* OutputTarget,
+    rectangle2i ClipRect, bool32 Even
+) {
     BEGIN_TIMED_BLOCK(RenderGroupToOutput);
     v2 ScreenDim = V2i(OutputTarget->Width, OutputTarget->Height);
     real32 PixelsToMeters = 1.0f / RenderGroup->MetersToPixels;
@@ -1175,7 +1157,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
 
             DrawRectangle(
                 OutputTarget, V2(0, 0), V2i(OutputTarget->Width, OutputTarget->Height),
-                Entry->Color
+                Entry->Color, ClipRect, Even
             );
 
             BaseAddress += sizeof(*Entry);
@@ -1210,16 +1192,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                 Basis.Scale * V2(0, Entry->Size.y),
                 Entry->Color,
                 Entry->Bitmap, PixelsToMeters,
-                false
-            );
-            DrawRectangleQuickly(
-                OutputTarget,
-                Basis.P,
-                Basis.Scale * V2(Entry->Size.x, 0),
-                Basis.Scale * V2(0, Entry->Size.y),
-                Entry->Color,
-                Entry->Bitmap, PixelsToMeters,
-                true
+                ClipRect,
+                Even
             );
 #endif
             BaseAddress += sizeof(*Entry);
@@ -1228,7 +1202,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         case RenderGroupEntryType_render_entry_rectangle: {
             render_entry_rectangle* Entry = (render_entry_rectangle*)Data;
             entity_basis_p_result Basis = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenDim);
-            DrawRectangle(OutputTarget, Basis.P, Basis.P + Entry->Dim * Basis.Scale, Entry->Color);
+            DrawRectangle(OutputTarget, Basis.P, Basis.P + Entry->Dim * Basis.Scale, Entry->Color, ClipRect, Even);
             BaseAddress += sizeof(*Entry);
         } break;
 
@@ -1243,10 +1217,10 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
 
             v2 PMax = P + Entry->XAxis + Entry->YAxis;
 
-            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color);
-            DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color);
-            DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color);
-            DrawRectangle(OutputTarget, PMax - Dim, PMax + Dim, Entry->Color);
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color, ClipRect, Even);
+            DrawRectangle(OutputTarget, PX - Dim, PX + Dim, Entry->Color, ClipRect, Even);
+            DrawRectangle(OutputTarget, PY - Dim, PY + Dim, Entry->Color, ClipRect, Even);
+            DrawRectangle(OutputTarget, PMax - Dim, PMax + Dim, Entry->Color, ClipRect, Even);
             DrawRectangleSlowly(
                 OutputTarget, Entry->Origin, Entry->XAxis, Entry->YAxis, Entry->Color,
                 Entry->Texture, Entry->NormalMap,
@@ -1266,4 +1240,22 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         }
     }
     END_TIMED_BLOCK(RenderGroupToOutput);
+}
+
+internal void TiledRenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* OutputTarget) {
+    int32 TileCountX = 4;
+    int32 TileCountY = 4;
+    int32 TileWidth = OutputTarget->Width / TileCountX;
+    int32 TileHeight = OutputTarget->Height / TileCountY;
+    for (int32 TileY = 0; TileY < TileCountY; ++TileY) {
+        for (int32 TileX = 0; TileX < TileCountX; ++TileX) {
+            rectangle2i ClipRect;
+            ClipRect.MinX = TileX * TileWidth + 4;
+            ClipRect.MaxX = ClipRect.MinX + TileWidth - 4;
+            ClipRect.MinY = TileY * TileHeight + 4;
+            ClipRect.MaxY = ClipRect.MinY + TileHeight - 4;
+            RenderGroupToOutput(RenderGroup, OutputTarget, ClipRect, true);
+            RenderGroupToOutput(RenderGroup, OutputTarget, ClipRect, false);
+        }
+    }
 }

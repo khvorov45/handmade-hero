@@ -295,6 +295,13 @@ struct rectangle3 {
     v3 Max;
 };
 
+internal inline rectangle2i InvertedInfinityRectangle() {
+    rectangle2i Result;
+    Result.MinX = Result.MinY = INT32_MAX;
+    Result.MaxX = Result.MaxY = 0;
+    return Result;
+}
+
 inline rectangle2 RectMinMax(v2 Min, v2 Max) {
     rectangle2 Rect;
     Rect.Max = Max;
