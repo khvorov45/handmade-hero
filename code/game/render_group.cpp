@@ -599,7 +599,7 @@ internal void DrawRectangleQuickly(
     loaded_bitmap* Buffer,
     v2 Origin, v2 XAxis, v2 YAxis,
     v4 Color, loaded_bitmap* Texture,
-    real32 PixelsToMeters
+    real32 PixelsToMeters, bool32 Even
 ) {
     BEGIN_TIMED_BLOCK(DrawRectangleQuickly);
 
@@ -665,6 +665,11 @@ internal void DrawRectangleQuickly(
         YMax = HeightMax;
     }
 
+    // NOTE(sen) Alternating scanlines
+    if (!Even == (YMin & 1)) {
+        YMin += 1;
+    }
+
     real32 InvXAxisLengthSq = 1 / LengthSq(XAxis);
     real32 InvYAxisLengthSq = 1 / LengthSq(YAxis);
 
@@ -675,6 +680,7 @@ internal void DrawRectangleQuickly(
     real32 Inv255 = 1.0f / 255.0f;
     __m128 Inv255_4x = _mm_set1_ps(Inv255);
     __m128 One_4x = _mm_set1_ps(1.0f);
+    __m128 Two_4x = _mm_set1_ps(2.0f);
     __m128 Zero_4x = _mm_set1_ps(0.0f);
     __m128 Four_4x = _mm_set1_ps(4.0f);
     __m128i MaskFF_4x = _mm_set1_epi32(0xFF);
@@ -706,11 +712,13 @@ internal void DrawRectangleQuickly(
     __m128i TexturePitch_4x = _mm_set1_epi32(TexturePitch);
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
+    int32 RowAdvance = Buffer->Pitch * 2;
+
     __m128 PixelPy = _mm_set1_ps((real32)YMin);
     PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
 
     BEGIN_TIMED_BLOCK(ProcessPixel);
-    for (int32 Y = YMin; Y <= YMax; ++Y, PixelPy = _mm_add_ps(PixelPy, One_4x)) {
+    for (int32 Y = YMin; Y <= YMax; Y += 2, PixelPy = _mm_add_ps(PixelPy, Two_4x)) {
 
         uint32* Pixel = (uint32*)Row;
         __m128 PixelPx = _mm_set_ps(
@@ -936,10 +944,10 @@ internal void DrawRectangleQuickly(
             Pixel += 4;
             IACA_VC64_END;
         }
-        Row += Buffer->Pitch;
+        Row += RowAdvance;
 
     }
-    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
+    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1) / 2);
     END_TIMED_BLOCK(DrawRectangleQuickly);
 }
 
@@ -1192,7 +1200,17 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                 Basis.Scale * V2(Entry->Size.x, 0),
                 Basis.Scale * V2(0, Entry->Size.y),
                 Entry->Color,
-                Entry->Bitmap, PixelsToMeters
+                Entry->Bitmap, PixelsToMeters,
+                false
+            );
+            DrawRectangleQuickly(
+                OutputTarget,
+                Basis.P,
+                Basis.Scale * V2(Entry->Size.x, 0),
+                Basis.Scale * V2(0, Entry->Size.y),
+                Entry->Color,
+                Entry->Bitmap, PixelsToMeters,
+                true
             );
 #endif
             BaseAddress += sizeof(*Entry);
