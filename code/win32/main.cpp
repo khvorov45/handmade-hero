@@ -843,9 +843,92 @@ internal void HandleDebugCycleCounters(game_memory* GameMemory) {
 #endif
 }
 
+struct work_queue_entry {
+    char* StringToPrint;
+};
+
+global_variable uint32 volatile EntryCompletionCount;
+global_variable uint32 volatile NextEntryToDo;
+global_variable uint32 volatile EntryCount;
+work_queue_entry Entries[256];
+
+#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
+#define CompletePastReadsBeforeFutureReads _ReadBarrier()
+
+internal void PushString(HANDLE Semaphore, char* String) {
+    Assert(EntryCount < ArrayCount(Entries));
+    work_queue_entry* Entry = Entries + EntryCount;
+    Entry->StringToPrint = String;
+    CompletePastWritesBeforeFutureWrites;
+    ++EntryCount;
+    ReleaseSemaphore(Semaphore, 1, 0);
+}
+
+struct win32_thread_info {
+    HANDLE Semaphore;
+    int32 LogicalThreadIndex;
+};
+
+DWORD WINAPI ThreadProc(LPVOID lpParameter) {
+    win32_thread_info* ThreadInfo = (win32_thread_info*)lpParameter;
+    for (;;) {
+        if (NextEntryToDo < EntryCount) {
+            int32 EntryIndex = InterlockedIncrement((LONG volatile*)&NextEntryToDo) - 1;
+            CompletePastReadsBeforeFutureReads;
+            work_queue_entry* Entry = Entries + EntryIndex;
+            char Buffer[256];
+            wsprintf(Buffer, "Thread %u: %s\n", ThreadInfo->LogicalThreadIndex, Entry->StringToPrint);
+            OutputDebugStringA(Buffer);
+            InterlockedIncrement((LONG volatile*)&EntryCompletionCount);
+        } else {
+            WaitForSingleObjectEx(ThreadInfo->Semaphore, INFINITE, FALSE);
+        }
+    }
+    //return 0;
+}
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
     win32_state Win32State = {};
+    win32_thread_info ThreadInfo[4] = {};
+    uint32 InitialCount = 0;
+    uint32 ThreadCount = ArrayCount(ThreadInfo);
+    HANDLE Semaphore = CreateSemaphoreExA(0, InitialCount, ThreadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
+    char* Param = "Thread Started\n";
+    for (int32 ThreadIndex = 0; ThreadIndex < 8; ++ThreadIndex) {
+        win32_thread_info* Info = ThreadInfo + ThreadIndex;
+        Info->LogicalThreadIndex = ThreadIndex;
+        Info->Semaphore = Semaphore;
+        DWORD ThreadId;
+        HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, Info, 0, &ThreadId);
+        CloseHandle(ThreadHandle);
+    }
+
+    PushString(Semaphore, "S 0000\n");
+    PushString(Semaphore, "S 1111\n");
+    PushString(Semaphore, "S 2222\n");
+    PushString(Semaphore, "S 3333\n");
+    PushString(Semaphore, "S 4444\n");
+    PushString(Semaphore, "S 5555\n");
+    PushString(Semaphore, "S 6666\n");
+    PushString(Semaphore, "S 7777\n");
+    PushString(Semaphore, "S 8888\n");
+    PushString(Semaphore, "S 9999\n");
+
+    Sleep(1000);
+
+    PushString(Semaphore, "SS 0000\n");
+    PushString(Semaphore, "SS 1111\n");
+    PushString(Semaphore, "SS 2222\n");
+    PushString(Semaphore, "SS 3333\n");
+    PushString(Semaphore, "SS 4444\n");
+    PushString(Semaphore, "SS 5555\n");
+    PushString(Semaphore, "SS 6666\n");
+    PushString(Semaphore, "SS 7777\n");
+    PushString(Semaphore, "SS 8888\n");
+    PushString(Semaphore, "SS 9999\n");
+
+    while (EntryCount != EntryCompletionCount) {}
 
     Win32GetExeFileName(&Win32State);
 
@@ -901,7 +984,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     ReleaseDC(Window, RefreshDC);
     if (Win32RefreshRate > 1) {
         MonitorRefreshHz = Win32RefreshRate;
-}
+    }
 #endif
 
     real32 GameRefreshHz = 30;
@@ -1169,7 +1252,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         }
         if (GameCode.UpdateAndRender != 0) {
             GameCode.UpdateAndRender(&Thread, &GameMemory, NewInput, &GraphicsBuffer);
-            HandleDebugCycleCounters(&GameMemory);
+            // HandleDebugCycleCounters(&GameMemory);
         }
 
         //* Input
