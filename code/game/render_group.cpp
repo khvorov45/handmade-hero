@@ -649,18 +649,27 @@ internal void DrawRectangleQuickly(
         return;
     }
 
-    int32 FillWidth = FillRect.MaxX - FillRect.MinX;
-    int32 FillWidthAlign = FillWidth & 3;
-    __m128i StartupClipMask = _mm_set1_epi32(-1);
-    if (FillWidthAlign > 0) {
-        int32 Adjustment = (4 - FillWidthAlign);
-        switch (Adjustment) {
-        case 1: StartupClipMask = _mm_slli_si128(StartupClipMask, 1 * 4); break;
-        case 2: StartupClipMask = _mm_slli_si128(StartupClipMask, 2 * 4); break;
-        case 3: StartupClipMask = _mm_slli_si128(StartupClipMask, 3 * 4); break;
-        };
-        FillWidth += Adjustment;
-        FillRect.MinX = FillRect.MaxX - FillWidth;
+    __m128i StartClipMask = _mm_set1_epi32(-1);
+    __m128i EndClipMask = _mm_set1_epi32(-1);
+    __m128i StartClipMasks[4] = {
+        StartClipMask,
+        _mm_slli_si128(StartClipMask, 1 * 4),
+        _mm_slli_si128(StartClipMask, 2 * 4),
+        _mm_slli_si128(StartClipMask, 3 * 4)
+    };
+    __m128i EndClipMasks[4] = {
+        EndClipMask,
+        _mm_srli_si128(EndClipMask, 3 * 4),
+        _mm_srli_si128(EndClipMask, 2 * 4),
+        _mm_srli_si128(EndClipMask, 1 * 4)
+    };
+    if (FillRect.MinX & 3) {
+        StartClipMask = StartClipMasks[FillRect.MinX & 3];
+        FillRect.MinX = FillRect.MinX & ~3;
+    }
+    if (FillRect.MaxX & 3) {
+        EndClipMask = EndClipMasks[FillRect.MaxX & 3];
+        FillRect.MaxX = (FillRect.MaxX & ~3) + 4;
     }
 
     real32 InvXAxisLengthSq = 1 / LengthSq(XAxis);
@@ -729,7 +738,7 @@ internal void DrawRectangleQuickly(
         );
         PixelPx = _mm_sub_ps(PixelPx, Originx_4x);
 
-        __m128i ClipMask = StartupClipMask;
+        __m128i ClipMask = StartClipMask;
 
         for (int32 XI = MinX; XI < MaxX; XI += 4, PixelPx = _mm_add_ps(PixelPx, Four_4x)) {
 
@@ -741,7 +750,7 @@ internal void DrawRectangleQuickly(
             __m128 U = _mm_add_ps(_mm_mul_ps(PixelPx, nXAxisx_4x), PynX);
             __m128 V = _mm_add_ps(_mm_mul_ps(PixelPx, nYAxisx_4x), PynY);
 
-            __m128i OriginalDest = _mm_loadu_si128((__m128i*)Pixel);
+            __m128i OriginalDest = _mm_load_si128((__m128i*)Pixel);
             __m128i WriteMask = _mm_castps_si128(_mm_and_ps(
                 _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x)),
                 _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x))
@@ -945,10 +954,15 @@ internal void DrawRectangleQuickly(
                 _mm_andnot_si128(WriteMask, OriginalDest)
             );
 
-            _mm_storeu_si128((__m128i*)Pixel, MaskedOut);
+            _mm_store_si128((__m128i*)Pixel, MaskedOut);
 
             Pixel += 4;
             ClipMask = _mm_set1_epi32(0xFFFFFFFF);
+
+            if (XI + 8 > MaxX) {
+                ClipMask = EndClipMask;
+            }
+
             IACA_VC64_END;
         }
         Row += RowAdvance;
@@ -1265,21 +1279,33 @@ internal void TiledRenderGroupToOutput(
     int32 const TileCountX = 4;
     int32 const TileCountY = 4;
     tile_render_work WorkArray[TileCountX * TileCountY];
+    Assert(((uintptr)OutputTarget->Memory & 15) == 0);
     int32 TileWidth = OutputTarget->Width / TileCountX;
     int32 TileHeight = OutputTarget->Height / TileCountY;
+    TileWidth = ((TileWidth + 3) / 4) * 4;
     int32 WorkCount = 0;
     for (int32 TileY = 0; TileY < TileCountY; ++TileY) {
         for (int32 TileX = 0; TileX < TileCountX; ++TileX) {
             rectangle2i ClipRect;
-            ClipRect.MinX = TileX * TileWidth + 4;
-            ClipRect.MaxX = ClipRect.MinX + TileWidth - 4;
-            ClipRect.MinY = TileY * TileHeight + 4;
-            ClipRect.MaxY = ClipRect.MinY + TileHeight - 4;
+            ClipRect.MinX = TileX * TileWidth;
+            ClipRect.MaxX = ClipRect.MinX + TileWidth;
+            if (TileX == TileCountX - 1) {
+                ClipRect.MaxX = OutputTarget->Width;
+            }
+            ClipRect.MinY = TileY * TileHeight;
+            ClipRect.MaxY = ClipRect.MinY + TileHeight;
+            if (TileY == TileCountY - 1) {
+                ClipRect.MaxY = OutputTarget->Height;
+            }
             tile_render_work* Work = WorkArray + WorkCount++;
             Work->ClipRect = ClipRect;
             Work->OutputTarget = OutputTarget;
             Work->RenderGroup = RenderGroup;
+#if 1
             PlatformAddEntry(RenderQueue, DoTiledRenderWork, Work);
+#else
+            DoTiledRenderWork(RenderQueue, Work);
+#endif
         }
     }
     PlatformCompleteAllWork(RenderQueue);

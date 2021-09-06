@@ -432,6 +432,8 @@ internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
 }
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
+    PlatformAddEntry = Memory->PlatformAddEntry;
+    PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
 #if HANDMADE_INTERNAL
     DebugGlobalMemory = Memory;
 #endif
@@ -448,9 +450,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     uint32 GroundBufferHeight = 256;
 
     if (!Memory->IsInitialized) {
-
-        PlatformAddEntry = Memory->PlatformAddEntry;
-        PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
 
         InitializeArena(
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
