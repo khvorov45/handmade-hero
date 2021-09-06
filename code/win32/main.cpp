@@ -867,7 +867,6 @@ Win32AddEntry(platform_work_queue* Queue, platform_work_queue_callback* Callback
     Entry->Callback = Callback;
     ++Queue->CompletionGoal;
     _WriteBarrier();
-    _mm_sfence();
     Queue->NextEntryToWrite = NewNextEntryToWrite;
     ReleaseSemaphore(Queue->Semaphore, 1, 0);
 }
@@ -940,6 +939,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         CloseHandle(ThreadHandle);
     }
 
+#if 0
     Win32AddEntry(&Queue, DoWorkerWork, "S 0000\n");
     Win32AddEntry(&Queue, DoWorkerWork, "S 1111\n");
     Win32AddEntry(&Queue, DoWorkerWork, "S 2222\n");
@@ -963,6 +963,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     Win32AddEntry(&Queue, DoWorkerWork, "SS 7777\n");
     Win32AddEntry(&Queue, DoWorkerWork, "SS 8888\n");
     Win32AddEntry(&Queue, DoWorkerWork, "SS 9999\n");
+#endif
 
     Win32CompleteAllWork(&Queue);
 
