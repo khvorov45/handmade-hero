@@ -416,7 +416,7 @@ internal void FillGroundChunk(
         }
     }
 #endif
-    TiledRenderGroupToOutput(GroundRenderGroup, Buffer);
+    TiledRenderGroupToOutput(TranState->RenderQueue, GroundRenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
 }
 
@@ -448,6 +448,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     uint32 GroundBufferHeight = 256;
 
     if (!Memory->IsInitialized) {
+
+        PlatformAddEntry = Memory->PlatformAddEntry;
+        PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
+
         InitializeArena(
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
             (uint8*)Memory->PermanentStorage + sizeof(game_state)
@@ -696,6 +700,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             (uint8*)Memory->TransientStorage + sizeof(transient_state)
         );
 
+        TranState->RenderQueue = Memory->HighPriorityQueue;
         TranState->GroundBufferCount = 64;
         TranState->GroundBuffers =
             PushArray(&TranState->TranArena, TranState->GroundBufferCount, ground_buffer);
@@ -807,7 +812,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
             if (Controller->ActionDown.EndedDown) {
                 ZoomRate = -1.0f;
-        }
+            }
             if (Controller->ActionLeft.EndedDown) {
                 ConHero->dSword = { -1.0f, 0.0f };
             }
@@ -815,8 +820,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
+        }
     }
-}
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1207,7 +1212,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Saturation(RenderGroup, 1.0f);
 #endif
 
-    TiledRenderGroupToOutput(RenderGroup, DrawBuffer);
+    TiledRenderGroupToOutput(TranState->RenderQueue, RenderGroup, DrawBuffer);
 
     EndSim(SimRegion, GameState);
 

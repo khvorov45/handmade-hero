@@ -234,6 +234,7 @@ struct transient_state {
     uint32 EnvMapWidth;
     uint32 EnvMapHeight;
     environment_map EnvMaps[3];
+    platform_work_queue* RenderQueue;
 };
 
 internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
