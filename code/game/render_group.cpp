@@ -100,8 +100,12 @@ struct entity_basis_p_result {
 internal entity_basis_p_result GetRenderEntityBasisP(render_transform* Transform, v3 OriginalP) {
     entity_basis_p_result Result = {};
     v3 P = OriginalP + Transform->OffsetP;
+    real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
+#if 0
+    DistanceAboveTarget += 30.0f;
+#endif
     // NOTE(sen) +Z = out of screen
-    real32 DistanceToPZ = Transform->DistanceAboveTarget - P.z;
+    real32 DistanceToPZ = DistanceAboveTarget - P.z;
     v3 RawXY = V3(P.xy, 1.0f);
     real32 NearClipPlane = 0.2f;
     if (DistanceToPZ > NearClipPlane) {
@@ -187,7 +191,7 @@ internal void PushRectOutline(
     v4 Color = V4(1, 1, 1, 1)
 ) {
     real32 Thickness = 0.1f;
-#if 0
+#if 1
     //* Top and bottom
     PushRect(Group, Offset - V3(0, 0.5f * Dim.y, 0), V2(Dim.x, Thickness), Color);
     PushRect(Group, Offset + V3(0, 0.5f * Dim.y, 0), V2(Dim.x, Thickness), Color);
@@ -217,7 +221,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-}
+    }
 #endif
 }
 
@@ -550,7 +554,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-            }
+                }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -575,11 +579,11 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-        }
+            }
             Pixel++;
-    }
+        }
         Row += Buffer->Pitch;
-}
+    }
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
@@ -1253,13 +1257,13 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-        }
+            }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
+        }
     }
-}
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
