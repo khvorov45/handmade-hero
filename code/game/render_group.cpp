@@ -99,7 +99,8 @@ struct entity_basis_p_result {
 
 internal entity_basis_p_result GetRenderEntityBasisP(render_transform* Transform, v3 OriginalP) {
     entity_basis_p_result Result = {};
-    v3 P = OriginalP + Transform->OffsetP;
+    v3 P = V3(OriginalP.xy, 0.0f) + Transform->OffsetP;
+    real32 OffsetZ = 0.0f;
     real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
 #if 0
     DistanceAboveTarget += 30.0f;
@@ -110,9 +111,9 @@ internal entity_basis_p_result GetRenderEntityBasisP(render_transform* Transform
     real32 NearClipPlane = 0.2f;
     if (DistanceToPZ > NearClipPlane) {
         v3 ProjectedXY = RawXY * (Transform->FocalLength / DistanceToPZ);
-        Result.P = Transform->ScreenCenter + Transform->MetersToPixels * ProjectedXY.xy;
-        Result.Valid = true;
         Result.Scale = ProjectedXY.z * Transform->MetersToPixels;
+        Result.P = Transform->ScreenCenter + Transform->MetersToPixels * ProjectedXY.xy + V2(0.0f, Result.Scale * OffsetZ);
+        Result.Valid = true;
     }
     return Result;
 }
