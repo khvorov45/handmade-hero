@@ -348,22 +348,23 @@ internal void FillGroundChunk(
     ground_buffer* GroundBuffer, world_position* ChunkP
 ) {
     temporary_memory GroundMemory = BeginTemporaryMemory(&TranState->TranArena);
+    GroundBuffer->P = *ChunkP;
+
     loaded_bitmap* Buffer = &GroundBuffer->Bitmap;
     Buffer->AlignPercentage = V2(0.5f, 0.5f);
     Buffer->WidthOverHeight = 1.0f;
-    render_group* GroundRenderGroup =
-        AllocateRenderGroup(&TranState->TranArena, Megabytes(4), Buffer->Width, Buffer->Height);
 
-    Clear(GroundRenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
-
-    GroundBuffer->P = *ChunkP;
-
-#if 0
     real32 Width = GameState->World->ChunkDimInMeters.x;
     real32 Height = GameState->World->ChunkDimInMeters.y;
+    Assert(Width == Height);
     v2 HalfDim = 0.5f * V2(Width, Height);
-    HalfDim *= 2.0f;
 
+    render_group* RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
+    Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)Buffer->Width / Width);
+
+    Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
+
+#if 1
     for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
         for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
 
@@ -372,6 +373,11 @@ internal void FillGroundChunk(
             int32 ChunkZ = ChunkP->ChunkZ;
 
             random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
+
+            v4 Color = V4(1.0f, 0.0f, 0.0f, 1.0f);
+            if (ChunkX % 2 == ChunkY % 2) {
+                Color = V4(0.0f, 0.0f, 1.0f, 1.0f);
+            }
 
             v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
 
@@ -387,7 +393,7 @@ internal void FillGroundChunk(
                 v2 Offset =
                     Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
                 v2 P = Center + Offset;
-                PushBitmap(GroundRenderGroup, Stamp, 4.0f, V3(P, 0));
+                PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
             }
         }
     }
@@ -411,12 +417,12 @@ internal void FillGroundChunk(
                 v2 Offset =
                     Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
                 v2 P = Center + Offset;
-                PushBitmap(GroundRenderGroup, Stamp, 0.4f, V3(P, 0));
+                PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0));
             }
         }
     }
 #endif
-    TiledRenderGroupToOutput(TranState->RenderQueue, GroundRenderGroup, Buffer);
+    TiledRenderGroupToOutput(TranState->RenderQueue, RenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
 }
 
@@ -824,15 +830,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
-    render_group* RenderGroup =
-        AllocateRenderGroup(&TranState->TranArena, Megabytes(4), Buffer->Width, Buffer->Height);
-
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap* DrawBuffer = &DrawBuffer_;
     DrawBuffer->Height = Buffer->Height;
     DrawBuffer->Pitch = Buffer->Pitch;
     DrawBuffer->Width = Buffer->Width;
     DrawBuffer->Memory = Buffer->Memory;
+
+    render_group* RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
+    real32 WidthOfMonitor = 0.635f;
+    real32 MetersToPixels = (real32)(DrawBuffer->Width) * WidthOfMonitor; // NOTE(sen) Should be a division;
+    Perspective(RenderGroup, DrawBuffer->Width, DrawBuffer->Height, MetersToPixels, 0.6f, 9.0f);
 
     v2 ScreenCenter = 0.5f * V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height);
 
@@ -858,7 +866,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Delta.z >= -1.0f && Delta.z < 1.0f) {
                 real32 GroundSideInMeters = GameState->World->ChunkDimInMeters.x;
                 PushBitmap(RenderGroup, Bitmap, GroundSideInMeters, Delta);
-#if 1
+#if 0
                 PushRectOutline(
                     RenderGroup, Delta, V2(GroundSideInMeters, GroundSideInMeters),
                     V4(1.0f, 0.0f, 0.0f, 1.0f)

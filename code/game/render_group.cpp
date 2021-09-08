@@ -53,6 +53,7 @@ struct render_entry_rectangle {
 };
 
 struct render_transform {
+    bool32 Orthographic;
     real32 MetersToPixels;
     v2 ScreenCenter;
     real32 FocalLength;
@@ -70,25 +71,39 @@ struct render_group {
     uint8* PushBufferBase;
 };
 
-internal render_group* AllocateRenderGroup(
-    memory_arena* Arena, uint32 MaxPushBufferSize,
-    uint32 ResolutionPixelsX, uint32 ResulutionPixelsY
-) {
+internal render_group* AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize) {
     render_group* Result = PushStruct(Arena, render_group);
     Result->PushBufferBase = (uint8*)PushSize(Arena, MaxPushBufferSize);
     Result->PushBufferSize = 0;
     Result->MaxPushBufferSize = MaxPushBufferSize;
     Result->GlobalAlpha = 1.0f;
-    real32 WidthOfMonitor = 0.635f;
-    Result->Transform.MetersToPixels = (real32)(ResolutionPixelsX)*WidthOfMonitor; // NOTE(sen) Should be a division;
-    real32 PixelsToMeters = SafeRatio1(1.0f, Result->Transform.MetersToPixels);
-    Result->MonitorHalfDimInMeters = 0.5f * V2u(ResolutionPixelsX, ResulutionPixelsY) * PixelsToMeters;;
-    Result->Transform.FocalLength = 0.6f;
-    Result->Transform.DistanceAboveTarget = 9.0f;
-    Result->Transform.ScreenCenter = 0.5f * V2u(ResolutionPixelsX, ResulutionPixelsY);
     Result->Transform.OffsetP = V3(0, 0, 0);
     Result->Transform.Scale = 1.0f;
     return Result;
+}
+
+internal inline void Perspective(
+    render_group* Group, int32 PixelWidth, int32 PixelHeight,
+    real32 MetersToPixels, real32 FocalLength, real32 DistanceAboveTarget
+) {
+    real32 PixelsToMeters = SafeRatio1(1.0f, MetersToPixels);
+    Group->MonitorHalfDimInMeters = 0.5f * V2u(PixelWidth, PixelHeight) * PixelsToMeters;
+    Group->Transform.MetersToPixels = MetersToPixels;
+    Group->Transform.FocalLength = FocalLength;
+    Group->Transform.DistanceAboveTarget = DistanceAboveTarget;
+    Group->Transform.ScreenCenter = 0.5f * V2u(PixelWidth, PixelHeight);
+    Group->Transform.Orthographic = false;
+}
+
+internal inline void
+Orthographic(render_group* Group, int32 PixelWidth, int32 PixelHeight, real32 MetersToPixels) {
+    real32 PixelsToMeters = SafeRatio1(1.0f, MetersToPixels);
+    Group->MonitorHalfDimInMeters = 0.5f * PixelsToMeters * V2i(PixelWidth, PixelHeight);
+    Group->Transform.MetersToPixels = MetersToPixels;
+    Group->Transform.FocalLength = 1.0f;
+    Group->Transform.DistanceAboveTarget = 1.0f;
+    Group->Transform.ScreenCenter = 0.5f * V2u(PixelWidth, PixelHeight);
+    Group->Transform.Orthographic = true;
 }
 
 struct entity_basis_p_result {
@@ -100,21 +115,28 @@ struct entity_basis_p_result {
 internal entity_basis_p_result GetRenderEntityBasisP(render_transform* Transform, v3 OriginalP) {
     entity_basis_p_result Result = {};
     v3 P = V3(OriginalP.xy, 0.0f) + Transform->OffsetP;
-    real32 OffsetZ = 0.0f;
-    real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
-#if 0
-    DistanceAboveTarget += 30.0f;
-#endif
-    // NOTE(sen) +Z = out of screen
-    real32 DistanceToPZ = DistanceAboveTarget - P.z;
-    v3 RawXY = V3(P.xy, 1.0f);
-    real32 NearClipPlane = 0.2f;
-    if (DistanceToPZ > NearClipPlane) {
-        v3 ProjectedXY = RawXY * (Transform->FocalLength / DistanceToPZ);
-        Result.Scale = ProjectedXY.z * Transform->MetersToPixels;
-        Result.P = Transform->ScreenCenter + Transform->MetersToPixels * ProjectedXY.xy + V2(0.0f, Result.Scale * OffsetZ);
+    if (Transform->Orthographic) {
+        Result.P = Transform->ScreenCenter + Transform->MetersToPixels * P.xy;
+        Result.Scale = Transform->MetersToPixels;
         Result.Valid = true;
+    } else {
+        real32 OffsetZ = 0.0f;
+        real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
+#if 0
+        DistanceAboveTarget += 30.0f;
+#endif
+        // NOTE(sen) +Z = out of screen
+        real32 DistanceToPZ = DistanceAboveTarget - P.z;
+        v3 RawXY = V3(P.xy, 1.0f);
+        real32 NearClipPlane = 0.2f;
+        if (DistanceToPZ > NearClipPlane) {
+            v3 ProjectedXY = RawXY * (Transform->FocalLength / DistanceToPZ);
+            Result.Scale = ProjectedXY.z * Transform->MetersToPixels;
+            Result.P = Transform->ScreenCenter + Transform->MetersToPixels * ProjectedXY.xy + V2(0.0f, Result.Scale * OffsetZ);
+            Result.Valid = true;
+        }
     }
+
     return Result;
 }
 
@@ -704,8 +726,8 @@ internal void DrawRectangleQuickly(
     real32 NormalizeC = 1 / 255.0f;
     real32 NormalizeCSq = Square(NormalizeC);
     __m128 Colorr_4x = _mm_set1_ps(Color.r);
-    __m128 Colorg_4x = _mm_set1_ps(Color.b);
-    __m128 Colorb_4x = _mm_set1_ps(Color.g);
+    __m128 Colorg_4x = _mm_set1_ps(Color.g);
+    __m128 Colorb_4x = _mm_set1_ps(Color.b);
     __m128 Colora_4x = _mm_set1_ps(Color.a);
 
     __m128 nXAxisx_4x = _mm_set1_ps(nXAxis.x);
