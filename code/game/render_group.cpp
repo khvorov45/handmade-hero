@@ -711,6 +711,7 @@ internal void DrawRectangleQuickly(
     v2 nYAxis = YAxis * InvYAxisLengthSq;
 
     __m128 One255_4x = _mm_set1_ps(255.0f);
+    __m128 Half_4x = _mm_set1_ps(0.5f);
     real32 Inv255 = 1.0f / 255.0f;
     __m128 Inv255_4x = _mm_set1_ps(Inv255);
     __m128 One_4x = _mm_set1_ps(1.0f);
@@ -792,8 +793,8 @@ internal void DrawRectangleQuickly(
             U = _mm_min_ps(_mm_max_ps(U, Zero_4x), One_4x);
             V = _mm_min_ps(_mm_max_ps(V, Zero_4x), One_4x);
 
-            __m128 TextureX = _mm_mul_ps(U, WidthM2);
-            __m128 TextureY = _mm_mul_ps(V, HeightM2);
+            __m128 TextureX = _mm_add_ps(_mm_mul_ps(U, WidthM2), Half_4x);
+            __m128 TextureY = _mm_add_ps(_mm_mul_ps(V, HeightM2), Half_4x);
 
             __m128i TextureXFloored = _mm_cvttps_epi32(TextureX);
             __m128i TextureYFloored = _mm_cvttps_epi32(TextureY);

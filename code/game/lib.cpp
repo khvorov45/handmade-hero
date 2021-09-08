@@ -360,8 +360,7 @@ internal void FillGroundChunk(
     v2 HalfDim = 0.5f * V2(Width, Height);
 
     render_group* RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
-    Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)Buffer->Width / Width);
-
+    Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)(Buffer->Width - 2) / Width);
     Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
 
 #if 1
@@ -374,10 +373,14 @@ internal void FillGroundChunk(
 
             random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
 
+#if 0
             v4 Color = V4(1.0f, 0.0f, 0.0f, 1.0f);
             if (ChunkX % 2 == ChunkY % 2) {
                 Color = V4(0.0f, 0.0f, 1.0f, 1.0f);
             }
+#else
+            v4 Color = V4(1, 1, 1, 1);
+#endif
 
             v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
 
@@ -840,7 +843,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     render_group* RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
     real32 WidthOfMonitor = 0.635f;
     real32 MetersToPixels = (real32)(DrawBuffer->Width) * WidthOfMonitor; // NOTE(sen) Should be a division;
-    Perspective(RenderGroup, DrawBuffer->Width, DrawBuffer->Height, MetersToPixels, 0.6f, 9.0f);
+    real32 FocalLength = 0.6f;
+    real32 DistanceAboveGround = 9.0f;
+    Perspective(
+        RenderGroup, DrawBuffer->Width, DrawBuffer->Height, MetersToPixels,
+        FocalLength, DistanceAboveGround
+    );
 
     v2 ScreenCenter = 0.5f * V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height);
 
