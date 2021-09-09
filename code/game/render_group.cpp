@@ -122,7 +122,7 @@ internal entity_basis_p_result GetRenderEntityBasisP(render_transform* Transform
     } else {
         real32 OffsetZ = 0.0f;
         real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
-#if 0
+#if 1
         DistanceAboveTarget += 30.0f;
 #endif
         // NOTE(sen) +Z = out of screen

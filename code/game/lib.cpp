@@ -425,7 +425,7 @@ internal void FillGroundChunk(
         }
     }
 #endif
-    TiledRenderGroupToOutput(TranState->RenderQueue, RenderGroup, Buffer);
+    TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
 }
 
@@ -708,7 +708,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             (uint8*)Memory->TransientStorage + sizeof(transient_state)
         );
 
-        TranState->RenderQueue = Memory->HighPriorityQueue;
+        TranState->HighPriorityQueue = Memory->HighPriorityQueue;
+        TranState->LowPriorityQueue = Memory->LowPriorityQueue;
         TranState->GroundBufferCount = 64;
         TranState->GroundBuffers =
             PushArray(&TranState->TranArena, TranState->GroundBufferCount, ground_buffer);
@@ -1250,7 +1251,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Saturation(RenderGroup, 1.0f);
 #endif
 
-    TiledRenderGroupToOutput(TranState->RenderQueue, RenderGroup, DrawBuffer);
+    TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, DrawBuffer);
 
     EndSim(SimRegion, GameState);
 

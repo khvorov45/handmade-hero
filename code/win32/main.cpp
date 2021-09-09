@@ -898,11 +898,6 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoWorkerWork) {
     OutputDebugStringA(Buffer);
 }
 
-struct win32_thread_info {
-    int32 LogicalThreadIndex;
-    platform_work_queue* Queue;
-};
-
 internal void Win32CompleteAllWork(platform_work_queue* Queue) {
     while (Queue->CompletionGoal != Queue->CompletionCount) {
         Win32DoNextWorkQueueEntry(Queue);
@@ -912,11 +907,26 @@ internal void Win32CompleteAllWork(platform_work_queue* Queue) {
 }
 
 DWORD WINAPI ThreadProc(LPVOID lpParameter) {
-    win32_thread_info* ThreadInfo = (win32_thread_info*)lpParameter;
+    platform_work_queue* Queue = (platform_work_queue*)lpParameter;
     for (;;) {
-        if (Win32DoNextWorkQueueEntry(ThreadInfo->Queue)) {
-            WaitForSingleObjectEx(ThreadInfo->Queue->Semaphore, INFINITE, FALSE);
+        if (Win32DoNextWorkQueueEntry(Queue)) {
+            WaitForSingleObjectEx(Queue->Semaphore, INFINITE, FALSE);
         }
+    }
+}
+
+internal void Win32MakeQueue(platform_work_queue* Queue, uint32 ThreadCount) {
+    Queue->CompletionCount = 0;
+    Queue->CompletionGoal = 0;
+    Queue->NextEntryToRead = 0;
+    Queue->NextEntryToWrite = 0;
+    uint32 InitialCount = 0;
+    Queue->Semaphore = CreateSemaphoreExA(0, InitialCount, ThreadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
+    char* Param = "Thread Started\n";
+    for (uint32 ThreadIndex = 0; ThreadIndex < ThreadCount; ++ThreadIndex) {
+        DWORD ThreadId;
+        HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, Queue, 0, &ThreadId);
+        CloseHandle(ThreadHandle);
     }
 }
 
@@ -924,48 +934,38 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     win32_state Win32State = {};
 
-    win32_thread_info ThreadInfo[7] = {};
-    platform_work_queue Queue = {};
-    uint32 InitialCount = 0;
-    uint32 ThreadCount = ArrayCount(ThreadInfo);
-    Queue.Semaphore = CreateSemaphoreExA(0, InitialCount, ThreadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
-    char* Param = "Thread Started\n";
-    for (uint32 ThreadIndex = 0; ThreadIndex < ThreadCount; ++ThreadIndex) {
-        win32_thread_info* Info = ThreadInfo + ThreadIndex;
-        Info->LogicalThreadIndex = ThreadIndex;
-        Info->Queue = &Queue;
-        DWORD ThreadId;
-        HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, Info, 0, &ThreadId);
-        CloseHandle(ThreadHandle);
-    }
+    platform_work_queue HighPriorityQueue;
+    Win32MakeQueue(&HighPriorityQueue, 6);
+    platform_work_queue LowPriorityQueue;
+    Win32MakeQueue(&LowPriorityQueue, 2);
 
 #if 0
-    Win32AddEntry(&Queue, DoWorkerWork, "S 0000\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 1111\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 2222\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 3333\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 4444\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 5555\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 6666\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 7777\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 8888\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "S 9999\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 0000\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 1111\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 2222\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 3333\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 4444\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 5555\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 6666\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 7777\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 8888\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "S 9999\n");
 
     Sleep(1000);
 
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 0000\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 1111\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 2222\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 3333\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 4444\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 5555\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 6666\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 7777\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 8888\n");
-    Win32AddEntry(&Queue, DoWorkerWork, "SS 9999\n");
-#endif
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 0000\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 1111\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 2222\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 3333\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 4444\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 5555\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 6666\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 7777\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 8888\n");
+    Win32AddEntry(&HighPriorityQueue, DoWorkerWork, "SS 9999\n");
 
-    Win32CompleteAllWork(&Queue);
+    Win32CompleteAllWork(&HighPriorityQueue);
+#endif
 
     Win32GetExeFileName(&Win32State);
 
@@ -1106,7 +1106,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     GameMemory.DEBUGPlatformWriteEntireFile = DEBUGPlatformWriteEntireFile;
     GameMemory.PlatformAddEntry = Win32AddEntry;
     GameMemory.PlatformCompleteAllWork = Win32CompleteAllWork;
-    GameMemory.HighPriorityQueue = &Queue;
+    GameMemory.HighPriorityQueue = &HighPriorityQueue;
+    GameMemory.LowPriorityQueue = &LowPriorityQueue;
 
     //* Timing
 

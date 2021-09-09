@@ -234,7 +234,8 @@ struct transient_state {
     uint32 EnvMapWidth;
     uint32 EnvMapHeight;
     environment_map EnvMaps[3];
-    platform_work_queue* RenderQueue;
+    platform_work_queue* HighPriorityQueue;
+    platform_work_queue* LowPriorityQueue;
 };
 
 internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
@@ -535,9 +536,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+            }
         }
     }
-}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
