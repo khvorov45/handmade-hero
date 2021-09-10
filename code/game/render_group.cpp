@@ -36,7 +36,6 @@ struct render_entry_coordinate_system {
     environment_map* Top;
     environment_map* Middle;
     environment_map* Bottom;
-    //real32 PixelsToMeters;
 };
 
 struct render_entry_bitmap {
@@ -63,6 +62,7 @@ struct render_transform {
 };
 
 struct render_group {
+    game_assets* Assets;
     real32 GlobalAlpha;
     v2 MonitorHalfDimInMeters;
     render_transform Transform;
@@ -71,8 +71,9 @@ struct render_group {
     uint8* PushBufferBase;
 };
 
-internal render_group* AllocateRenderGroup(memory_arena* Arena, uint32 MaxPushBufferSize) {
+internal render_group* AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize) {
     render_group* Result = PushStruct(Arena, render_group);
+    Result->Assets = Assets;
     if (MaxPushBufferSize == 0) {
         MaxPushBufferSize = (uint32)GetArenaSizeRemaining(Arena);
     }
@@ -180,6 +181,14 @@ internal inline void PushBitmap(
     }
 }
 
+internal inline void PushBitmap(
+    render_group* Group, game_asset_id ID, real32 Height,
+    v3 Offset, v4 Color = V4(1, 1, 1, 1)
+) {
+    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID);
+    PushBitmap(Group, Bitmap, Height, Offset, Color);
+}
+
 internal inline void PushRect(
     render_group* Group,
     v3 Offset, v2 Dim,
@@ -247,7 +256,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-    }
+}
 #endif
 }
 
@@ -580,7 +589,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-                }
+            }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -605,11 +614,11 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-            }
-            Pixel++;
         }
-        Row += Buffer->Pitch;
+            Pixel++;
     }
+        Row += Buffer->Pitch;
+}
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
@@ -1284,13 +1293,13 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            }
+        }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
-        }
     }
+}
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
 

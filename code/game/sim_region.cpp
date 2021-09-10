@@ -177,19 +177,29 @@ struct ground_buffer {
     loaded_bitmap Bitmap;
 };
 
+enum game_asset_id {
+    GAI_Backdrop,
+    GAI_Shadow,
+    GAI_Tree,
+    GAI_Sword,
+    GAI_Stairwell,
+    GAI_Count
+};
+
 struct game_assets {
+    loaded_bitmap Bitmaps[GAI_Count];
+
     loaded_bitmap Grass[2];
     loaded_bitmap Ground[4];
     loaded_bitmap Tuft[3];
 
-    loaded_bitmap Backdrop;
     hero_bitmaps HeroBitmaps[4];
-    loaded_bitmap HeroShadow;
-
-    loaded_bitmap Tree;
-    loaded_bitmap Sword;
-    loaded_bitmap Stairwell;
 };
+
+internal inline loaded_bitmap* GetBitmap(game_assets* Assets, game_asset_id ID) {
+    loaded_bitmap* Result = Assets->Bitmaps + ID;
+    return Result;
+}
 
 struct game_state {
     memory_arena WorldArena;
@@ -221,8 +231,6 @@ struct game_state {
 
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
-
-    game_assets Assets;
 };
 
 struct environment_map {
@@ -247,6 +255,7 @@ struct transient_state {
     environment_map EnvMaps[3];
     platform_work_queue* HighPriorityQueue;
     platform_work_queue* LowPriorityQueue;
+    game_assets Assets;
 };
 
 internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
