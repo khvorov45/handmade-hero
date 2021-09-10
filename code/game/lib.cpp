@@ -482,11 +482,20 @@ struct load_asset_work {
     char* Filename;
     task_with_memory* Task;
     loaded_bitmap* Bitmap;
+    bool32 HasAlignment;
+    int32 AlignX;
+    int32 TopDownAlignY;
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
     load_asset_work* Work = (load_asset_work*)Data;
-    *Work->Bitmap = DEBUGLoadBMP(0, Work->Assets->ReadEntireFile, Work->Filename);
+    if (Work->HasAlignment) {
+        *Work->Bitmap = DEBUGLoadBMP(
+            0, Work->Assets->ReadEntireFile, Work->Filename, Work->AlignX, Work->TopDownAlignY
+        );
+    } else {
+        *Work->Bitmap = DEBUGLoadBMP(0, Work->Assets->ReadEntireFile, Work->Filename);
+    }
     Work->Assets->Bitmaps[Work->ID] = Work->Bitmap;
     EndTaskWithMemory(Work->Task);
 }
@@ -500,19 +509,29 @@ internal void LoadAsset(game_assets* Assets, game_asset_id ID) {
         Work->Task = Task;
         Work->Filename = "";
         Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
+        Work->HasAlignment = false;
 
         switch (ID) {
         case GAI_Backdrop: {
             Work->Filename = "test/test_background.bmp";
         } break;
         case GAI_Shadow: {
-            Work->Filename = "test/test_hero_shadow.bmp"; // 72, 182;
+            Work->Filename = "test/test_hero_shadow.bmp";
+            Work->HasAlignment = true;
+            Work->AlignX = 72;
+            Work->TopDownAlignY = 182;
         } break;
         case GAI_Tree: {
-            Work->Filename = "test2/tree00.bmp"; //40, 80;
+            Work->Filename = "test2/tree00.bmp";
+            Work->HasAlignment = true;
+            Work->AlignX = 40;
+            Work->TopDownAlignY = 80;
         } break;
         case GAI_Sword: {
-            Work->Filename = "test2/rock03.bmp"; // 29, 10;
+            Work->Filename = "test2/rock03.bmp";
+            Work->HasAlignment = true;
+            Work->AlignX = 29;
+            Work->TopDownAlignY = 10;
         } break;
         case GAI_Stairwell: {
             Work->Filename = "test2/rock02.bmp";
@@ -915,8 +934,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
-            }
+        }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1349,7 +1368,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-        }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
