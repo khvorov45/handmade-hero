@@ -186,8 +186,22 @@ enum game_asset_id {
     GAI_Count
 };
 
+enum asset_state {
+    AssetState_Unloaded,
+    AssetState_Queued,
+    AssetState_Loaded,
+};
+
+struct asset_handle {
+    asset_state State;
+    loaded_bitmap* Bitmap;
+};
+
 struct game_assets {
-    loaded_bitmap Bitmaps[GAI_Count];
+    struct transient_state* TranState;
+    memory_arena Arena;
+    debug_platform_read_entire_file* ReadEntireFile;
+    loaded_bitmap* Bitmaps[GAI_Count];
 
     loaded_bitmap Grass[2];
     loaded_bitmap Ground[4];
@@ -197,7 +211,7 @@ struct game_assets {
 };
 
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, game_asset_id ID) {
-    loaded_bitmap* Result = Assets->Bitmaps + ID;
+    loaded_bitmap* Result = Assets->Bitmaps[ID];
     return Result;
 }
 
@@ -549,15 +563,15 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-        }
+            }
 #else
             //real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+        }
     }
-}
 }
 
 struct test_wall {

@@ -476,6 +476,56 @@ internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
     SetTopDownAlign(&Bitmap->Torso, Align);
 }
 
+struct load_asset_work {
+    game_assets* Assets;
+    game_asset_id ID;
+    char* Filename;
+    task_with_memory* Task;
+    loaded_bitmap* Bitmap;
+};
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
+    load_asset_work* Work = (load_asset_work*)Data;
+    *Work->Bitmap = DEBUGLoadBMP(0, Work->Assets->ReadEntireFile, Work->Filename);
+    Work->Assets->Bitmaps[Work->ID] = Work->Bitmap;
+    EndTaskWithMemory(Work->Task);
+}
+
+internal void LoadAsset(game_assets* Assets, game_asset_id ID) {
+    task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
+    if (Task) {
+        load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
+        Work->Assets = Assets;
+        Work->ID = ID;
+        Work->Task = Task;
+        Work->Filename = "";
+        Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
+
+        switch (ID) {
+        case GAI_Backdrop: {
+            Work->Filename = "test/test_background.bmp";
+        } break;
+        case GAI_Shadow: {
+            Work->Filename = "test/test_hero_shadow.bmp"; // 72, 182;
+        } break;
+        case GAI_Tree: {
+            Work->Filename = "test2/tree00.bmp"; //40, 80;
+        } break;
+        case GAI_Sword: {
+            Work->Filename = "test2/rock03.bmp"; // 29, 10;
+        } break;
+        case GAI_Stairwell: {
+            Work->Filename = "test2/rock02.bmp";
+        } break;
+        }
+#if 1
+        PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
+#else
+        LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
+#endif
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     PlatformAddEntry = Memory->PlatformAddEntry;
     PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
@@ -676,6 +726,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             (uint8*)Memory->TransientStorage + sizeof(transient_state)
         );
 
+        SubArena(&TranState->Assets.Arena, &TranState->TranArena, Megabytes(64));
+        TranState->Assets.ReadEntireFile = Memory->DEBUGPlatformReadEntireFile;
+        TranState->Assets.TranState = TranState;
+
         TranState->Assets.Grass[0] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass00.bmp");
         TranState->Assets.Grass[1] =
@@ -694,17 +748,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground02.bmp");
         TranState->Assets.Ground[3] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground03.bmp");
-
-        *(GetBitmap(&TranState->Assets, GAI_Backdrop)) =
-            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
-        *(GetBitmap(&TranState->Assets, GAI_Shadow)) =
-            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_shadow.bmp", 72, 182);
-        *(GetBitmap(&TranState->Assets, GAI_Tree)) =
-            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tree00.bmp", 40, 80);
-        *(GetBitmap(&TranState->Assets, GAI_Sword)) =
-            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/rock03.bmp", 29, 10);
-        *(GetBitmap(&TranState->Assets, GAI_Stairwell)) =
-            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/rock02.bmp");
 
         hero_bitmaps* Bitmap;
 
@@ -873,7 +916,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
 #endif
             }
-        }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -885,6 +928,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     DrawBuffer->Memory = Buffer->Memory;
 
     render_group* RenderGroup = AllocateRenderGroup(&TranState->Assets, &TranState->TranArena, Megabytes(4));
+
     real32 WidthOfMonitor = 0.635f;
     real32 MetersToPixels = (real32)(DrawBuffer->Width) * WidthOfMonitor; // NOTE(sen) Should be a division;
     real32 FocalLength = 0.6f;
@@ -1060,8 +1104,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         }
                     }
                 }
-    }
-    }
+            }
+        }
         break;
         case EntityType_Wall:
         {
@@ -1129,7 +1173,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-}
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -1143,7 +1187,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         {
             real32 HeroSize = 2.5f;
             PushBitmap(
-                RenderGroup, GetBitmap(&TranState->Assets, GAI_Shadow), HeroSize, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha)
+                RenderGroup, GAI_Shadow, HeroSize, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, HeroSize, V3(0, 0, 0));
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, HeroSize, V3(0, 0, 0));
@@ -1153,7 +1197,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Wall:
         {
-            PushBitmap(RenderGroup, GetBitmap(&TranState->Assets, GAI_Tree), 2.5f, V3(0, 0, 0));
+            PushBitmap(RenderGroup, GAI_Tree, 2.5f, V3(0, 0, 0));
         }
         break;
         case EntityType_Stairwell:
@@ -1165,10 +1209,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         case EntityType_Sword:
         {
             PushBitmap(
-                RenderGroup, GetBitmap(&TranState->Assets, GAI_Shadow), 0.5f, V3(0, 0, 0),
+                RenderGroup, GAI_Shadow, 0.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha)
             );
-            PushBitmap(RenderGroup, GetBitmap(&TranState->Assets, GAI_Sword), 0.5f, V3(0, 0, 0));
+            PushBitmap(RenderGroup, GAI_Sword, 0.5f, V3(0, 0, 0));
         }
         break;
         case EntityType_Familiar:
@@ -1180,7 +1224,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
             real32 BobSin = Sin(4.0f * Entity->tBob);
             PushBitmap(
-                RenderGroup, GetBitmap(&TranState->Assets, GAI_Shadow), 2.5f, V3(0, 0, 0),
+                RenderGroup, GAI_Shadow, 2.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha * 0.5f + BobSin * 0.2f)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, 2.5f, V3(0, 0, 0.2f * BobSin));
@@ -1189,7 +1233,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         case EntityType_Monster:
         {
             PushBitmap(
-                RenderGroup, GetBitmap(&TranState->Assets, GAI_Shadow), 2.5f, V3(0, 0, 0),
+                RenderGroup, GAI_Shadow, 2.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, 2.5f, V3(0, 0, 0));

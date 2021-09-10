@@ -181,12 +181,18 @@ internal inline void PushBitmap(
     }
 }
 
+internal void LoadAsset(game_assets* Assets, game_asset_id ID);
+
 internal inline void PushBitmap(
     render_group* Group, game_asset_id ID, real32 Height,
     v3 Offset, v4 Color = V4(1, 1, 1, 1)
 ) {
     loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID);
-    PushBitmap(Group, Bitmap, Height, Offset, Color);
+    if (Bitmap) {
+        PushBitmap(Group, Bitmap, Height, Offset, Color);
+    } else {
+        LoadAsset(Group->Assets, ID);
+    }
 }
 
 internal inline void PushRect(
@@ -256,7 +262,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-}
+    }
 #endif
 }
 
@@ -589,7 +595,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-            }
+                }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -614,11 +620,11 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-        }
+            }
             Pixel++;
-    }
+        }
         Row += Buffer->Pitch;
-}
+    }
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
@@ -1293,13 +1299,13 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-        }
+            }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
+        }
     }
-}
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
