@@ -226,9 +226,16 @@ struct environment_map {
     real32 Pz;
 };
 
+struct task_with_memory {
+    bool32 BeingUsed;
+    memory_arena Arena;
+    temporary_memory MemoryFlush;
+};
+
 struct transient_state {
     bool32 IsInitialized;
     memory_arena TranArena;
+    task_with_memory Tasks[4];
     uint32 GroundBufferCount;
     ground_buffer* GroundBuffers;
     uint32 EnvMapWidth;
@@ -529,16 +536,16 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-            }
+        }
 #else
             //real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
-            }
-        }
     }
+}
+}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;

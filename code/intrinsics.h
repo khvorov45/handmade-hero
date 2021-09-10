@@ -5,6 +5,7 @@
 #include "math.h"
 
 #if COMPILER_MSVC
+#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
 #include <intrin.h>
 #endif
 

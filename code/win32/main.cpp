@@ -395,9 +395,14 @@ internal void Win32DisplayBufferInWindow(
             DIB_RGB_COLORS, SRCCOPY
         );
     } else {
+#if 0
         int32 OffsetX = 10;
         int32 OffsetY = 10;
+#else
 
+        int32 OffsetX = 0;
+        int32 OffsetY = 0;
+#endif
         PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
         PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
         PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
@@ -989,7 +994,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
     WNDCLASSA WindowClass = {};
 
-    Win32ResizeDIBSection(&GlobalBackBuffer, 960, 540);
+    Win32ResizeDIBSection(&GlobalBackBuffer, 1920, 1080);
 
     WindowClass.style = CS_HREDRAW | CS_VREDRAW;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
@@ -1024,7 +1029,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     }
 #endif
 
-    real32 GameRefreshHz = 30;
+    real32 GameRefreshHz = 60;
     real32 TargetSecondsPerFrame = 1.0f / GameRefreshHz;
 
     GlobalRunning = true;
@@ -1410,8 +1415,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
             while (SecondsElapsedForFrame < TargetSecondsPerFrame) {
                 SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
-            }
-        } else {
+        }
+    } else {
             //* MISSED FRAME
         }
         LastCounter = Win32GetWallClock();
