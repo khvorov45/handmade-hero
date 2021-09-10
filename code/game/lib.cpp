@@ -422,9 +422,9 @@ internal void FillGroundChunk(
 
                     loaded_bitmap* Stamp;
                     if (RandomChoice(&Series, 2)) {
-                        Stamp = GameState->Grass + RandomChoice(&Series, ArrayCount(GameState->Grass));
+                        Stamp = GameState->Assets.Grass + RandomChoice(&Series, ArrayCount(GameState->Assets.Grass));
                     } else {
-                        Stamp = GameState->Ground + RandomChoice(&Series, ArrayCount(GameState->Ground));
+                        Stamp = GameState->Assets.Ground + RandomChoice(&Series, ArrayCount(GameState->Assets.Ground));
                     }
 
                     v2 Offset =
@@ -449,7 +449,7 @@ internal void FillGroundChunk(
                 for (uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
 
                     loaded_bitmap* Stamp =
-                        GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
+                        GameState->Assets.Tuft + RandomChoice(&Series, ArrayCount(GameState->Assets.Tuft));
 
                     v2 Offset =
                         Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
@@ -546,39 +546,39 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             0.9f * GameState->TypicalFloorHeight
         );
 
-        GameState->Grass[0] =
+        GameState->Assets.Grass[0] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass00.bmp");
-        GameState->Grass[1] =
+        GameState->Assets.Grass[1] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass01.bmp");
-        GameState->Tuft[0] =
+        GameState->Assets.Tuft[0] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft00.bmp");
-        GameState->Tuft[1] =
+        GameState->Assets.Tuft[1] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft01.bmp");
-        GameState->Tuft[2] =
+        GameState->Assets.Tuft[2] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft02.bmp");
-        GameState->Ground[0] =
+        GameState->Assets.Ground[0] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground00.bmp");
-        GameState->Ground[1] =
+        GameState->Assets.Ground[1] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground01.bmp");
-        GameState->Ground[2] =
+        GameState->Assets.Ground[2] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground02.bmp");
-        GameState->Ground[3] =
+        GameState->Assets.Ground[3] =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground03.bmp");
 
-        GameState->Backdrop =
+        GameState->Assets.Backdrop =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_background.bmp");
-        GameState->HeroShadow =
+        GameState->Assets.HeroShadow =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_shadow.bmp", 72, 182);
-        GameState->Tree =
+        GameState->Assets.Tree =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tree00.bmp", 40, 80);
-        GameState->Sword =
+        GameState->Assets.Sword =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/rock03.bmp", 29, 10);
-        GameState->Stairwell =
+        GameState->Assets.Stairwell =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/rock02.bmp");
 
         hero_bitmaps* Bitmap;
 
-        Bitmap = &GameState->HeroBitmaps[0];
+        Bitmap = &GameState->Assets.HeroBitmaps[0];
         Bitmap->Head =
             DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test/test_hero_right_head.bmp");
         Bitmap->Cape =
@@ -1025,7 +1025,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             RenderGroup->GlobalAlpha = Clamp01MapToRange(FadeBottomEndZ, CameraRelativeGroundP.z, FadeBottomStartZ);
         }
 
-        hero_bitmaps* HeroBitmaps = &GameState->HeroBitmaps[Entity->FacingDirection];
+        hero_bitmaps* HeroBitmaps = &GameState->Assets.HeroBitmaps[Entity->FacingDirection];
         switch (Entity->Type) {
         case EntityType_Hero:
         {
@@ -1142,7 +1142,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         {
             real32 HeroSize = 2.5f;
             PushBitmap(
-                RenderGroup, &GameState->HeroShadow, HeroSize, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha)
+                RenderGroup, &GameState->Assets.HeroShadow, HeroSize, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, HeroSize, V3(0, 0, 0));
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, HeroSize, V3(0, 0, 0));
@@ -1152,7 +1152,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         break;
         case EntityType_Wall:
         {
-            PushBitmap(RenderGroup, &GameState->Tree, 2.5f, V3(0, 0, 0));
+            PushBitmap(RenderGroup, &GameState->Assets.Tree, 2.5f, V3(0, 0, 0));
         }
         break;
         case EntityType_Stairwell:
@@ -1164,10 +1164,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         case EntityType_Sword:
         {
             PushBitmap(
-                RenderGroup, &GameState->HeroShadow, 0.5f, V3(0, 0, 0),
+                RenderGroup, &GameState->Assets.HeroShadow, 0.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha)
             );
-            PushBitmap(RenderGroup, &GameState->Sword, 0.5f, V3(0, 0, 0));
+            PushBitmap(RenderGroup, &GameState->Assets.Sword, 0.5f, V3(0, 0, 0));
         }
         break;
         case EntityType_Familiar:
@@ -1179,7 +1179,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
             real32 BobSin = Sin(4.0f * Entity->tBob);
             PushBitmap(
-                RenderGroup, &GameState->HeroShadow, 2.5f, V3(0, 0, 0),
+                RenderGroup, &GameState->Assets.HeroShadow, 2.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha * 0.5f + BobSin * 0.2f)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Head, 2.5f, V3(0, 0, 0.2f * BobSin));
@@ -1188,7 +1188,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         case EntityType_Monster:
         {
             PushBitmap(
-                RenderGroup, &GameState->HeroShadow, 2.5f, V3(0, 0, 0),
+                RenderGroup, &GameState->Assets.HeroShadow, 2.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha)
             );
             PushBitmap(RenderGroup, &HeroBitmaps->Torso, 2.5f, V3(0, 0, 0));

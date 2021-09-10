@@ -177,6 +177,20 @@ struct ground_buffer {
     loaded_bitmap Bitmap;
 };
 
+struct game_assets {
+    loaded_bitmap Grass[2];
+    loaded_bitmap Ground[4];
+    loaded_bitmap Tuft[3];
+
+    loaded_bitmap Backdrop;
+    hero_bitmaps HeroBitmaps[4];
+    loaded_bitmap HeroShadow;
+
+    loaded_bitmap Tree;
+    loaded_bitmap Sword;
+    loaded_bitmap Stairwell;
+};
+
 struct game_state {
     memory_arena WorldArena;
 
@@ -190,18 +204,6 @@ struct game_state {
 
     uint32 LowEntity_Count;
     low_entity_ LowEntities[1000000];
-
-    loaded_bitmap Grass[2];
-    loaded_bitmap Ground[4];
-    loaded_bitmap Tuft[3];
-
-    loaded_bitmap Backdrop;
-    hero_bitmaps HeroBitmaps[4];
-    loaded_bitmap HeroShadow;
-
-    loaded_bitmap Tree;
-    loaded_bitmap Sword;
-    loaded_bitmap Stairwell;
 
     pairwise_collision_rule* CollisionRuleHash[256];
     pairwise_collision_rule* FirstFreeCollisionRule;
@@ -219,6 +221,8 @@ struct game_state {
 
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
+
+    game_assets Assets;
 };
 
 struct environment_map {
