@@ -5,8 +5,12 @@
 #include "math.h"
 
 #if COMPILER_MSVC
-#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
 #include <intrin.h>
+#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
+internal inline uint32 AtomicCompareExchangeUint32(uint32 volatile* Value, uint32 Expected, uint32 New) {
+    uint32 Result = _InterlockedCompareExchange((long*)Value, Expected, New); // NOTE(sen) Should be New, Expected
+    return Result;
+}
 #endif
 
 internal inline int32 RoundReal32ToInt32(real32 X) {

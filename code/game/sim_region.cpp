@@ -192,7 +192,7 @@ enum asset_state {
     AssetState_Loaded,
 };
 
-struct asset_handle {
+struct asset_slot {
     asset_state State;
     loaded_bitmap* Bitmap;
 };
@@ -201,7 +201,7 @@ struct game_assets {
     struct transient_state* TranState;
     memory_arena Arena;
     debug_platform_read_entire_file* ReadEntireFile;
-    loaded_bitmap* Bitmaps[GAI_Count];
+    asset_slot Bitmaps[GAI_Count];
 
     loaded_bitmap Grass[2];
     loaded_bitmap Ground[4];
@@ -211,7 +211,7 @@ struct game_assets {
 };
 
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, game_asset_id ID) {
-    loaded_bitmap* Result = Assets->Bitmaps[ID];
+    loaded_bitmap* Result = Assets->Bitmaps[ID].Bitmap;
     return Result;
 }
 
