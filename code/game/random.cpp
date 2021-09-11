@@ -1,3 +1,6 @@
+#if !defined(HANDMADE_RANDOM_CPP)
+#define HANDMADE_RANDOM_CPP
+
 #include "../types.h"
 #include "../util.h"
 
@@ -563,3 +566,5 @@ inline int32 RandomBetween(random_series* Series, int32 Min, int32 Max) {
     int32 Result = RandomNextUint32(Series) % (Max + 1 - Min) + Min;
     return Result;
 }
+
+#endif

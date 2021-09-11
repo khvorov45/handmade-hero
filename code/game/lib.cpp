@@ -368,15 +368,14 @@ struct load_bitmap_work {
     game_assets* Assets;
     bitmap_id ID;
     asset_state FinalState;
-    char* Filename;
     task_with_memory* Task;
     loaded_bitmap* Bitmap;
-    v2 AlignPercentage;
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
-    *Work->Bitmap = DEBUGLoadBMP(Work->Filename, Work->AlignPercentage);
+    asset_bitmap_info* Info = Work->Assets->BitmapInfos + Work->ID.Value;
+    *Work->Bitmap = DEBUGLoadBMP(Info->Filename, Info->AlignPercentage);
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Bitmaps[Work->ID.Value].Bitmap = Work->Bitmap;
     Work->Assets->Bitmaps[Work->ID.Value].State = Work->FinalState;
@@ -391,33 +390,15 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Assets = Assets;
             Work->ID = ID;
             Work->Task = Task;
-            Work->Filename = "";
             Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
             Work->FinalState = AssetState_Loaded;
-            Work->AlignPercentage = V2(0.5f, 0.5f);
-
-            switch (ID.Value) {
-            case Asset_Shadow: {
-                Work->Filename = "test/test_hero_shadow.bmp";
-                Work->AlignPercentage = V2(0.5f, 0.15668f);
-            } break;
-            case Asset_Tree: {
-                Work->Filename = "test2/tree00.bmp";
-                Work->AlignPercentage = V2(0.494f, 0.295f);
-            } break;
-            case Asset_Sword: {
-                Work->Filename = "test2/rock03.bmp";
-                Work->AlignPercentage = V2(0.5f, 0.656f);
-            } break;
-            case Asset_Stairwell: {
-                Work->Filename = "test2/rock02.bmp";
-            } break;
-            }
 #if 1
             PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadBitmapWork, Work);
 #else
             LoadBitmapWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
+        } else {
+            Assets->Bitmaps[ID.Value].State = AssetState_Unloaded;
         }
     }
 }
@@ -480,6 +461,10 @@ internal void FillGroundChunk(
         Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)(Buffer->Width - 2) / Width);
         Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
 
+        Work->Buffer = Buffer;
+        Work->RenderGroup = RenderGroup;
+        Work->Task = Task;
+
         for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
             for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
 
@@ -502,12 +487,7 @@ internal void FillGroundChunk(
 
                 for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
 
-                    loaded_bitmap* Stamp;
-                    if (RandomChoice(&Series, 2)) {
-                        Stamp = TranState->Assets->Grass + RandomChoice(&Series, ArrayCount(TranState->Assets->Grass));
-                    } else {
-                        Stamp = TranState->Assets->Ground + RandomChoice(&Series, ArrayCount(TranState->Assets->Ground));
-                    }
+                    bitmap_id Stamp = RandomAssetFrom(TranState->Assets, RandomChoice(&Series, 2) ? Asset_Grass : Asset_Stone, &Series);;
 
                     v2 Offset =
                         Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
@@ -529,9 +509,7 @@ internal void FillGroundChunk(
                 v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
 
                 for (uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
-
-                    loaded_bitmap* Stamp =
-                        TranState->Assets->Tuft + RandomChoice(&Series, ArrayCount(TranState->Assets->Tuft));
+                    bitmap_id Stamp = RandomAssetFrom(TranState->Assets, Asset_Tuft, &Series);
 
                     v2 Offset =
                         Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
@@ -543,10 +521,9 @@ internal void FillGroundChunk(
 
         if (AllResourcesPresent(RenderGroup)) {
             GroundBuffer->P = *ChunkP;
-            Work->Buffer = Buffer;
-            Work->RenderGroup = RenderGroup;
-            Work->Task = Task;
             PlatformAddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
+        } else {
+            EndTaskWithMemory(Task);
         }
     }
 }
@@ -881,8 +858,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
-    }
+            }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1315,7 +1292,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-}
+        }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;

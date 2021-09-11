@@ -5,6 +5,7 @@
 #include "math.cpp"
 #include "bmp.cpp"
 #include "memory.cpp"
+#include "random.cpp"
 
 enum asset_tag_id {
     Tag_Smoothness,
@@ -56,11 +57,7 @@ struct asset_slot {
 
 struct asset_bitmap_info {
     v2 AlignPercentage;
-    real32 WidthOverHeight;
-    int32 Width;
-    int32 Height;
-    uint32 FirstTagIndex;
-    uint32 OnePastLastTagIndex;
+    char* Filename;
 };
 
 struct asset_group {
@@ -80,6 +77,8 @@ struct game_assets {
     memory_arena Arena;
 
     uint32 BitmapCount;
+    uint32 DEBUGUsedBitmapCount;
+    asset_bitmap_info* BitmapInfos;
     asset_slot* Bitmaps;
 
     uint32 SoundCount;
@@ -89,15 +88,14 @@ struct game_assets {
     asset_tag* Tags;
 
     uint32 AssetCount;
+    uint32 DEBUGUsedAssetCount;
     asset* Assets;
 
-    asset_type AssetsTypes[Asset_Count];
-
-    loaded_bitmap Grass[2];
-    loaded_bitmap Ground[4];
-    loaded_bitmap Tuft[3];
+    asset_type AssetTypes[Asset_Count];
 
     hero_bitmaps HeroBitmaps[4];
+
+    asset_type* DEBUGAssetType;
 };
 
 struct bitmap_id {
@@ -115,43 +113,88 @@ internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
     SetTopDownAlign(&Bitmap->Torso, Align);
 }
 
+internal bitmap_id DEBUGAddBitmapInfo(game_assets* Assets, char* Filename, v2 AlignPercentage) {
+    Assert(Assets->DEBUGUsedBitmapCount < Assets->BitmapCount);
+    bitmap_id ID = { Assets->DEBUGUsedBitmapCount++ };
+    asset_bitmap_info* Info = Assets->BitmapInfos + ID.Value;
+    Info->AlignPercentage = AlignPercentage;
+    Info->Filename = Filename;
+    return ID;
+}
+
+internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
+    Assert(Assets->DEBUGAssetType == 0);
+    Assets->DEBUGAssetType = Assets->AssetTypes + Type;
+    Assets->DEBUGAssetType->FirstAssetIndex = Assets->DEBUGUsedAssetCount;
+    Assets->DEBUGAssetType->OnePastLastAssetIndex = Assets->DEBUGAssetType->FirstAssetIndex;
+}
+
+internal void
+AddBitmapAsset(game_assets* Assets, char* Filename, v2 AlignPercentage = V2(0.5f, 0.5f)) {
+    Assert(Assets->DEBUGAssetType != 0);
+    asset* Asset = Assets->Assets + Assets->DEBUGAssetType->OnePastLastAssetIndex++;
+    Asset->FirstTagIndex = 0;
+    Asset->OnePastLastTagIndex = 0;
+    Asset->SlotID = DEBUGAddBitmapInfo(Assets, Filename, AlignPercentage).Value;
+}
+
+internal void EndAssetType(game_assets* Assets) {
+    Assert(Assets->DEBUGAssetType != 0);
+    Assets->DEBUGUsedAssetCount = Assets->DEBUGAssetType->OnePastLastAssetIndex;
+    Assets->DEBUGAssetType = 0;
+}
+
 internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
     game_assets* Assets = PushStruct(Arena, game_assets);
     SubArena(&Assets->Arena, Arena, Size);
     Assets->TranState = TranState;
 
-    Assets->BitmapCount = Asset_Count;
+    Assets->BitmapCount = 256 * Asset_Count;
+    Assets->DEBUGUsedBitmapCount = 1;
     Assets->Bitmaps = PushArray(Arena, Assets->BitmapCount, asset_slot);
+    Assets->BitmapInfos = PushArray(Arena, Assets->BitmapCount, asset_bitmap_info);
 
     Assets->SoundCount = 1;
     Assets->Sounds = PushArray(Arena, Assets->SoundCount, asset_slot);
 
-    Assets->AssetCount = Assets->BitmapCount;
-    Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
-
     Assets->TagCount = 0;
     Assets->Tags = 0;
 
-    for (uint32 AssetID = 0; AssetID < Asset_Count; ++AssetID) {
-        asset_type* Type = Assets->AssetsTypes + AssetID;
-        Type->FirstAssetIndex = AssetID;
-        Type->OnePastLastAssetIndex = AssetID + 1;
+    Assets->AssetCount = Assets->BitmapCount + Assets->SoundCount;
+    Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
 
-        asset* Asset = Assets->Assets + Type->FirstAssetIndex;
-        Asset->FirstTagIndex = 0;
-        Asset->OnePastLastTagIndex = 0;
-        Asset->SlotID = Type->FirstAssetIndex;
-    }
+    Assets->DEBUGUsedBitmapCount = 1;
+    Assets->DEBUGUsedAssetCount = 1;
 
-    Assets->Grass[0] = DEBUGLoadBMP("test2/grass00.bmp");
-    Assets->Grass[1] = DEBUGLoadBMP("test2/grass01.bmp");
-    Assets->Tuft[0] = DEBUGLoadBMP("test2/tuft00.bmp");
-    Assets->Tuft[1] = DEBUGLoadBMP("test2/tuft01.bmp");
-    Assets->Tuft[2] = DEBUGLoadBMP("test2/tuft02.bmp");
-    Assets->Ground[0] = DEBUGLoadBMP("test2/ground00.bmp");
-    Assets->Ground[1] = DEBUGLoadBMP("test2/ground01.bmp");
-    Assets->Ground[2] = DEBUGLoadBMP("test2/ground02.bmp");
-    Assets->Ground[3] = DEBUGLoadBMP("test2/ground03.bmp");
+    BeginAssetType(Assets, Asset_Shadow);
+    AddBitmapAsset(Assets, "test/test_hero_shadow.bmp", V2(0.5f, 0.15668f));
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Tree);
+    AddBitmapAsset(Assets, "test2/tree00.bmp", V2(0.494f, 0.295f));
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Sword);
+    AddBitmapAsset(Assets, "test2/rock03.bmp", V2(0.5f, 0.656f));
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Grass);
+    AddBitmapAsset(Assets, "test2/grass00.bmp");
+    AddBitmapAsset(Assets, "test2/grass01.bmp");
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Tuft);
+    AddBitmapAsset(Assets, "test2/tuft00.bmp");
+    AddBitmapAsset(Assets, "test2/tuft01.bmp");
+    AddBitmapAsset(Assets, "test2/tuft02.bmp");
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Stone);
+    AddBitmapAsset(Assets, "test2/ground00.bmp");
+    AddBitmapAsset(Assets, "test2/ground01.bmp");
+    AddBitmapAsset(Assets, "test2/ground02.bmp");
+    AddBitmapAsset(Assets, "test2/ground03.bmp");
+    EndAssetType(Assets);
 
     hero_bitmaps* Bitmap;
 
@@ -187,9 +230,22 @@ internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
     return Result;
 }
 
+internal bitmap_id
+RandomAssetFrom(game_assets* Assets, asset_type_id TypeID, random_series* Series) {
+    bitmap_id Result = {};
+    asset_type* Type = Assets->AssetTypes + TypeID;
+    if (Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
+        uint32 Count = Type->OnePastLastAssetIndex - Type->FirstAssetIndex;
+        uint32 Choice = RandomChoice(Series, Count);
+        asset* Asset = Assets->Assets + Type->FirstAssetIndex + Choice;
+        Result.Value = Asset->SlotID;
+    }
+    return Result;
+}
+
 internal bitmap_id GetFirstBitmapID(game_assets* Assets, asset_type_id TypeID) {
     bitmap_id Result = {};
-    asset_type* Type = Assets->AssetsTypes + TypeID;
+    asset_type* Type = Assets->AssetTypes + TypeID;
     if (Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
         asset* Asset = Assets->Assets + Type->FirstAssetIndex;
         Result.Value = Asset->SlotID;
