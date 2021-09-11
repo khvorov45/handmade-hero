@@ -383,8 +383,6 @@ internal void FillGroundChunk(
     if (Task) {
         fill_ground_chunk_work* Work = PushStruct(&Task->Arena, fill_ground_chunk_work);
 
-        GroundBuffer->P = *ChunkP;
-
         loaded_bitmap* Buffer = &GroundBuffer->Bitmap;
         Buffer->AlignPercentage = V2(0.5f, 0.5f);
         Buffer->WidthOverHeight = 1.0f;
@@ -458,10 +456,14 @@ internal void FillGroundChunk(
                 }
             }
         }
-        Work->Buffer = Buffer;
-        Work->RenderGroup = RenderGroup;
-        Work->Task = Task;
-        PlatformAddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
+
+        if (AllResourcesPresent(RenderGroup)) {
+            GroundBuffer->P = *ChunkP;
+            Work->Buffer = Buffer;
+            Work->RenderGroup = RenderGroup;
+            Work->Task = Task;
+            PlatformAddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
+        }
     }
 }
 
@@ -479,6 +481,7 @@ internal void SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align) {
 struct load_asset_work {
     game_assets* Assets;
     game_asset_id ID;
+    asset_state FinalState;
     char* Filename;
     task_with_memory* Task;
     loaded_bitmap* Bitmap;
@@ -498,7 +501,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
     }
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Bitmaps[Work->ID].Bitmap = Work->Bitmap;
-    Work->Assets->Bitmaps[Work->ID].State = AssetState_Loaded;
+    Work->Assets->Bitmaps[Work->ID].State = Work->FinalState;
     EndTaskWithMemory(Work->Task);
 }
 
@@ -513,6 +516,7 @@ internal void LoadAsset(game_assets* Assets, game_asset_id ID) {
             Work->Filename = "";
             Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
             Work->HasAlignment = false;
+            Work->FinalState = AssetState_Loaded;
 
             switch (ID) {
             case GAI_Backdrop: {

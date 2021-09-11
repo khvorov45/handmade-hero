@@ -69,6 +69,7 @@ struct render_group {
     uint32 MaxPushBufferSize;
     uint32 PushBufferSize;
     uint8* PushBufferBase;
+    uint32 MissingResourceCount;
 };
 
 internal render_group* AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize) {
@@ -83,6 +84,7 @@ internal render_group* AllocateRenderGroup(game_assets* Assets, memory_arena* Ar
     Result->GlobalAlpha = 1.0f;
     Result->Transform.OffsetP = V3(0, 0, 0);
     Result->Transform.Scale = 1.0f;
+    Result->MissingResourceCount = 0;
     return Result;
 }
 
@@ -192,6 +194,7 @@ internal inline void PushBitmap(
         PushBitmap(Group, Bitmap, Height, Offset, Color);
     } else {
         LoadAsset(Group->Assets, ID);
+        ++Group->MissingResourceCount;
     }
 }
 
@@ -262,7 +265,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-    }
+}
 #endif
 }
 
@@ -595,7 +598,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-                }
+            }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -620,11 +623,11 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-            }
-            Pixel++;
         }
-        Row += Buffer->Pitch;
+            Pixel++;
     }
+        Row += Buffer->Pitch;
+}
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
@@ -1299,13 +1302,13 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            }
+        }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
-        }
     }
+}
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
@@ -1373,4 +1376,9 @@ internal void TiledRenderGroupToOutput(
         }
     }
     PlatformCompleteAllWork(RenderQueue);
+}
+
+internal inline bool32 AllResourcesPresent(render_group* Group) {
+    bool32 Result = Group->MissingResourceCount == 0;
+    return Result;
 }
