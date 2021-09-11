@@ -585,7 +585,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     uint32 GroundBufferWidth = 256;
     uint32 GroundBufferHeight = 256;
 
-    if (!Memory->IsInitialized) {
+    if (!GameState->IsInitialized) {
 
         InitializeArena(
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
@@ -754,7 +754,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         GameState->CameraP = NewCameraP;
 
 
-        Memory->IsInitialized = true;
+        GameState->IsInitialized = true;
     }
 
     Assert(sizeof(transient_state) <= Memory->TransientStorageSize);

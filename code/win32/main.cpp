@@ -1070,8 +1070,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     LPVOID BaseAddress = 0;
 #endif
 
-    game_memory GameMemory;
-    GameMemory.IsInitialized = false;
+    game_memory GameMemory = {};
     GameMemory.PermanentStorageSize = Megabytes(256);
     GameMemory.TransientStorageSize = Gigabytes(1);
 

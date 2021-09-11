@@ -72,7 +72,6 @@ typedef void platform_add_entry(platform_work_queue* Queue, platform_work_queue_
 typedef void platform_complete_all_work(platform_work_queue* Queue);
 
 struct game_memory {
-    bool32 IsInitialized;
     uint64 PermanentStorageSize;
     void* PermanentStorage; //* Required to be cleared to 0
     uint64 TransientStorageSize;
