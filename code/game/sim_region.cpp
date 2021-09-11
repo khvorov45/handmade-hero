@@ -5,12 +5,7 @@
 #include "world.cpp"
 #include "math.cpp"
 #include "bmp.cpp"
-
-struct hero_bitmaps {
-    loaded_bitmap Head;
-    loaded_bitmap Cape;
-    loaded_bitmap Torso;
-};
+#include "asset.cpp"
 
 struct high_entity {
     bool32 Exists;
@@ -177,45 +172,6 @@ struct ground_buffer {
     loaded_bitmap Bitmap;
 };
 
-enum game_asset_id {
-    GAI_Backdrop,
-    GAI_Shadow,
-    GAI_Tree,
-    GAI_Sword,
-    GAI_Stairwell,
-    GAI_Count
-};
-
-enum asset_state {
-    AssetState_Unloaded,
-    AssetState_Queued,
-    AssetState_Loaded,
-    AssetState_Locked,
-};
-
-struct asset_slot {
-    asset_state State;
-    loaded_bitmap* Bitmap;
-};
-
-struct game_assets {
-    struct transient_state* TranState;
-    memory_arena Arena;
-    debug_platform_read_entire_file* ReadEntireFile;
-    asset_slot Bitmaps[GAI_Count];
-
-    loaded_bitmap Grass[2];
-    loaded_bitmap Ground[4];
-    loaded_bitmap Tuft[3];
-
-    hero_bitmaps HeroBitmaps[4];
-};
-
-internal inline loaded_bitmap* GetBitmap(game_assets* Assets, game_asset_id ID) {
-    loaded_bitmap* Result = Assets->Bitmaps[ID].Bitmap;
-    return Result;
-}
-
 struct game_state {
     memory_arena WorldArena;
 
@@ -270,7 +226,7 @@ struct transient_state {
     environment_map EnvMaps[3];
     platform_work_queue* HighPriorityQueue;
     platform_work_queue* LowPriorityQueue;
-    game_assets Assets;
+    game_assets* Assets;
 };
 
 internal bool32 IsSet(sim_entity* Entity, uint32 Flag) {
@@ -564,16 +520,16 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-        }
+            }
 #else
             //real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+        }
     }
 }
-    }
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
