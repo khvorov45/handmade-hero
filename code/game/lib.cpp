@@ -371,18 +371,12 @@ struct load_bitmap_work {
     char* Filename;
     task_with_memory* Task;
     loaded_bitmap* Bitmap;
-    bool32 HasAlignment;
-    int32 AlignX;
-    int32 TopDownAlignY;
+    v2 AlignPercentage;
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
-    if (Work->HasAlignment) {
-        *Work->Bitmap = DEBUGLoadBMP(Work->Filename, Work->AlignX, Work->TopDownAlignY);
-    } else {
-        *Work->Bitmap = DEBUGLoadBMP(Work->Filename);
-    }
+    *Work->Bitmap = DEBUGLoadBMP(Work->Filename, Work->AlignPercentage);
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Bitmaps[Work->ID.Value].Bitmap = Work->Bitmap;
     Work->Assets->Bitmaps[Work->ID.Value].State = Work->FinalState;
@@ -399,30 +393,21 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Task = Task;
             Work->Filename = "";
             Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
-            Work->HasAlignment = false;
             Work->FinalState = AssetState_Loaded;
+            Work->AlignPercentage = V2(0.5f, 0.5f);
 
             switch (ID.Value) {
-            case Asset_Backdrop: {
-                Work->Filename = "test/test_background.bmp";
-            } break;
             case Asset_Shadow: {
                 Work->Filename = "test/test_hero_shadow.bmp";
-                Work->HasAlignment = true;
-                Work->AlignX = 72;
-                Work->TopDownAlignY = 182;
+                Work->AlignPercentage = V2(0.5f, 0.15668f);
             } break;
             case Asset_Tree: {
                 Work->Filename = "test2/tree00.bmp";
-                Work->HasAlignment = true;
-                Work->AlignX = 40;
-                Work->TopDownAlignY = 80;
+                Work->AlignPercentage = V2(0.494f, 0.295f);
             } break;
             case Asset_Sword: {
                 Work->Filename = "test2/rock03.bmp";
-                Work->HasAlignment = true;
-                Work->AlignX = 29;
-                Work->TopDownAlignY = 10;
+                Work->AlignPercentage = V2(0.5f, 0.656f);
             } break;
             case Asset_Stairwell: {
                 Work->Filename = "test2/rock02.bmp";

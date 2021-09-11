@@ -14,12 +14,14 @@ enum asset_tag_id {
 
 enum asset_type_id {
     Asset_None,
-    Asset_Backdrop,
     Asset_Shadow,
     Asset_Tree,
     Asset_Sword,
     Asset_Stairwell,
     Asset_Rock,
+    Asset_Grass,
+    Asset_Tuft,
+    Asset_Stone,
     Asset_Count
 };
 
