@@ -165,5 +165,6 @@ typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 global_variable platform_add_entry* PlatformAddEntry;
 global_variable platform_complete_all_work* PlatformCompleteAllWork;
+global_variable debug_platform_read_entire_file* DEBUGPlatformReadEntireFile;
 
 #endif

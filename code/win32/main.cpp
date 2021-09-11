@@ -175,7 +175,7 @@ DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUGPlatformFreeFileMemory) {
     VirtualFree(BitmapMemory, 0, MEM_RELEASE);
 }
 
-DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile) {
+DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGWin32ReadEntireFile) {
 
     debug_read_file_result Result = {};
 
@@ -1107,8 +1107,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     }
 
     GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
-    GameMemory.DEBUGPlatformReadEntireFile = DEBUGPlatformReadEntireFile;
     GameMemory.DEBUGPlatformWriteEntireFile = DEBUGPlatformWriteEntireFile;
+    GameMemory.DEBUGPlatformReadEntireFile = DEBUGWin32ReadEntireFile;
     GameMemory.PlatformAddEntry = Win32AddEntry;
     GameMemory.PlatformCompleteAllWork = Win32CompleteAllWork;
     GameMemory.HighPriorityQueue = &HighPriorityQueue;

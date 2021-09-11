@@ -379,11 +379,9 @@ struct load_bitmap_work {
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
     if (Work->HasAlignment) {
-        *Work->Bitmap = DEBUGLoadBMP(
-            Work->Assets->ReadEntireFile, Work->Filename, Work->AlignX, Work->TopDownAlignY
-        );
+        *Work->Bitmap = DEBUGLoadBMP(Work->Filename, Work->AlignX, Work->TopDownAlignY);
     } else {
-        *Work->Bitmap = DEBUGLoadBMP(Work->Assets->ReadEntireFile, Work->Filename);
+        *Work->Bitmap = DEBUGLoadBMP(Work->Filename);
     }
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Bitmaps[Work->ID.Value].Bitmap = Work->Bitmap;
@@ -571,6 +569,7 @@ internal void FillGroundChunk(
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     PlatformAddEntry = Memory->PlatformAddEntry;
     PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
+    DEBUGPlatformReadEntireFile = Memory->DEBUGPlatformReadEntireFile;
 #if HANDMADE_INTERNAL
     DebugGlobalMemory = Memory;
 #endif
@@ -776,9 +775,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             SubArena(&Task->Arena, &TranState->TranArena, Megabytes(1));
         }
 
-        TranState->Assets = AllocateGameAssets(
-            &TranState->TranArena, Megabytes(64), TranState, Memory->DEBUGPlatformReadEntireFile
-        );
+        TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(64), TranState);
 
         TranState->GroundBufferCount = 128;
         TranState->GroundBuffers =
@@ -899,8 +896,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
-    }
+            }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1333,7 +1330,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-}
+        }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;

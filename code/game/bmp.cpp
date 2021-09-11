@@ -67,10 +67,7 @@ internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
     return Result;
 }
 
-internal loaded_bitmap DEBUGLoadBMP(
-    debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
-    char* Filename, int32 AlignX, int32 TopDownAlignY
-) {
+internal loaded_bitmap DEBUGLoadBMP(char* Filename, int32 AlignX, int32 TopDownAlignY) {
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Filename);
     loaded_bitmap Result = {};
     if (ReadResult.Size == 0) {
@@ -133,11 +130,8 @@ internal loaded_bitmap DEBUGLoadBMP(
     return Result;
 }
 
-internal loaded_bitmap DEBUGLoadBMP(
-    debug_platform_read_entire_file* DEBUGPlatformReadEntireFile,
-    char* Filename
-) {
-    loaded_bitmap Result = DEBUGLoadBMP(DEBUGPlatformReadEntireFile, Filename, 0, 0);
+internal loaded_bitmap DEBUGLoadBMP(char* Filename) {
+    loaded_bitmap Result = DEBUGLoadBMP(Filename, 0, 0);
     Result.AlignPercentage = V2(0.5f, 0.5f);
     return Result;
 }
