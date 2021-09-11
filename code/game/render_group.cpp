@@ -1,6 +1,5 @@
 #include "math.cpp"
 #include "bmp.cpp"
-#include "sim_region.cpp"
 #include "asset.cpp"
 
 struct render_basis {
