@@ -380,10 +380,10 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
     if (Work->HasAlignment) {
         *Work->Bitmap = DEBUGLoadBMP(
-            0, Work->Assets->ReadEntireFile, Work->Filename, Work->AlignX, Work->TopDownAlignY
+            Work->Assets->ReadEntireFile, Work->Filename, Work->AlignX, Work->TopDownAlignY
         );
     } else {
-        *Work->Bitmap = DEBUGLoadBMP(0, Work->Assets->ReadEntireFile, Work->Filename);
+        *Work->Bitmap = DEBUGLoadBMP(Work->Assets->ReadEntireFile, Work->Filename);
     }
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Bitmaps[Work->ID.Value].Bitmap = Work->Bitmap;
@@ -899,8 +899,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
         }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1157,7 +1157,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-                    }
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
@@ -1239,7 +1239,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         }
         break;
         }
-                }
+    }
 
     RenderGroup->GlobalAlpha = 1.0f;
 
@@ -1333,7 +1333,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-    }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;

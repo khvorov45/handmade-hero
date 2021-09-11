@@ -121,60 +121,60 @@ internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size,
     Assets->Sounds = PushArray(&Assets->Arena, Assets->SoundCount, asset_slot);
 
     Assets->Grass[0] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/grass00.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/grass00.bmp");
     Assets->Grass[1] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/grass01.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/grass01.bmp");
     Assets->Tuft[0] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/tuft00.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/tuft00.bmp");
     Assets->Tuft[1] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/tuft01.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/tuft01.bmp");
     Assets->Tuft[2] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/tuft02.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/tuft02.bmp");
     Assets->Ground[0] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/ground00.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/ground00.bmp");
     Assets->Ground[1] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/ground01.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/ground01.bmp");
     Assets->Ground[2] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/ground02.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/ground02.bmp");
     Assets->Ground[3] =
-        DEBUGLoadBMP(0, ReadEntireFile, "test2/ground03.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test2/ground03.bmp");
 
     hero_bitmaps* Bitmap;
 
     Bitmap = &Assets->HeroBitmaps[0];
     Bitmap->Head =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_right_head.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_right_head.bmp");
     Bitmap->Cape =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_right_cape.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_right_cape.bmp");
     Bitmap->Torso =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_right_torso.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_right_torso.bmp");
     SetTopDownAlign(Bitmap, V2(72, 182));
 
     ++Bitmap;
     Bitmap->Head =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_back_head.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_back_head.bmp");
     Bitmap->Cape =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_back_cape.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_back_cape.bmp");
     Bitmap->Torso =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_back_torso.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_back_torso.bmp");
     SetTopDownAlign(Bitmap, V2(72, 182));
 
     ++Bitmap;
     Bitmap->Head =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_left_head.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_left_head.bmp");
     Bitmap->Cape =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_left_cape.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_left_cape.bmp");
     Bitmap->Torso =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_left_torso.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_left_torso.bmp");
     SetTopDownAlign(Bitmap, V2(72, 182));
 
     ++Bitmap;
     Bitmap->Head =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_front_head.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_front_head.bmp");
     Bitmap->Cape =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_front_cape.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_front_cape.bmp");
     Bitmap->Torso =
-        DEBUGLoadBMP(0, ReadEntireFile, "test/test_hero_front_torso.bmp");
+        DEBUGLoadBMP(ReadEntireFile, "test/test_hero_front_torso.bmp");
     SetTopDownAlign(Bitmap, V2(72, 182));
 
     return Assets;

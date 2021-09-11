@@ -200,7 +200,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile) {
     DWORD BytesRead;
     BOOL ReadFileResult = ReadFile(FileHandle, Result.Contents, Result.Size, &BytesRead, 0);
     if (ReadFileResult == 0 || Result.Size != BytesRead) {
-        DEBUGPlatformFreeFileMemory(Thread, Result.Contents);
+        DEBUGPlatformFreeFileMemory(Result.Contents);
         CloseHandle(FileHandle);
         return Result;
     }
@@ -1282,8 +1282,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
         //* Game
 
-        thread_context Thread = {};
-
         game_offscreen_buffer GraphicsBuffer = {};
         GraphicsBuffer.Memory = GlobalBackBuffer.Memory;
         GraphicsBuffer.Width = GlobalBackBuffer.Width;
@@ -1297,7 +1295,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             Win32PlayBackInput(&Win32State, NewInput);
         }
         if (GameCode.UpdateAndRender != 0) {
-            GameCode.UpdateAndRender(&Thread, &GameMemory, NewInput, &GraphicsBuffer);
+            GameCode.UpdateAndRender(&GameMemory, NewInput, &GraphicsBuffer);
             HandleDebugCycleCounters(&GameMemory);
         }
 
@@ -1360,7 +1358,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
             SoundBuffer.Samples = Samples;
             if (GameCode.GetSoundSamples != 0) {
-                GameCode.GetSoundSamples(&Thread, &GameMemory, &SoundBuffer);
+                GameCode.GetSoundSamples(&GameMemory, &SoundBuffer);
             }
 
 #if HANDMADE_INTERNAL
@@ -1415,8 +1413,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
             while (SecondsElapsedForFrame < TargetSecondsPerFrame) {
                 SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
-        }
-    } else {
+            }
+        } else {
             //* MISSED FRAME
         }
         LastCounter = Win32GetWallClock();
