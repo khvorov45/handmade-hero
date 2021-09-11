@@ -13,6 +13,7 @@ enum asset_tag_id {
 };
 
 enum asset_type_id {
+    Asset_None,
     Asset_Backdrop,
     Asset_Shadow,
     Asset_Tree,
@@ -34,7 +35,6 @@ struct asset {
 };
 
 struct asset_type {
-    uint32 Count;
     uint32 FirstAssetIndex;
     uint32 OnePastLastAssetIndex;
 };
@@ -83,7 +83,13 @@ struct game_assets {
     uint32 SoundCount;
     asset_slot* Sounds;
 
-    asset_type Assets[Asset_Count];
+    uint32 TagCount;
+    asset_tag* Tags;
+
+    uint32 AssetCount;
+    asset* Assets;
+
+    asset_type AssetsTypes[Asset_Count];
 
     loaded_bitmap Grass[2];
     loaded_bitmap Ground[4];
@@ -113,10 +119,27 @@ internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size,
     Assets->TranState = TranState;
 
     Assets->BitmapCount = Asset_Count;
-    Assets->Bitmaps = PushArray(&Assets->Arena, Assets->BitmapCount, asset_slot);
+    Assets->Bitmaps = PushArray(Arena, Assets->BitmapCount, asset_slot);
 
     Assets->SoundCount = 1;
-    Assets->Sounds = PushArray(&Assets->Arena, Assets->SoundCount, asset_slot);
+    Assets->Sounds = PushArray(Arena, Assets->SoundCount, asset_slot);
+
+    Assets->AssetCount = Assets->BitmapCount;
+    Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
+
+    Assets->TagCount = 0;
+    Assets->Tags = 0;
+
+    for (uint32 AssetID = 0; AssetID < Asset_Count; ++AssetID) {
+        asset_type* Type = Assets->AssetsTypes + AssetID;
+        Type->FirstAssetIndex = AssetID;
+        Type->OnePastLastAssetIndex = AssetID + 1;
+
+        asset* Asset = Assets->Assets + Type->FirstAssetIndex;
+        Asset->FirstTagIndex = 0;
+        Asset->OnePastLastTagIndex = 0;
+        Asset->SlotID = Type->FirstAssetIndex;
+    }
 
     Assets->Grass[0] = DEBUGLoadBMP("test2/grass00.bmp");
     Assets->Grass[1] = DEBUGLoadBMP("test2/grass01.bmp");
@@ -163,7 +186,12 @@ internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
 }
 
 internal bitmap_id GetFirstBitmapID(game_assets* Assets, asset_type_id TypeID) {
-    bitmap_id Result = { (uint32)TypeID };
+    bitmap_id Result = {};
+    asset_type* Type = Assets->AssetsTypes + TypeID;
+    if (Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
+        asset* Asset = Assets->Assets + Type->FirstAssetIndex;
+        Result.Value = Asset->SlotID;
+    }
     return Result;
 }
 

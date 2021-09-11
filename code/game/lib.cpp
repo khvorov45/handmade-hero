@@ -390,7 +390,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
 }
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
-    if (AtomicCompareExchangeUint32((uint32*)&Assets->Bitmaps[ID.Value].State, AssetState_Unloaded, AssetState_Queued) == AssetState_Unloaded) {
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Bitmaps[ID.Value].State, AssetState_Unloaded, AssetState_Queued) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
             load_bitmap_work* Work = PushStruct(&Task->Arena, load_bitmap_work);
@@ -896,8 +896,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
-            }
+        }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1330,7 +1330,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-        }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
