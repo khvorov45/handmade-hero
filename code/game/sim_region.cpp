@@ -41,29 +41,6 @@ struct hit_point {
     uint8 FilledAmount;
 };
 
-struct low_entity {
-    entity_type Type;
-    world_position P;
-    real32 Width;
-    real32 Height;
-    int32 dAbsTileZ; //* Stairs
-    bool32 Collides;
-
-    uint32 HighEntityIndex;
-
-    uint32 HitPointMax;
-    hit_point HitPoint[16];
-
-    uint32 SwordLowIndex;
-    real32 DistanceRemaining;
-};
-
-struct entity {
-    uint32 LowIndex;
-    low_entity* Low;
-    high_entity* High;
-};
-
 struct low_entity_chunk_reference {
     world_chunk* TileChunk;
     uint32 EntityIndexInChunk;
@@ -75,7 +52,6 @@ struct controlled_hero {
     v2 dSword;
     real32 dZ;
 };
-
 
 struct sim_entity;
 union entity_reference {
@@ -522,16 +498,16 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-        }
+            }
 #else
             //real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
+            }
+        }
     }
-}
-}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
