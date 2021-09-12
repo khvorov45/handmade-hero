@@ -220,66 +220,41 @@ internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size,
     real32 AngleLeft = Pi32;
     real32 AngleFront = 1.5f * Pi32;
 
+    v2 HeroAlign = V2(0.5f, 0.1567);
+
     BeginAssetType(Assets, Asset_Head);
-    AddBitmapAsset(Assets, "test/test_hero_right_head.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_right_head.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleRight);
-    AddBitmapAsset(Assets, "test/test_hero_back_head.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_back_head.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleBack);
-    AddBitmapAsset(Assets, "test/test_hero_left_head.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_left_head.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleLeft);
-    AddBitmapAsset(Assets, "test/test_hero_front_head.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_front_head.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleFront);
     EndAssetType(Assets);
 
     BeginAssetType(Assets, Asset_Cape);
-    AddBitmapAsset(Assets, "test/test_hero_right_cape.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_right_cape.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleRight);
-    AddBitmapAsset(Assets, "test/test_hero_back_cape.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_back_cape.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleBack);
-    AddBitmapAsset(Assets, "test/test_hero_left_cape.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_left_cape.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleLeft);
-    AddBitmapAsset(Assets, "test/test_hero_front_cape.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_front_cape.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleFront);
     EndAssetType(Assets);
 
     BeginAssetType(Assets, Asset_Torso);
-    AddBitmapAsset(Assets, "test/test_hero_right_torso.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_right_torso.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleRight);
-    AddBitmapAsset(Assets, "test/test_hero_back_torso.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_back_torso.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleBack);
-    AddBitmapAsset(Assets, "test/test_hero_left_torso.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_left_torso.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleLeft);
-    AddBitmapAsset(Assets, "test/test_hero_front_torso.bmp");
+    AddBitmapAsset(Assets, "test/test_hero_front_torso.bmp", HeroAlign);
     AddTag(Assets, Tag_FacingDirection, AngleFront);
     EndAssetType(Assets);
 
-#if 0
-    hero_bitmaps* Bitmap;
-
-    Bitmap = &Assets->HeroBitmaps[0];
-    Bitmap->Head = DEBUGLoadBMP("test/test_hero_right_head.bmp");
-    Bitmap->Cape = DEBUGLoadBMP("test/test_hero_right_cape.bmp");
-    Bitmap->Torso = DEBUGLoadBMP("test/test_hero_right_torso.bmp");
-    SetTopDownAlign(Bitmap, V2(72, 182));
-
-    ++Bitmap;
-    Bitmap->Head = DEBUGLoadBMP("test/test_hero_back_head.bmp");
-    Bitmap->Cape = DEBUGLoadBMP("test/test_hero_back_cape.bmp");
-    Bitmap->Torso = DEBUGLoadBMP("test/test_hero_back_torso.bmp");
-    SetTopDownAlign(Bitmap, V2(72, 182));
-
-    ++Bitmap;
-    Bitmap->Head = DEBUGLoadBMP("test/test_hero_left_head.bmp");
-    Bitmap->Cape = DEBUGLoadBMP("test/test_hero_left_cape.bmp");
-    Bitmap->Torso = DEBUGLoadBMP("test/test_hero_left_torso.bmp");
-    SetTopDownAlign(Bitmap, V2(72, 182));
-
-    ++Bitmap;
-    Bitmap->Head = DEBUGLoadBMP("test/test_hero_front_head.bmp");
-    Bitmap->Cape = DEBUGLoadBMP("test/test_hero_front_cape.bmp");
-    Bitmap->Torso = DEBUGLoadBMP("test/test_hero_front_torso.bmp");
-    SetTopDownAlign(Bitmap, V2(72, 182));
-#endif
     return Assets;
 }
 
@@ -311,7 +286,7 @@ internal bitmap_id BestMatchAsset(
             real32 Difference = Minimum(D0, D1);
             real32 Weighted = WeightVector->E[Tag->ID] * AbsoluteValue(Difference);
             TotalWeightedDiff += Weighted;
-        }
+}
         if (BestDiff > TotalWeightedDiff) {
             BestDiff = TotalWeightedDiff;
             Result.Value = AssetIndex;
