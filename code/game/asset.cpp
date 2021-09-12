@@ -57,14 +57,26 @@ enum asset_state {
     AssetState_Locked,
 };
 
-struct asset_slot {
-    asset_state State;
-    loaded_bitmap* Bitmap;
+struct loaded_sound {
+    uint32 SampleCount;
+    uint32 ChannelCount;
+    int16* Samples[2];
 };
 
+struct asset_slot {
+    asset_state State;
+    union {
+        loaded_bitmap* Bitmap;
+        loaded_sound* Sound;
+    };
+};
 
 struct asset_bitmap_info {
     v2 AlignPercentage;
+    char* Filename;
+};
+
+struct asset_sound_info {
     char* Filename;
 };
 
@@ -84,6 +96,7 @@ struct game_assets {
     asset_slot* Bitmaps;
 
     uint32 SoundCount;
+    asset_sound_info* SoundInfos;
     asset_slot* Sounds;
 
     uint32 TagCount;
@@ -102,6 +115,10 @@ struct game_assets {
 };
 
 struct bitmap_id {
+    uint32 Value;
+};
+
+struct sound_id {
     uint32 Value;
 };
 
@@ -175,6 +192,7 @@ internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size,
 
     Assets->SoundCount = 1;
     Assets->Sounds = PushArray(Arena, Assets->SoundCount, asset_slot);
+    Assets->SoundInfos = PushArray(Arena, Assets->SoundCount, asset_sound_info);
 
     Assets->TagCount = 1024 * Asset_Count;
     Assets->Tags = PushArray(Arena, Assets->TagCount, asset_tag);
@@ -286,7 +304,7 @@ internal bitmap_id BestMatchAsset(
             real32 Difference = Minimum(D0, D1);
             real32 Weighted = WeightVector->E[Tag->ID] * AbsoluteValue(Difference);
             TotalWeightedDiff += Weighted;
-}
+        }
         if (BestDiff > TotalWeightedDiff) {
             BestDiff = TotalWeightedDiff;
             Result.Value = AssetIndex;
@@ -314,6 +332,134 @@ internal bitmap_id GetFirstBitmapID(game_assets* Assets, asset_type_id TypeID) {
     if (Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
         asset* Asset = Assets->Assets + Type->FirstAssetIndex;
         Result.Value = Asset->SlotID;
+    }
+    return Result;
+}
+
+#pragma pack(push, 1)
+struct WAVE_header {
+    uint32 RIFFID;
+    uint32 Size; // NOTE(sen) Includes the WAVEID below
+    uint32 WAVEID;
+};
+#define RIFF_CODE(a,b,c,d) (((uint32)(a) << 0) | ((uint32)(b) << 8) | ((uint32)(c) << 16) | ((uint32)(d) << 24))
+enum WAVE_codes {
+    WAVE_ChunkID_fmt = RIFF_CODE('f', 'm', 't', ' '),
+    WAVE_ChunkID_data = RIFF_CODE('d', 'a', 't', 'a'),
+    WAVE_ChunkID_RIFF = RIFF_CODE('R', 'I', 'F', 'F'),
+    WAVE_ChunkID_WAVE = RIFF_CODE('W', 'A', 'V', 'E')
+};
+struct WAVE_chunk {
+    uint32 ID;
+    uint32 Size;
+};
+struct WAVE_fmt {
+    uint16 wFormatTag;
+    uint16 nChannels;
+    uint32 nSamplesPerSec;
+    uint32 nAvgBytesPerSec;
+    uint16 nBlockAlign;
+    uint16 wBitsPerSample;
+    uint16 cbSize;
+    uint16 wValidBitsPerSample;
+    uint32 dwChannelMask;
+    uint8 SubFormat[16];
+};
+#pragma pack(pop)
+
+struct riff_iterator {
+    uint8* At;
+    uint8* Stop;
+};
+
+internal riff_iterator ParseChunk(void* At, void* Stop) {
+    riff_iterator Iter;
+    Iter.At = (uint8*)At;
+    Iter.Stop = (uint8*)Stop;
+    return Iter;
+}
+
+internal bool32 IsValid(riff_iterator Iter) {
+    bool32 Result = Iter.At < Iter.Stop;
+    return Result;
+}
+
+internal riff_iterator NextChunk(riff_iterator Iter) {
+    WAVE_chunk* Chunk = (WAVE_chunk*)Iter.At;
+    uint32 Size = (Chunk->Size + 1) & ~1;
+    Iter.At += sizeof(WAVE_chunk) + Size;
+    return Iter;
+}
+
+internal void* GetChunkData(riff_iterator Iter) {
+    void* Result = Iter.At + sizeof(WAVE_chunk);
+    return Result;
+}
+
+internal uint32 GetChunkDataSize(riff_iterator Iter) {
+    WAVE_chunk* Chunk = (WAVE_chunk*)Iter.At;
+    uint32 Result = Chunk->Size - sizeof(WAVE_chunk);
+    return Result;
+}
+
+internal uint32 GetType(riff_iterator Iter) {
+    WAVE_chunk* Chunk = (WAVE_chunk*)Iter.At;
+    uint32 Result = Chunk->ID;
+    return Result;
+}
+
+internal loaded_sound DEBUGLoadWAV(char* Filename) {
+    loaded_sound Result = {};
+    debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Filename);
+    if (ReadResult.Size != 0) {
+        WAVE_header* Header = (WAVE_header*)ReadResult.Contents;
+        Assert(Header->RIFFID == WAVE_ChunkID_RIFF);
+        Assert(Header->WAVEID == WAVE_ChunkID_WAVE);
+        uint32 ChannelCount = 0;
+        uint32 SampleDataSize = 0;
+        int16* SampleData = 0;
+        for (riff_iterator Iter = ParseChunk(Header + 1, (uint8*)(Header + 1) + Header->Size - 4);
+            IsValid(Iter);
+            Iter = NextChunk(Iter)) {
+            switch (GetType(Iter)) {
+            case WAVE_ChunkID_fmt: {
+                WAVE_fmt* fmt = (WAVE_fmt*)GetChunkData(Iter);
+                Assert(fmt->wFormatTag == 1); // PCM
+                Assert(fmt->nSamplesPerSec == 48000);
+                Assert(fmt->wBitsPerSample == 16);
+                Assert(fmt->nBlockAlign == fmt->nChannels * sizeof(int16));
+                ChannelCount = fmt->nChannels;
+            } break;
+            case WAVE_ChunkID_data: {
+                SampleData = (int16*)GetChunkData(Iter);
+                SampleDataSize = GetChunkDataSize(Iter);
+            } break;
+            }
+        }
+        Assert(ChannelCount && SampleData && SampleDataSize);
+        Result.ChannelCount = ChannelCount;
+        Result.SampleCount = SampleDataSize / (ChannelCount * sizeof(int16));
+        if (ChannelCount == 1) {
+            Result.Samples[0] = SampleData;
+            Result.Samples[1] = 0;
+        } else if (ChannelCount == 2) {
+            Result.Samples[0] = SampleData;
+            Result.Samples[1] = SampleData + Result.SampleCount;
+#if 0
+            for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
+                SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
+                SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
+            }
+#endif
+            for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
+                uint16 Source = SampleData[2 * SampleIndex];
+                SampleData[2 * SampleIndex] = SampleData[SampleIndex];
+                SampleData[SampleIndex] = Source;
+            }
+        } else {
+            Assert(!"Invalid channel count");
+        }
+        Result.ChannelCount = 1;
     }
     return Result;
 }

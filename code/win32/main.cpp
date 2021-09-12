@@ -1029,7 +1029,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     }
 #endif
 
-    real32 GameRefreshHz = 60;
+    real32 GameRefreshHz = 30;
     real32 TargetSecondsPerFrame = 1.0f / GameRefreshHz;
 
     GlobalRunning = true;

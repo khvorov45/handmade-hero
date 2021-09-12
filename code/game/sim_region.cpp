@@ -165,6 +165,9 @@ struct game_state {
 
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
+
+    loaded_sound TestSound;
+    uint32 TestSampleIndex;
 };
 
 struct environment_map {

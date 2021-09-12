@@ -7,16 +7,6 @@
 #include "math.cpp"
 #include <math.h>
 
-internal void GameOutputSound(game_sound_buffer* SoundBuffer) {
-    int16* Samples = SoundBuffer->Samples;
-    for (int32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex) {
-        int16 SampleValue = 0;
-        *Samples++ = SampleValue;
-        *Samples++ = SampleValue;
-
-    }
-}
-
 struct add_low_entity_result_ {
     low_entity_* Low;
     uint32 LowIndex;
@@ -403,6 +393,46 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
     }
 }
 
+struct load_sound_work {
+    game_assets* Assets;
+    sound_id ID;
+    asset_state FinalState;
+    task_with_memory* Task;
+    loaded_sound* Sound;
+};
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
+    load_sound_work* Work = (load_sound_work*)Data;
+    asset_sound_info* Info = Work->Assets->SoundInfos + Work->ID.Value;
+    *Work->Sound = DEBUGLoadWAV(Info->Filename);
+    CompletePreviousWritesBeforeFutureWrites;
+    Work->Assets->Sounds[Work->ID.Value].Sound = Work->Sound;
+    Work->Assets->Sounds[Work->ID.Value].State = Work->FinalState;
+    EndTaskWithMemory(Work->Task);
+}
+
+internal void LoadSound(game_assets* Assets, sound_id ID) {
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Sounds[ID.Value].State, AssetState_Unloaded, AssetState_Queued) == AssetState_Unloaded) {
+        task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
+        if (Task) {
+            load_sound_work* Work = PushStruct(&Task->Arena, load_sound_work);
+            Work->Assets = Assets;
+            Work->ID = ID;
+            Work->Task = Task;
+            Work->Sound = PushStruct(&Assets->Arena, loaded_sound);
+            Work->FinalState = AssetState_Loaded;
+#if 1
+            PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadSoundWork, Work);
+#else
+            LoadSoundWork(Assets->TranState->LowPriorityQueue, Work);
+#endif
+        } else {
+            Assets->Sounds[ID.Value].State = AssetState_Unloaded;
+        }
+    }
+}
+
+
 struct fill_ground_chunk_work {
     render_group* RenderGroup;
     loaded_bitmap* Buffer;
@@ -534,6 +564,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
             (uint8*)Memory->PermanentStorage + sizeof(game_state)
         );
+
+        GameState->TestSound = DEBUGLoadWAV("test3/music_test.wav");
 
         AddLowEntity_(GameState, EntityType_Null, NullPosition());
 
@@ -1284,5 +1316,24 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
-    GameOutputSound(SoundBuffer);
+    int16 ToneVolume = 1000;
+    int32 ToneHz = 256;
+    int32 WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
+    int16* Samples = SoundBuffer->Samples;
+    local_persist real32 tSine = 0.0f;
+    for (int32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex) {
+        real32 SineValue = sinf(tSine);
+        // int16 SampleValue = (int16)(SineValue * ToneVolume);
+        // int16 SampleValue = 0;
+        uint32 TestSoundSampleIndex =
+            (GameState->TestSampleIndex + SampleIndex) % GameState->TestSound.SampleCount;
+        int16 SampleValue = GameState->TestSound.Samples[0][TestSoundSampleIndex];
+        *Samples++ = SampleValue;
+        *Samples++ = SampleValue;
+        tSine += 2.0f * Pi32 * 1.0f / WavePeriod;
+        if (tSine > 2.0f * Pi32) {
+            tSine -= 2.0f * Pi32;
+        }
+    }
+    GameState->TestSampleIndex += SoundBuffer->SampleCount;
 }
