@@ -83,4 +83,8 @@ internal inline int32 SignOf(int32 X) {
     return X >= 0 ? 1 : -1;
 }
 
+internal inline real32 SignOf(real32 X) {
+    return X >= 0 ? 1.0f : -1.0f;
+}
+
 #endif

@@ -77,6 +77,8 @@ struct game_assets {
     struct transient_state* TranState;
     memory_arena Arena;
 
+    real32 TagRange[Tag_Count];
+
     uint32 BitmapCount;
     asset_bitmap_info* BitmapInfos;
     asset_slot* Bitmaps;
@@ -160,6 +162,11 @@ internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size,
     game_assets* Assets = PushStruct(Arena, game_assets);
     SubArena(&Assets->Arena, Arena, Size);
     Assets->TranState = TranState;
+
+    for (uint32 TagType = 0; TagType < Tag_Count; ++TagType) {
+        Assets->TagRange[TagType] = 100000.0f;
+    }
+    Assets->TagRange[Tag_FacingDirection] = 2.0f * Pi32;
 
     Assets->BitmapCount = 256 * Asset_Count;
     Assets->DEBUGUsedBitmapCount = 1;
@@ -297,7 +304,11 @@ internal bitmap_id BestMatchAsset(
             TagIndex < Asset->OnePastLastTagIndex;
             ++TagIndex) {
             asset_tag* Tag = Assets->Tags + TagIndex;
-            real32 Difference = MatchVector->E[Tag->ID] - Tag->Value;
+            real32 A = MatchVector->E[Tag->ID];
+            real32 B = Tag->Value;
+            real32 D0 = AbsoluteValue(A - B);
+            real32 D1 = AbsoluteValue(A - Assets->TagRange[Tag->ID] * SignOf(A) - B);
+            real32 Difference = Minimum(D0, D1);
             real32 Weighted = WeightVector->E[Tag->ID] * AbsoluteValue(Difference);
             TotalWeightedDiff += Weighted;
         }
