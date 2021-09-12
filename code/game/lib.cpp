@@ -415,31 +415,6 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork) {
     EndTaskWithMemory(Work->Task);
 }
 
-#if 0
-internal int32 PickBest(
-    int32 InfoCount, asset_bitmap_info* Infos, asset_tag* Tags,
-    real32* MatchVector, real32* WeightVector
-) {
-    real32 BestDiff = Real32Maximum;
-    int32 BestIndex = 0;
-    for (int32 InfoIndex = 0; InfoIndex < InfoCount; ++InfoIndex) {
-        asset_bitmap_info* Info = Infos + InfoIndex;
-        real32 TotalWeightedDiff = 0;
-        for (uint32 TagIndex = Info->FirstTagIndex; TagIndex < Info->OnePastLastTagIndex; ++TagIndex) {
-            asset_tag* Tag = Tags + TagIndex;
-            real32 Difference = MatchVector[Tag->ID] - Tag->Value;
-            real32 Weighted = WeightVector[Tag->ID] * AbsoluteValue(Difference);
-            TotalWeightedDiff += Weighted;
-        }
-        if (BestDiff > TotalWeightedDiff) {
-            BestDiff = TotalWeightedDiff;
-            BestIndex = InfoIndex;
-        }
-    }
-    return BestIndex;
-}
-#endif
-
 internal void FillGroundChunk(
     transient_state* TranState, game_state* GameState,
     ground_buffer* GroundBuffer, world_position* ChunkP
@@ -527,6 +502,12 @@ internal void FillGroundChunk(
         }
     }
 }
+
+struct hero_bitmap_ids {
+    bitmap_id Head;
+    bitmap_id Cape;
+    bitmap_id Torso;
+};
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     PlatformAddEntry = Memory->PlatformAddEntry;
@@ -858,8 +839,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
-            }
+        }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1013,7 +994,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             RenderGroup->GlobalAlpha = Clamp01MapToRange(FadeBottomEndZ, CameraRelativeGroundP.z, FadeBottomStartZ);
         }
 
-        hero_bitmaps* HeroBitmaps = &TranState->Assets->HeroBitmaps[Entity->FacingDirection];
+        hero_bitmap_ids HeroBitmaps = {};
+        asset_vector MatchVector = {};
+        MatchVector.E[Tag_FacingDirection] = (real32)Entity->FacingDirection;
+        asset_vector WeightVector = {};
+        WeightVector.E[Tag_FacingDirection] = 1.0f;
+        HeroBitmaps.Head = BestMatchAsset(TranState->Assets, Asset_Head, &MatchVector, &WeightVector);
+        HeroBitmaps.Cape = BestMatchAsset(TranState->Assets, Asset_Cape, &MatchVector, &WeightVector);;
+        HeroBitmaps.Torso = BestMatchAsset(TranState->Assets, Asset_Torso, &MatchVector, &WeightVector);;
         switch (Entity->Type) {
         case EntityType_Hero:
         {
@@ -1132,9 +1120,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             PushBitmap(
                 RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), HeroSize, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha)
             );
-            PushBitmap(RenderGroup, &HeroBitmaps->Head, HeroSize, V3(0, 0, 0));
-            PushBitmap(RenderGroup, &HeroBitmaps->Torso, HeroSize, V3(0, 0, 0));
-            PushBitmap(RenderGroup, &HeroBitmaps->Cape, HeroSize, V3(0, 0, 0));
+            PushBitmap(RenderGroup, HeroBitmaps.Head, HeroSize, V3(0, 0, 0));
+            PushBitmap(RenderGroup, HeroBitmaps.Torso, HeroSize, V3(0, 0, 0));
+            PushBitmap(RenderGroup, HeroBitmaps.Cape, HeroSize, V3(0, 0, 0));
             DrawHitpoints_(Entity, RenderGroup);
         }
         break;
@@ -1170,7 +1158,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), 2.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha * 0.5f + BobSin * 0.2f)
             );
-            PushBitmap(RenderGroup, &HeroBitmaps->Head, 2.5f, V3(0, 0, 0.2f * BobSin));
+            PushBitmap(RenderGroup, HeroBitmaps.Head, 2.5f, V3(0, 0, 0.2f * BobSin));
         }
         break;
         case EntityType_Monster:
@@ -1179,7 +1167,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), 2.5f, V3(0, 0, 0),
                 V4(1, 1, 1, ShadowAlpha)
             );
-            PushBitmap(RenderGroup, &HeroBitmaps->Torso, 2.5f, V3(0, 0, 0));
+            PushBitmap(RenderGroup, HeroBitmaps.Torso, 2.5f, V3(0, 0, 0));
 
             DrawHitpoints_(Entity, RenderGroup);
         }
@@ -1292,7 +1280,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-        }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
