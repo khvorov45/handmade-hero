@@ -996,7 +996,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         hero_bitmap_ids HeroBitmaps = {};
         asset_vector MatchVector = {};
-        MatchVector.E[Tag_FacingDirection] = (real32)Entity->FacingDirection;
+        MatchVector.E[Tag_FacingDirection] = Entity->FacingDirection;
         asset_vector WeightVector = {};
         WeightVector.E[Tag_FacingDirection] = 1.0f;
         HeroBitmaps.Head = BestMatchAsset(TranState->Assets, Asset_Head, &MatchVector, &WeightVector);

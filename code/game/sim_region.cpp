@@ -7,21 +7,6 @@
 #include "bmp.cpp"
 #include "asset.cpp"
 
-struct high_entity {
-    bool32 Exists;
-    v2 P; //* Relative to the camera
-    v2 dP;
-    uint32 ChunkZ;
-    uint32 FacingDirection;
-
-    real32 tBob;
-
-    real32 Z;
-    real32 dZ;
-
-    uint32 LowEntityIndex;
-};
-
 enum entity_type {
     EntityType_Null,
 
@@ -95,7 +80,7 @@ struct sim_entity {
 
     sim_entity_collision_volume_group* Collision;
 
-    uint32 FacingDirection;
+    real32 FacingDirection;
     real32 tBob;
 
     int32 dAbsTileZ; //* Stairs
@@ -505,9 +490,9 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
-            }
         }
     }
+}
 
 struct test_wall {
     real32 X, RelX, RelY, DeltaX, DeltaY, MinY, MaxY;
@@ -987,18 +972,8 @@ MoveEntity(
         Entity->DistanceLimit = DistanceRemaining;
     }
 
-    if (AbsoluteValue(Entity->dP.y) > AbsoluteValue(Entity->dP.x)) {
-        if (Entity->dP.y > 0) {
-            Entity->FacingDirection = 1;
-        } else {
-            Entity->FacingDirection = 3;
-        }
-    } else if (AbsoluteValue(Entity->dP.y) < AbsoluteValue(Entity->dP.x)) {
-        if (Entity->dP.x > 0) {
-            Entity->FacingDirection = 0;
-        } else {
-            Entity->FacingDirection = 2;
-        }
+    if (Entity->dP.y != 0.0f || Entity->dP.x != 0.0f) {
+        Entity->FacingDirection = ATan2(Entity->dP.y, Entity->dP.x);
     }
 }
 
