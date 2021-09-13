@@ -6,6 +6,7 @@
 #include "math.cpp"
 #include "bmp.cpp"
 #include "asset.cpp"
+#include "audio.cpp"
 
 enum entity_type {
     EntityType_Null,
@@ -133,13 +134,6 @@ struct ground_buffer {
     loaded_bitmap Bitmap;
 };
 
-struct playing_sound {
-    real32 Volume[2];
-    sound_id ID;
-    int32 SamplesPlayed;
-    playing_sound* Next;
-};
-
 struct game_state {
     bool32 IsInitialized;
 
@@ -176,8 +170,7 @@ struct game_state {
 
     random_series GeneralEntropy;
 
-    playing_sound* FirstPlayingSound;
-    playing_sound* FirstFreePlayingSound;
+    audio_state AudioState;
 };
 
 struct environment_map {

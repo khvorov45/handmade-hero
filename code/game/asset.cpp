@@ -206,7 +206,8 @@ internal void EndAssetType(game_assets* Assets) {
     Assets->DEBUGAsset = 0;
 }
 
-internal game_assets* AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
+internal game_assets*
+AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
     game_assets* Assets = PushStruct(Arena, game_assets);
     SubArena(&Assets->Arena, Arena, Size);
     Assets->TranState = TranState;
@@ -587,14 +588,14 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
             for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
                 SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
                 SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-            }
+        }
 #endif
             for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
                 uint16 Source = SampleData[2 * SampleIndex];
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-        } else {
+    } else {
             Assert(!"Invalid channel count");
         }
         Result.ChannelCount = 1;
@@ -605,7 +606,7 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
                 Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
             }
         }
-    }
+}
     return Result;
 }
 
