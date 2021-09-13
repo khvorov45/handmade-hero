@@ -67,10 +67,10 @@ internal void OutputPlayingSounds(
     audio_state* AudioState, game_sound_buffer* SoundBuffer,
     game_assets* Assets, memory_arena* TempArena
 ) {
-    temporary_memory MixelMemory = BeginTemporaryMemory(TempArena);
+    temporary_memory MixerMemory = BeginTemporaryMemory(TempArena);
 
-    real32* RealChannel0 = PushArray(MixelMemory.Arena, SoundBuffer->SampleCount, real32);
-    real32* RealChannel1 = PushArray(MixelMemory.Arena, SoundBuffer->SampleCount, real32);
+    real32* RealChannel0 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, real32);
+    real32* RealChannel1 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, real32);
 
     // Clear mixer channels
     {
@@ -167,7 +167,7 @@ internal void OutputPlayingSounds(
         }
     }
 
-    EndTemporaryMemory(MixelMemory);
+    EndTemporaryMemory(MixerMemory);
 }
 
 #endif
