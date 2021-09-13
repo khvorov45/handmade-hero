@@ -533,6 +533,24 @@ internal void FillGroundChunk(
     }
 }
 
+internal playing_sound* PlaySound(game_state* GameState, sound_id SoundID) {
+    if (!GameState->FirstFreePlayingSound) {
+        GameState->FirstFreePlayingSound = PushStruct(&GameState->WorldArena, playing_sound);
+        GameState->FirstFreePlayingSound->Next = 0;
+    }
+
+    playing_sound* PlayingSound = GameState->FirstFreePlayingSound;
+    GameState->FirstFreePlayingSound = PlayingSound->Next;
+    PlayingSound->Next = GameState->FirstPlayingSound;
+    GameState->FirstPlayingSound = PlayingSound;
+
+    PlayingSound->Volume[0] = 1.0f;
+    PlayingSound->Volume[1] = 1.0f;
+    PlayingSound->ID = SoundID;
+    PlayingSound->SamplesPlayed = 0;
+    return PlayingSound;
+}
+
 struct hero_bitmap_ids {
     bitmap_id Head;
     bitmap_id Cape;
@@ -564,6 +582,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             &GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
             (uint8*)Memory->PermanentStorage + sizeof(game_state)
         );
+
+        GameState->GeneralEntropy = RandomSeed(1234);
 
         AddLowEntity_(GameState, EntityType_Null, NullPosition());
 
@@ -750,11 +770,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(64), TranState);
 
-        GameState->FirstPlayingSound = PushStruct(&GameState->WorldArena, playing_sound);
-        GameState->FirstPlayingSound->Volume[0] = 1.0f;
-        GameState->FirstPlayingSound->Volume[1] = 1.0f;
-        GameState->FirstPlayingSound->ID = GetFirstSoundFrom(TranState->Assets, Asset_Music);
-        GameState->FirstPlayingSound->Next = 0;
+        PlaySound(GameState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
 
         TranState->GroundBufferCount = 128;
         TranState->GroundBuffers =
@@ -1068,6 +1084,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                             AddCollisionRule(
                                 GameState, Sword->StorageIndex, Entity->StorageIndex, false
                             );
+                            PlaySound(GameState, GetRandomSoundFrom(TranState->Assets, Asset_Bloop, &GameState->GeneralEntropy));
                         }
                     }
                 }
@@ -1341,11 +1358,11 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     }
 
     // Sum all sounds
-    for (playing_sound* PlayingSound = GameState->FirstPlayingSound;
-        PlayingSound;) {
+    for (playing_sound** PlayingSoundPtr = &GameState->FirstPlayingSound;
+        *PlayingSoundPtr;) {
 
-        playing_sound* NextPlayingSound = PlayingSound->Next;
-
+        playing_sound* PlayingSound = *PlayingSoundPtr;
+        bool32 SoundIsFinished = false;
         loaded_sound* LoadedSound = GetSound(TranState->Assets, PlayingSound->ID);
         if (LoadedSound) {
 
@@ -1356,6 +1373,7 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
             real32* Dest1 = RealChannel1;
 
             Assert(PlayingSound->SamplesPlayed >= 0);
+            Assert(LoadedSound->SampleCount >= (uint32)PlayingSound->SamplesPlayed);
 
             uint32 SamplesToMix = SoundBuffer->SampleCount;
             uint32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
@@ -1373,14 +1391,17 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
             }
 
             PlayingSound->SamplesPlayed += SamplesToMix;
-            if ((uint32)PlayingSound->SamplesPlayed == LoadedSound->SampleCount) {
-                PlayingSound->Next = GameState->FirstFreePlayingSound;
-                GameState->FirstFreePlayingSound = PlayingSound;
-            }
+            SoundIsFinished = (uint32)PlayingSound->SamplesPlayed == LoadedSound->SampleCount;
         } else {
             LoadSound(TranState->Assets, PlayingSound->ID);
         }
-        PlayingSound = NextPlayingSound;
+        if (SoundIsFinished) {
+            *PlayingSoundPtr = PlayingSound->Next;
+            PlayingSound->Next = GameState->FirstFreePlayingSound;
+            GameState->FirstFreePlayingSound = PlayingSound;
+        } else {
+            PlayingSoundPtr = &PlayingSound->Next;
+        }
     }
 
     // Convert to 16 bit

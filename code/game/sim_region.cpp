@@ -174,6 +174,8 @@ struct game_state {
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
 
+    random_series GeneralEntropy;
+
     playing_sound* FirstPlayingSound;
     playing_sound* FirstFreePlayingSound;
 };
