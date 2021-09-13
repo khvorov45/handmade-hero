@@ -373,7 +373,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
 }
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Bitmaps[ID.Value].State, AssetState_Unloaded, AssetState_Queued) == AssetState_Unloaded) {
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Bitmaps[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
             load_bitmap_work* Work = PushStruct(&Task->Arena, load_bitmap_work);
@@ -412,7 +412,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
 }
 
 internal void LoadSound(game_assets* Assets, sound_id ID) {
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Sounds[ID.Value].State, AssetState_Unloaded, AssetState_Queued) == AssetState_Unloaded) {
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Sounds[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
             load_sound_work* Work = PushStruct(&Task->Arena, load_sound_work);
