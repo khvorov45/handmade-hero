@@ -404,7 +404,7 @@ struct load_sound_work {
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
     load_sound_work* Work = (load_sound_work*)Data;
     asset_sound_info* Info = Work->Assets->SoundInfos + Work->ID.Value;
-    *Work->Sound = DEBUGLoadWAV(Info->Filename);
+    *Work->Sound = DEBUGLoadWAV(Info->Filename, Info->FirstSampleIndex, Info->SampleCount);
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Sounds[Work->ID.Value].Sound = Work->Sound;
     Work->Assets->Sounds[Work->ID.Value].State = Work->FinalState;
@@ -432,6 +432,13 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
     }
 }
 
+internal void PrefetchSound(game_assets* Assets, sound_id ID) {
+    LoadSound(Assets, ID);
+}
+
+internal void PrefetchBitmap(game_assets* Assets, bitmap_id ID) {
+    LoadBitmap(Assets, ID);
+}
 
 struct fill_ground_chunk_work {
     render_group* RenderGroup;
@@ -1363,38 +1370,59 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 
         playing_sound* PlayingSound = *PlayingSoundPtr;
         bool32 SoundIsFinished = false;
-        loaded_sound* LoadedSound = GetSound(TranState->Assets, PlayingSound->ID);
-        if (LoadedSound) {
 
-            real32 Volume0 = PlayingSound->Volume[0];
-            real32 Volume1 = PlayingSound->Volume[1];
+        real32* Dest0 = RealChannel0;
+        real32* Dest1 = RealChannel1;
 
-            real32* Dest0 = RealChannel0;
-            real32* Dest1 = RealChannel1;
+        uint32 TotalSamplesToMix = SoundBuffer->SampleCount;
+        while (!SoundIsFinished && TotalSamplesToMix) {
+            loaded_sound* LoadedSound = GetSound(TranState->Assets, PlayingSound->ID);
+            if (LoadedSound) {
 
-            Assert(PlayingSound->SamplesPlayed >= 0);
-            Assert(LoadedSound->SampleCount >= (uint32)PlayingSound->SamplesPlayed);
+                asset_sound_info* Info = GetSoundInfo(TranState->Assets, PlayingSound->ID);
+                PrefetchSound(TranState->Assets, Info->NextIDToPlay);
 
-            uint32 SamplesToMix = SoundBuffer->SampleCount;
-            uint32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
-            if (SamplesToMix > SamplesRemainingInSound) {
-                SamplesToMix = SamplesRemainingInSound;
+                real32 Volume0 = PlayingSound->Volume[0];
+                real32 Volume1 = PlayingSound->Volume[1];
+
+                Assert(PlayingSound->SamplesPlayed >= 0);
+                Assert(LoadedSound->SampleCount >= (uint32)PlayingSound->SamplesPlayed);
+
+                uint32 SamplesToMix = TotalSamplesToMix;
+                uint32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
+                if (SamplesToMix > SamplesRemainingInSound) {
+                    SamplesToMix = SamplesRemainingInSound;
+                }
+
+                for (uint32 SampleIndex = PlayingSound->SamplesPlayed;
+                    SampleIndex < PlayingSound->SamplesPlayed + SamplesToMix;
+                    ++SampleIndex) {
+
+                    real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
+                    *Dest0++ += SampleValue0 * Volume0;
+                    *Dest1++ += SampleValue0 * Volume1;
+                }
+
+                Assert(TotalSamplesToMix >= SamplesToMix);
+                PlayingSound->SamplesPlayed += SamplesToMix;
+                TotalSamplesToMix -= SamplesToMix;
+
+                if ((uint32)PlayingSound->SamplesPlayed == LoadedSound->SampleCount) {
+                    if (IsValid(Info->NextIDToPlay)) {
+                        PlayingSound->ID = Info->NextIDToPlay;
+                        PlayingSound->SamplesPlayed = 0;
+                    } else {
+                        SoundIsFinished = true;
+                    }
+                } else {
+                    Assert(TotalSamplesToMix == 0);
+                }
+            } else {
+                LoadSound(TranState->Assets, PlayingSound->ID);
+                break;
             }
-
-            for (uint32 SampleIndex = PlayingSound->SamplesPlayed;
-                SampleIndex < PlayingSound->SamplesPlayed + SamplesToMix;
-                ++SampleIndex) {
-
-                real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
-                *Dest0++ += SampleValue0 * Volume0;
-                *Dest1++ += SampleValue0 * Volume1;
-            }
-
-            PlayingSound->SamplesPlayed += SamplesToMix;
-            SoundIsFinished = (uint32)PlayingSound->SamplesPlayed == LoadedSound->SampleCount;
-        } else {
-            LoadSound(TranState->Assets, PlayingSound->ID);
         }
+
         if (SoundIsFinished) {
             *PlayingSoundPtr = PlayingSound->Next;
             PlayingSound->Next = GameState->FirstFreePlayingSound;
