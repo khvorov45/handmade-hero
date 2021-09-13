@@ -133,9 +133,17 @@ struct ground_buffer {
     loaded_bitmap Bitmap;
 };
 
+struct playing_sound {
+    real32 Volume[2];
+    sound_id ID;
+    int32 SamplesPlayed;
+    playing_sound* Next;
+};
+
 struct game_state {
     bool32 IsInitialized;
 
+    memory_arena MetaArena;
     memory_arena WorldArena;
 
     world* World;
@@ -166,8 +174,8 @@ struct game_state {
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
 
-    loaded_sound TestSound;
-    uint32 TestSampleIndex;
+    playing_sound* FirstPlayingSound;
+    playing_sound* FirstFreePlayingSound;
 };
 
 struct environment_map {
