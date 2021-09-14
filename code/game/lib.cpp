@@ -762,7 +762,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(64), TranState);
 
-        PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
+        GameState->Music =
+            PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
 
         TranState->GroundBufferCount = 128;
         TranState->GroundBuffers =
@@ -877,9 +878,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ZoomRate = -1.0f;
             }
             if (Controller->ActionLeft.EndedDown) {
+                ChangeVolume(&GameState->AudioState, GameState->Music, 1.0f, V2(0, 0));
                 ConHero->dSword = { -1.0f, 0.0f };
             }
             if (Controller->ActionRight.EndedDown) {
+                ChangeVolume(&GameState->AudioState, GameState->Music, 1.0f, V2(1.0f, 1.0f));
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
@@ -937,8 +940,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 );
 #endif
             }
+            }
         }
-    }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1325,7 +1328,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-}
+    }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;

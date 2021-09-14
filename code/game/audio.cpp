@@ -5,7 +5,9 @@
 #include "memory.cpp"
 
 struct playing_sound {
-    real32 Volume[2];
+    v2 CurrentVolume;
+    v2 dCurrentVolume;
+    v2 TargetVolume;
     sound_id ID;
     int32 SamplesPlayed;
     playing_sound* Next;
@@ -54,11 +56,22 @@ internal playing_sound* PlaySound(audio_state* AudioState, sound_id SoundID) {
     PlayingSound->Next = AudioState->FirstPlayingSound;
     AudioState->FirstPlayingSound = PlayingSound;
 
-    PlayingSound->Volume[0] = 1.0f;
-    PlayingSound->Volume[1] = 1.0f;
+    PlayingSound->CurrentVolume = PlayingSound->TargetVolume = V2(1.0f, 1.0f);
+    PlayingSound->dCurrentVolume = V2(0, 0);
     PlayingSound->ID = SoundID;
     PlayingSound->SamplesPlayed = 0;
     return PlayingSound;
+}
+
+internal void ChangeVolume(
+    audio_state* AudioState, playing_sound* Sound, real32 FadeDurationInSeconds, v2 Volume
+) {
+    if (FadeDurationInSeconds <= 0.0f) {
+        Sound->CurrentVolume = Sound->TargetVolume = Volume;
+    } else {
+        Sound->TargetVolume = Volume;
+        Sound->dCurrentVolume = (Volume - Sound->CurrentVolume) * (1.0f / FadeDurationInSeconds);
+    }
 }
 
 internal void PrefetchSound(game_assets* Assets, sound_id ID);
@@ -95,6 +108,8 @@ internal void OutputPlayingSounds(
         real32* Dest0 = RealChannel0;
         real32* Dest1 = RealChannel1;
 
+        real32 SecondsPerSample = 1.0f / (real32)SoundBuffer->SamplesPerSecond;
+
         uint32 TotalSamplesToMix = SoundBuffer->SampleCount;
         while (!SoundIsFinished && TotalSamplesToMix) {
             loaded_sound* LoadedSound = GetSound(Assets, PlayingSound->ID);
@@ -103,8 +118,8 @@ internal void OutputPlayingSounds(
                 asset_sound_info* Info = GetSoundInfo(Assets, PlayingSound->ID);
                 PrefetchSound(Assets, Info->NextIDToPlay);
 
-                real32 Volume0 = PlayingSound->Volume[0];
-                real32 Volume1 = PlayingSound->Volume[1];
+                v2 Volume = PlayingSound->CurrentVolume;
+                v2 dVolume = PlayingSound->dCurrentVolume * SecondsPerSample;
 
                 Assert(PlayingSound->SamplesPlayed >= 0);
                 Assert(LoadedSound->SampleCount >= (uint32)PlayingSound->SamplesPlayed);
@@ -114,14 +129,39 @@ internal void OutputPlayingSounds(
                 if (SamplesToMix > SamplesRemainingInSound) {
                     SamplesToMix = SamplesRemainingInSound;
                 }
+#define OutputChannelCount 2
+                bool32 VolumeEnded[OutputChannelCount] = {};
+                for (uint32 ChannelIndex = 0; ChannelIndex < OutputChannelCount; ++ChannelIndex) {
+                    if (dVolume.E[ChannelIndex] != 0.0f) {
+                        real32 DeltaVolume =
+                            PlayingSound->TargetVolume.E[ChannelIndex] - Volume.E[ChannelIndex];
+                        uint32 VolumeSampleCount = (uint32)(DeltaVolume / dVolume.E[ChannelIndex] + 0.5f);
+                        if (SamplesToMix >= VolumeSampleCount) {
+                            SamplesToMix = VolumeSampleCount;
+                            VolumeEnded[ChannelIndex] = true;
+                        }
+                    }
+                }
 
                 for (uint32 SampleIndex = PlayingSound->SamplesPlayed;
                     SampleIndex < PlayingSound->SamplesPlayed + SamplesToMix;
                     ++SampleIndex) {
 
                     real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
-                    *Dest0++ += SampleValue0 * Volume0;
-                    *Dest1++ += SampleValue0 * Volume1;
+                    *Dest0++ += SampleValue0 * Volume.E[0];
+                    *Dest1++ += SampleValue0 * Volume.E[1];
+
+                    Volume += dVolume;
+                }
+
+                PlayingSound->CurrentVolume = Volume;
+
+                for (uint32 ChannelIndex = 0; ChannelIndex < OutputChannelCount; ++ChannelIndex) {
+                    if (VolumeEnded[ChannelIndex]) {
+                        PlayingSound->CurrentVolume.E[ChannelIndex] =
+                            PlayingSound->TargetVolume.E[ChannelIndex];
+                        PlayingSound->dCurrentVolume.E[ChannelIndex] = 0.0f;
+                    }
                 }
 
                 Assert(TotalSamplesToMix >= SamplesToMix);
@@ -135,8 +175,6 @@ internal void OutputPlayingSounds(
                     } else {
                         SoundIsFinished = true;
                     }
-                } else {
-                    Assert(TotalSamplesToMix == 0);
                 }
             } else {
                 LoadSound(Assets, PlayingSound->ID);
