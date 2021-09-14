@@ -17,12 +17,14 @@ struct audio_state {
     memory_arena* PermArena;
     playing_sound* FirstPlayingSound;
     playing_sound* FirstFreePlayingSound;
+    v2 MasterVolume;
 };
 
 internal void InitializeAudioState(audio_state* AudioState, memory_arena* Arena) {
     AudioState->FirstFreePlayingSound = 0;
     AudioState->FirstPlayingSound = 0;
     AudioState->PermArena = Arena;
+    AudioState->MasterVolume = V2(1.0f, 1.0f);
 }
 
 internal void
@@ -148,8 +150,8 @@ internal void OutputPlayingSounds(
                     ++SampleIndex) {
 
                     real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
-                    *Dest0++ += SampleValue0 * Volume.E[0];
-                    *Dest1++ += SampleValue0 * Volume.E[1];
+                    *Dest0++ += SampleValue0 * Volume.E[0] * AudioState->MasterVolume.E[0];
+                    *Dest1++ += SampleValue0 * Volume.E[1] * AudioState->MasterVolume.E[1];
 
                     Volume += dVolume;
                 }
