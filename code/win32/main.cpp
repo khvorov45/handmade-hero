@@ -337,6 +337,9 @@ Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize) {
     DSBUFFERDESC BufferDescriptionSecondary = {};
     BufferDescriptionSecondary.dwSize = sizeof(BufferDescriptionSecondary);
     BufferDescriptionSecondary.dwFlags = DSBCAPS_GETCURRENTPOSITION2;
+#if HANDMADE_INTERNAL
+    BufferDescriptionSecondary.dwFlags |= DSBCAPS_GLOBALFOCUS;
+#endif
     BufferDescriptionSecondary.dwBufferBytes = BufferSize;
     BufferDescriptionSecondary.lpwfxFormat = &WaveFormat;
     if (!SUCCEEDED(

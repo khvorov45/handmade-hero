@@ -16,10 +16,22 @@
       "presentation": {
         "echo": true,
         "reveal": "always",
+        "revealProblems": "onProblem",
         "focus": false,
         "panel": "shared",
         "showReuseMessage": false,
-        "clear": true
+        "clear": true,
+        "close": true
+      },
+      "problemMatcher": {
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^([^\\s].*)\\((\\d+)\\):\\s(error|warning)(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
       },
       "group": { "kind": "build", "isDefault": true }
     }

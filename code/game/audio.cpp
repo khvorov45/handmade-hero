@@ -8,8 +8,9 @@ struct playing_sound {
     v2 CurrentVolume;
     v2 dCurrentVolume;
     v2 TargetVolume;
+    real32 dSample;
     sound_id ID;
-    int32 SamplesPlayed;
+    real32 SamplesPlayed;
     playing_sound* Next;
 };
 
@@ -24,7 +25,7 @@ internal void InitializeAudioState(audio_state* AudioState, memory_arena* Arena)
     AudioState->FirstFreePlayingSound = 0;
     AudioState->FirstPlayingSound = 0;
     AudioState->PermArena = Arena;
-    AudioState->MasterVolume = V2(1.0f, 1.0f);
+    AudioState->MasterVolume = V2(0.5f, 0.5f);
 }
 
 internal void
@@ -62,6 +63,7 @@ internal playing_sound* PlaySound(audio_state* AudioState, sound_id SoundID) {
     PlayingSound->dCurrentVolume = V2(0, 0);
     PlayingSound->ID = SoundID;
     PlayingSound->SamplesPlayed = 0;
+    PlayingSound->dSample = 1.0f;
     return PlayingSound;
 }
 
@@ -74,6 +76,10 @@ internal void ChangeVolume(
         Sound->TargetVolume = Volume;
         Sound->dCurrentVolume = (Volume - Sound->CurrentVolume) * (1.0f / FadeDurationInSeconds);
     }
+}
+
+internal void ChangePitch(audio_state* AudioState, playing_sound* Sound, real32 dSample) {
+    Sound->dSample = dSample;
 }
 
 internal void PrefetchSound(game_assets* Assets, sound_id ID);
@@ -122,12 +128,14 @@ internal void OutputPlayingSounds(
 
                 v2 Volume = PlayingSound->CurrentVolume;
                 v2 dVolume = PlayingSound->dCurrentVolume * SecondsPerSample;
+                real32 dSample = PlayingSound->dSample;
 
                 Assert(PlayingSound->SamplesPlayed >= 0);
-                Assert(LoadedSound->SampleCount >= (uint32)PlayingSound->SamplesPlayed);
 
                 uint32 SamplesToMix = TotalSamplesToMix;
-                uint32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
+                real32 RealSampleRemainingInSound =
+                    (LoadedSound->SampleCount - RoundReal32ToInt32(PlayingSound->SamplesPlayed)) / dSample;
+                uint32 SamplesRemainingInSound = RoundReal32ToInt32(RealSampleRemainingInSound);
                 if (SamplesToMix > SamplesRemainingInSound) {
                     SamplesToMix = SamplesRemainingInSound;
                 }
@@ -145,15 +153,25 @@ internal void OutputPlayingSounds(
                     }
                 }
 
-                for (uint32 SampleIndex = PlayingSound->SamplesPlayed;
-                    SampleIndex < PlayingSound->SamplesPlayed + SamplesToMix;
-                    ++SampleIndex) {
+                real32 SamplePosition = PlayingSound->SamplesPlayed;
+                for (uint32 LoopIndex = 0; LoopIndex < SamplesToMix; ++LoopIndex) {
 
-                    real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
+                    uint32 SampleIndex = FloorReal32ToInt32(SamplePosition);
+
+                    real32 Between = SamplePosition - (real32)SampleIndex;
+
+                    real32 SampleValueLow0 = LoadedSound->Samples[0][SampleIndex];
+                    real32 SampleValueHigh0 = LoadedSound->Samples[0][SampleIndex + 1];
+
+                    real32 SampleValue0 = Lerp(SampleValueLow0, Between, SampleValueHigh0);
+
+                    // real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
+
                     *Dest0++ += SampleValue0 * Volume.E[0] * AudioState->MasterVolume.E[0];
                     *Dest1++ += SampleValue0 * Volume.E[1] * AudioState->MasterVolume.E[1];
 
                     Volume += dVolume;
+                    SamplePosition += dSample;
                 }
 
                 PlayingSound->CurrentVolume = Volume;
@@ -167,7 +185,7 @@ internal void OutputPlayingSounds(
                 }
 
                 Assert(TotalSamplesToMix >= SamplesToMix);
-                PlayingSound->SamplesPlayed += SamplesToMix;
+                PlayingSound->SamplesPlayed = SamplePosition;
                 TotalSamplesToMix -= SamplesToMix;
 
                 if ((uint32)PlayingSound->SamplesPlayed == LoadedSound->SampleCount) {

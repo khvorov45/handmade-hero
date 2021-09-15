@@ -872,9 +872,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #else
             real32 ZoomRate = 0.0f;
             if (Controller->ActionUp.EndedDown) {
+                ChangePitch(&GameState->AudioState, GameState->Music, 0.5f);
                 ZoomRate = 1.0f;
             }
             if (Controller->ActionDown.EndedDown) {
+                ChangePitch(&GameState->AudioState, GameState->Music, 1.0f);
                 ZoomRate = -1.0f;
             }
             if (Controller->ActionLeft.EndedDown) {
@@ -940,8 +942,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 );
 #endif
             }
-            }
         }
+    }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1328,7 +1330,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-    }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
