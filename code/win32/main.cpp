@@ -1137,6 +1137,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
         FILETIME NewDLLWriteTime = Win32GetLastWriteTime(GameCodeDLLFullPathSource);
         if (CompareFileTime(&NewDLLWriteTime, &GameCode.LastWriteTime) != 0) {
+            Win32CompleteAllWork(&HighPriorityQueue);
+            Win32CompleteAllWork(&LowPriorityQueue);
             Win32UnloadCode(&GameCode);
             GameCode = Win32LoadGameCode(GameCodeDLLFullPathSource, GameCodeDLLFullPathLocked);
             NewInput->ExecutableReloaded = true;

@@ -165,7 +165,7 @@ internal void OutputPlayingSounds(
 
                     real32 SampleValue0 = Lerp(SampleValueLow0, Between, SampleValueHigh0);
 
-                    // real32 SampleValue0 = LoadedSound->Samples[0][SampleIndex];
+                    // SampleValue0 = LoadedSound->Samples[0][SampleIndex];
 
                     *Dest0++ += SampleValue0 * Volume.E[0] * AudioState->MasterVolume.E[0];
                     *Dest1++ += SampleValue0 * Volume.E[1] * AudioState->MasterVolume.E[1];

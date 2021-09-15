@@ -88,4 +88,14 @@ inline void ZeroSize(memory_index Size, void* Ptr) {
     }
 }
 
+internal char* PushString(memory_arena* Arena, char* Source) {
+    uint32 Size = 1;
+    for (char* At = Source; *At; At++) { Size++; }
+    char* Dest = (char*)PushSize_(Arena, Size);
+    for (uint32 CharIndex = 0; CharIndex < Size; CharIndex++) {
+        Dest[CharIndex] = Source[CharIndex];
+    }
+    return Dest;
+}
+
 #endif

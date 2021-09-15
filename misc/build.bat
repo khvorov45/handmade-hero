@@ -11,3 +11,4 @@ cl %CommonCompilerFlags% ..\code\win32\main.cpp -Fmwin32_handmade.map -Fewin32_m
 popd
 
 echo Done
+exit 0

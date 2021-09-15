@@ -153,7 +153,7 @@ internal sound_id DEBUGAddSoundInfo(
     Assert(Assets->DEBUGUsedSoundCount < Assets->SoundCount);
     sound_id ID = { Assets->DEBUGUsedSoundCount++ };
     asset_sound_info* Info = Assets->SoundInfos + ID.Value;
-    Info->Filename = Filename;
+    Info->Filename = PushString(&Assets->Arena, Filename);
     Info->NextIDToPlay.Value = 0;
     Info->FirstSampleIndex = FirstSampleIndex;
     Info->SampleCount = SampleCount;
@@ -588,14 +588,14 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
             for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
                 SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
                 SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-        }
+            }
 #endif
             for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
                 uint16 Source = SampleData[2 * SampleIndex];
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-    } else {
+        } else {
             Assert(!"Invalid channel count");
         }
         Result.ChannelCount = 1;
@@ -606,7 +606,7 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
                 Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
             }
         }
-}
+    }
     return Result;
 }
 
