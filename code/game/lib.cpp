@@ -816,6 +816,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     world* World = GameState->World;
     world* TileMap = World;
 
+#if 0
+    {
+        v2 MusicVolume;
+        MusicVolume.E[1] = Clamp01((real32)Input->MouseX / (real32)Buffer->Width);
+        MusicVolume.E[0] = 1.0f - MusicVolume.E[1];
+        ChangeVolume(&GameState->AudioState, GameState->Music, 0.1f, MusicVolume);
+    }
+#endif
+
     for (int32 ControllerIndex = 0;
         ControllerIndex < ArrayCount(Input->Controllers);
         ++ControllerIndex) {
