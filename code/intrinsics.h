@@ -6,6 +6,8 @@
 
 #if COMPILER_MSVC
 #include <intrin.h>
+#include <xmmintrin.h>
+#include <emmintrin.h>
 #define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
 internal inline uint32 AtomicCompareExchangeUint32(uint32 volatile* Value, uint32 New, uint32 Expected) {
     uint32 Result = _InterlockedCompareExchange((long*)Value, New, Expected);

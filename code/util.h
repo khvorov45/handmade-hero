@@ -6,6 +6,8 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 #define Align16(Value) ((Value + 15) & ~15)
+#define Align4(Value) ((Value + 3) & ~3)
+#define AlignPow2(Value, Alignment) (((Value) + ((Alignment) - 1)) & ~((Alignment) - 1))
 
 #define Kilobytes(n) (((uint64)(n)) * 1024)
 #define Megabytes(n) (Kilobytes(n) * 1024)

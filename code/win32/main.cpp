@@ -1053,8 +1053,10 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
 
+    uint32 MaxPossibleOverrun = 2 * 4 * sizeof(uint16);
     int16* Samples = (int16*)VirtualAlloc(
-        0, SoundOutput.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
+        0, SoundOutput.SecondaryBufferSize + MaxPossibleOverrun,
+        MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
     );
 
     Win32ClearBuffer(&SoundOutput);

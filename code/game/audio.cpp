@@ -3,6 +3,7 @@
 
 #include "asset.cpp"
 #include "memory.cpp"
+#include "../intrinsics.h"
 
 struct playing_sound {
     v2 CurrentVolume;
@@ -90,19 +91,24 @@ internal void OutputPlayingSounds(
 ) {
     temporary_memory MixerMemory = BeginTemporaryMemory(TempArena);
 
-    real32* RealChannel0 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, real32);
-    real32* RealChannel1 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, real32);
+    uint32 SampleCountAlign4 = Align4(SoundBuffer->SampleCount);
+    uint32 SampleCount4 = SampleCountAlign4 / 4;
+
+    __m128* RealChannel0 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, __m128, 16);
+    __m128* RealChannel1 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, __m128, 16);
+
+    __m128 Zero_4x = _mm_set1_ps(0.0f);
 
     // Clear mixer channels
     {
-        real32* Dest0 = RealChannel0;
-        real32* Dest1 = RealChannel1;
-        for (int32 SampleIndex = 0;
-            SampleIndex < SoundBuffer->SampleCount;
+        __m128* Dest0 = RealChannel0;
+        __m128* Dest1 = RealChannel1;
+        for (uint32 SampleIndex = 0;
+            SampleIndex < SampleCount4;
             ++SampleIndex) {
 
-            *Dest0++ = 0.0f;
-            *Dest1++ = 0.0f;
+            _mm_store_ps((real32*)Dest0++, Zero_4x);
+            _mm_store_ps((real32*)Dest1++, Zero_4x);
         }
     }
 
@@ -113,8 +119,8 @@ internal void OutputPlayingSounds(
         playing_sound* PlayingSound = *PlayingSoundPtr;
         bool32 SoundIsFinished = false;
 
-        real32* Dest0 = RealChannel0;
-        real32* Dest1 = RealChannel1;
+        real32* Source0 = (real32*)RealChannel0;
+        real32* Source1 = (real32*)RealChannel1;
 
         real32 SecondsPerSample = 1.0f / (real32)SoundBuffer->SamplesPerSecond;
 
@@ -167,8 +173,8 @@ internal void OutputPlayingSounds(
 
                     // SampleValue0 = LoadedSound->Samples[0][SampleIndex];
 
-                    *Dest0++ += SampleValue0 * Volume.E[0] * AudioState->MasterVolume.E[0];
-                    *Dest1++ += SampleValue0 * Volume.E[1] * AudioState->MasterVolume.E[1];
+                    *Source0++ += SampleValue0 * Volume.E[0] * AudioState->MasterVolume.E[0];
+                    *Source1++ += SampleValue0 * Volume.E[1] * AudioState->MasterVolume.E[1];
 
                     Volume += dVolume;
                     SamplePosition += dSample;
@@ -213,15 +219,26 @@ internal void OutputPlayingSounds(
 
     // Convert to 16 bit
     {
-        real32* Source0 = RealChannel0;
-        real32* Source1 = RealChannel1;
-        int16* SampleOut = SoundBuffer->Samples;
-        for (int32 SampleIndex = 0;
-            SampleIndex < SoundBuffer->SampleCount;
+        __m128* Source0 = RealChannel0;
+        __m128* Source1 = RealChannel1;
+        __m128i* SampleOut = (__m128i*)SoundBuffer->Samples;
+        for (uint32 SampleIndex = 0;
+            SampleIndex < SampleCount4;
             ++SampleIndex) {
 
-            *SampleOut++ = (int16)(*Source0++ + 0.5f);
-            *SampleOut++ = (int16)(*Source1++ + 0.5f);
+            __m128 S0 = _mm_load_ps((real32*)Source0++);
+            __m128 S1 = _mm_load_ps((real32*)Source1++);
+
+            __m128i L = _mm_cvtps_epi32(S0);
+            __m128i R = _mm_cvtps_epi32(S1);
+
+            __m128i LR0 = _mm_unpacklo_epi32(L, R);
+            __m128i LR1 = _mm_unpackhi_epi32(L, R);
+
+            __m128i S01 = _mm_packs_epi32(LR0, LR1);
+
+            _mm_store_si128(SampleOut++, S01);
+            // *SampleOut++ = S01;
         }
     }
 

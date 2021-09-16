@@ -1,6 +1,7 @@
 #include "math.cpp"
 #include "bmp.cpp"
 #include "asset.cpp"
+#include "../intrinsics.h"
 
 struct render_basis {
     v3 P;
@@ -264,7 +265,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-    }
+}
 #endif
 }
 
@@ -597,7 +598,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-                }
+            }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -622,17 +623,14 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-            }
-            Pixel++;
         }
-        Row += Buffer->Pitch;
+            Pixel++;
     }
+        Row += Buffer->Pitch;
+}
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
-
-#include <xmmintrin.h>
-#include <emmintrin.h>
 
 #if 1
 #include "../../iacaMarks.h"
@@ -1301,15 +1299,15 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            }
+        }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
-        }
     }
-    END_TIMED_BLOCK(RenderGroupToOutput);
 }
+    END_TIMED_BLOCK(RenderGroupToOutput);
+    }
 
 struct tile_render_work {
     render_group* RenderGroup;
