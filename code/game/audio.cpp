@@ -138,7 +138,7 @@ internal void OutputPlayingSounds(
                 v2 Volume = PlayingSound->CurrentVolume;
                 v2 dVolume = PlayingSound->dCurrentVolume * SecondsPerSample;
                 v2 dVolumeChunk = 4.0f * dVolume;
-                real32 dSample = PlayingSound->dSample;
+                real32 dSample = PlayingSound->dSample * 1.9f;
                 real32 dSampleChunk = 4.0f * dSample;
 
                 __m128 MasterVolume0_4x = _mm_set1_ps(AudioState->MasterVolume.E[0]);
@@ -166,8 +166,10 @@ internal void OutputPlayingSounds(
                 real32 RealChunksRemainingInSound =
                     (LoadedSound->SampleCount - RoundReal32ToInt32(PlayingSound->SamplesPlayed)) / dSampleChunk;
                 uint32 ChunksRemainingInSound = RoundReal32ToInt32(RealChunksRemainingInSound);
+                bool32 InputSamplesEnded = false;
                 if (ChunksToMix > ChunksRemainingInSound) {
                     ChunksToMix = ChunksRemainingInSound;
+                    InputSamplesEnded = true;
                 }
 #define OutputChannelCount 2
                 bool32 VolumeEnded[OutputChannelCount] = {};
@@ -183,8 +185,10 @@ internal void OutputPlayingSounds(
                     }
                 }
 
-                real32 SamplePosition = PlayingSound->SamplesPlayed;
+                real32 BeginSamplePosition = PlayingSound->SamplesPlayed;
+                real32 EndSamplePosition = BeginSamplePosition + dSampleChunk * ChunksToMix;
                 for (uint32 LoopIndex = 0; LoopIndex < ChunksToMix; ++LoopIndex) {
+                    real32 SamplePosition = BeginSamplePosition + dSampleChunk * LoopIndex;
 #if 0
                     for (uint32 SampleOffset = 0; SampleOffset < 4; ++SampleOffset) {
 #if 0
@@ -255,8 +259,7 @@ internal void OutputPlayingSounds(
                     Volume0_4x = _mm_add_ps(Volume0_4x, dVolumeChunk0_4x);
                     Volume1_4x = _mm_add_ps(Volume1_4x, dVolumeChunk1_4x);
 #endif
-                    SamplePosition += dSampleChunk;
-                }
+                    }
 
                 PlayingSound->CurrentVolume.E[0] = ((real32*)&Volume0_4x)[0];
                 PlayingSound->CurrentVolume.E[1] = ((real32*)&Volume1_4x)[0];
@@ -269,23 +272,24 @@ internal void OutputPlayingSounds(
                     }
                 }
 
-                PlayingSound->SamplesPlayed = SamplePosition;
+                PlayingSound->SamplesPlayed = EndSamplePosition;
                 Assert(TotalChunksToMix >= ChunksToMix);
                 TotalChunksToMix -= ChunksToMix;
 
-                if ((uint32)PlayingSound->SamplesPlayed >= LoadedSound->SampleCount) {
+                if (InputSamplesEnded) {
                     if (IsValid(Info->NextIDToPlay)) {
                         PlayingSound->ID = Info->NextIDToPlay;
-                        PlayingSound->SamplesPlayed = (real32)LoadedSound->SampleCount;
+                        Assert(PlayingSound->SamplesPlayed >= LoadedSound->SampleCount);
+                        PlayingSound->SamplesPlayed -= (real32)LoadedSound->SampleCount;
                     } else {
                         SoundIsFinished = true;
                     }
                 }
-            } else {
+                } else {
                 LoadSound(Assets, PlayingSound->ID);
                 break;
             }
-        }
+            }
 
         if (SoundIsFinished) {
             *PlayingSoundPtr = PlayingSound->Next;
@@ -294,7 +298,7 @@ internal void OutputPlayingSounds(
         } else {
             PlayingSoundPtr = &PlayingSound->Next;
         }
-    }
+        }
 
     // Convert to 16 bit
     {
@@ -322,6 +326,6 @@ internal void OutputPlayingSounds(
     }
 
     EndTemporaryMemory(MixerMemory);
-}
+    }
 
 #endif
