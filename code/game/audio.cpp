@@ -226,11 +226,11 @@ internal void OutputPlayingSounds(
                     Volume0_4x = _mm_add_ps(Volume0_4x, dVolumeChunk0_4x);
                     Volume1_4x = _mm_add_ps(Volume1_4x, dVolumeChunk1_4x);
 #endif
-                    Volume += dVolumeChunk;
                     SamplePosition += dSampleChunk;
                 }
 
-                PlayingSound->CurrentVolume = Volume;
+                PlayingSound->CurrentVolume.E[0] = ((real32*)&Volume0_4x)[0];
+                PlayingSound->CurrentVolume.E[1] = ((real32*)&Volume1_4x)[0];
 
                 for (uint32 ChannelIndex = 0; ChannelIndex < OutputChannelCount; ++ChannelIndex) {
                     if (VolumeEnded[ChannelIndex]) {
