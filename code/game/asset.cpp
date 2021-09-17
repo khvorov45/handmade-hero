@@ -577,20 +577,20 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
         }
         Assert(ChannelCount && SampleData && SampleDataSize);
         Result.ChannelCount = ChannelCount;
-        Result.SampleCount = SampleDataSize / (ChannelCount * sizeof(int16));
+        uint32 SampleCount = SampleDataSize / (ChannelCount * sizeof(int16));
         if (ChannelCount == 1) {
             Result.Samples[0] = SampleData;
             Result.Samples[1] = 0;
         } else if (ChannelCount == 2) {
             Result.Samples[0] = SampleData;
-            Result.Samples[1] = SampleData + Result.SampleCount;
+            Result.Samples[1] = SampleData + SampleCount;
 #if 0
-            for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
+            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
                 SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
                 SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
             }
 #endif
-            for (uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex) {
+            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
                 uint16 Source = SampleData[2 * SampleIndex];
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
@@ -598,14 +598,27 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
         } else {
             Assert(!"Invalid channel count");
         }
+
         Result.ChannelCount = 1;
+
+        bool32 AtEnd = true;
         if (SectionSampleCount) {
-            Assert(SectionFirstSampleIndex + SectionSampleCount <= Result.SampleCount);
-            Result.SampleCount = SectionSampleCount;
+            Assert(SectionFirstSampleIndex + SectionSampleCount <= SampleCount);
+            AtEnd = (SectionFirstSampleIndex + SectionSampleCount) == SampleCount;
+            SampleCount = SectionSampleCount;
             for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
                 Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
             }
         }
+        if (AtEnd) {
+            uint32 SampleCountAlign8 = SampleCount + 8; // Align8(SampleCount);
+            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
+                for (uint32 SampleIndex = SampleCount; SampleIndex < SampleCountAlign8; ++SampleIndex) {
+                    Result.Samples[ChannelIndex][SampleIndex] = 0;
+                }
+            }
+        }
+        Result.SampleCount = SampleCount;
     }
     return Result;
 }
