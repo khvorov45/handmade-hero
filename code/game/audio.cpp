@@ -187,8 +187,13 @@ internal void OutputPlayingSounds(
 
                 real32 BeginSamplePosition = PlayingSound->SamplesPlayed;
                 real32 EndSamplePosition = BeginSamplePosition + dSampleChunk * ChunksToMix;
+                __m128 BeginVolume0_4x = Volume0_4x;
+                __m128 BeginVolume1_4x = Volume1_4x;
                 for (uint32 LoopIndex = 0; LoopIndex < ChunksToMix; ++LoopIndex) {
                     real32 SamplePosition = BeginSamplePosition + dSampleChunk * LoopIndex;
+                    __m128 LoopIndex_4x = _mm_set1_ps((real32)LoopIndex);
+                    Volume0_4x = _mm_add_ps(BeginVolume0_4x, _mm_mul_ps(dVolumeChunk0_4x, LoopIndex_4x));
+                    Volume1_4x = _mm_add_ps(BeginVolume1_4x, _mm_mul_ps(dVolumeChunk1_4x, LoopIndex_4x));
 #if 0
                     for (uint32 SampleOffset = 0; SampleOffset < 4; ++SampleOffset) {
 #if 0
@@ -256,10 +261,8 @@ internal void OutputPlayingSounds(
 
                     Dest0++;
                     Dest1++;
-                    Volume0_4x = _mm_add_ps(Volume0_4x, dVolumeChunk0_4x);
-                    Volume1_4x = _mm_add_ps(Volume1_4x, dVolumeChunk1_4x);
 #endif
-                    }
+                }
 
                 PlayingSound->CurrentVolume.E[0] = ((real32*)&Volume0_4x)[0];
                 PlayingSound->CurrentVolume.E[1] = ((real32*)&Volume1_4x)[0];
@@ -285,11 +288,11 @@ internal void OutputPlayingSounds(
                         SoundIsFinished = true;
                     }
                 }
-                } else {
+            } else {
                 LoadSound(Assets, PlayingSound->ID);
                 break;
             }
-            }
+        }
 
         if (SoundIsFinished) {
             *PlayingSoundPtr = PlayingSound->Next;
@@ -298,7 +301,7 @@ internal void OutputPlayingSounds(
         } else {
             PlayingSoundPtr = &PlayingSound->Next;
         }
-        }
+    }
 
     // Convert to 16 bit
     {
@@ -326,6 +329,6 @@ internal void OutputPlayingSounds(
     }
 
     EndTemporaryMemory(MixerMemory);
-    }
+}
 
 #endif
