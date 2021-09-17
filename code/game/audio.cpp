@@ -262,7 +262,7 @@ internal void OutputPlayingSounds(
                 if ((uint32)PlayingSound->SamplesPlayed >= LoadedSound->SampleCount) {
                     if (IsValid(Info->NextIDToPlay)) {
                         PlayingSound->ID = Info->NextIDToPlay;
-                        PlayingSound->SamplesPlayed = 0;
+                        PlayingSound->SamplesPlayed -= (real32)LoadedSound->SampleCount;
                     } else {
                         SoundIsFinished = true;
                     }
