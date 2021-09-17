@@ -284,6 +284,9 @@ internal void OutputPlayingSounds(
                         PlayingSound->ID = Info->NextIDToPlay;
                         Assert(PlayingSound->SamplesPlayed >= LoadedSound->SampleCount);
                         PlayingSound->SamplesPlayed -= (real32)LoadedSound->SampleCount;
+                        if (PlayingSound->SamplesPlayed <= 0) {
+                            PlayingSound->SamplesPlayed = 0;
+                        }
                     } else {
                         SoundIsFinished = true;
                     }
