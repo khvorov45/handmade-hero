@@ -97,6 +97,8 @@ internal void OutputPlayingSounds(
     __m128* RealChannel0 = PushArray(MixerMemory.Arena, ChunkCount, __m128, 16);
     __m128* RealChannel1 = PushArray(MixerMemory.Arena, ChunkCount, __m128, 16);
 
+    __m128 One_4x = _mm_set1_ps(1.0f);
+
     // Clear mixer channels
     {
         __m128 Zero_4x = _mm_set1_ps(0.0f);
@@ -137,7 +139,7 @@ internal void OutputPlayingSounds(
                 v2 dVolume = PlayingSound->dCurrentVolume * SecondsPerSample;
                 v2 dVolumeChunk = 4.0f * dVolume;
                 real32 dSample = PlayingSound->dSample;
-                real32 dSampleChunk = 4.0f * PlayingSound->dSample;
+                real32 dSampleChunk = 4.0f * dSample;
 
                 __m128 MasterVolume0_4x = _mm_set1_ps(AudioState->MasterVolume.E[0]);
                 __m128 MasterVolume1_4x = _mm_set1_ps(AudioState->MasterVolume.E[1]);
@@ -205,13 +207,40 @@ internal void OutputPlayingSounds(
                         Dest1++;
                     }
 #else
+
+#if 1
+                    __m128 SamplePos_4x = _mm_setr_ps(
+                        SamplePosition + 0.0f * dSample,
+                        SamplePosition + 1.0f * dSample,
+                        SamplePosition + 2.0f * dSample,
+                        SamplePosition + 3.0f * dSample
+                    );
+                    __m128i SampleIndex_4x = _mm_cvttps_epi32(SamplePos_4x);
+                    __m128 Between_4x = _mm_sub_ps(SamplePos_4x, _mm_cvtepi32_ps(SampleIndex_4x));
+                    __m128 SampleValueLow0 = _mm_setr_ps(
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[0]],
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[1]],
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[2]],
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[3]]
+                    );
+                    __m128 SampleValueHigh0 = _mm_setr_ps(
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[0] + 1],
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[1] + 1],
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[2] + 1],
+                        LoadedSound->Samples[0][((int32*)&SampleIndex_4x)[3] + 1]
+                    );
+                    __m128 SampleValue0 = _mm_add_ps(
+                        _mm_mul_ps(_mm_sub_ps(One_4x, Between_4x), SampleValueLow0),
+                        _mm_mul_ps(Between_4x, SampleValueHigh0)
+                    );
+#else
                     __m128 SampleValue0 = _mm_setr_ps(
                         LoadedSound->Samples[0][RoundReal32ToInt32(SamplePosition + 0.0f * dSample)],
                         LoadedSound->Samples[0][RoundReal32ToInt32(SamplePosition + 1.0f * dSample)],
                         LoadedSound->Samples[0][RoundReal32ToInt32(SamplePosition + 2.0f * dSample)],
                         LoadedSound->Samples[0][RoundReal32ToInt32(SamplePosition + 3.0f * dSample)]
                     );
-
+#endif
                     __m128 D0 = _mm_load_ps((real32*)&Dest0[0]);
                     __m128 D1 = _mm_load_ps((real32*)&Dest1[0]);
 
