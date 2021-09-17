@@ -1053,7 +1053,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
 
-    uint32 MaxPossibleOverrun = 2 * 4 * sizeof(uint16);
+    uint32 MaxPossibleOverrun = 2 * 8 * sizeof(uint16);
     int16* Samples = (int16*)VirtualAlloc(
         0, SoundOutput.SecondaryBufferSize + MaxPossibleOverrun,
         MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
@@ -1361,7 +1361,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
             game_sound_buffer SoundBuffer = {};
             SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
-            SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
+            SoundBuffer.SampleCount = Align8(BytesToWrite / SoundOutput.BytesPerSample);
+            BytesToWrite = SoundBuffer.SampleCount * SoundOutput.BytesPerSample;
             SoundBuffer.Samples = Samples;
             if (GameCode.GetSoundSamples != 0) {
                 GameCode.GetSoundSamples(&GameMemory, &SoundBuffer);

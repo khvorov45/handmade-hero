@@ -91,11 +91,12 @@ internal void OutputPlayingSounds(
 ) {
     temporary_memory MixerMemory = BeginTemporaryMemory(TempArena);
 
-    uint32 SampleCountAlign4 = Align4(SoundBuffer->SampleCount);
-    uint32 SampleCount4 = SampleCountAlign4 / 4;
+    Assert((SoundBuffer->SampleCount & 7) == 0);
+    uint32 SampleCount8 = SoundBuffer->SampleCount / 8;
+    uint32 SampleCount4 = SoundBuffer->SampleCount / 4;
 
-    __m128* RealChannel0 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, __m128, 16);
-    __m128* RealChannel1 = PushArray(MixerMemory.Arena, SoundBuffer->SampleCount, __m128, 16);
+    __m128* RealChannel0 = PushArray(MixerMemory.Arena, SampleCount4, __m128, 16);
+    __m128* RealChannel1 = PushArray(MixerMemory.Arena, SampleCount4, __m128, 16);
 
     __m128 Zero_4x = _mm_set1_ps(0.0f);
 
