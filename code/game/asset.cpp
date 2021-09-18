@@ -128,7 +128,7 @@ AddBitmapAsset(game_assets* Assets, char* Filename, v2 AlignPercentage = V2(0.5f
     asset* Asset = Assets->Assets + Result.Value;
     Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->Bitmap.Filename = Filename;
+    Asset->Bitmap.Filename = PushString(&Assets->Arena, Filename);;
     Asset->Bitmap.AlignPercentage = AlignPercentage;
     Assets->DEBUGAsset = Asset;
     return Result;
@@ -142,7 +142,7 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
     asset* Asset = Assets->Assets + Result.Value;
     Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->Sound.Filename = Filename;
+    Asset->Sound.Filename = PushString(&Assets->Arena, Filename);
     Asset->Sound.FirstSampleIndex = FirstSampleIndex;
     Asset->Sound.SampleCount = SampleCount;
     Asset->Sound.NextIDToPlay.Value = 0;
