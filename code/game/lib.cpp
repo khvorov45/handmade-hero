@@ -365,16 +365,16 @@ struct load_bitmap_work {
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
-    asset_bitmap_info* Info = Work->Assets->BitmapInfos + Work->ID.Value;
+    asset_bitmap_info* Info = &Work->Assets->Assets[Work->ID.Value].Bitmap;
     *Work->Bitmap = DEBUGLoadBMP(Info->Filename, Info->AlignPercentage);
     CompletePreviousWritesBeforeFutureWrites;
-    Work->Assets->Bitmaps[Work->ID.Value].Bitmap = Work->Bitmap;
-    Work->Assets->Bitmaps[Work->ID.Value].State = Work->FinalState;
+    Work->Assets->Slots[Work->ID.Value].Bitmap = Work->Bitmap;
+    Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
     EndTaskWithMemory(Work->Task);
 }
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Bitmaps[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
             load_bitmap_work* Work = PushStruct(&Task->Arena, load_bitmap_work);
@@ -389,7 +389,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             LoadBitmapWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
-            Assets->Bitmaps[ID.Value].State = AssetState_Unloaded;
+            Assets->Slots[ID.Value].State = AssetState_Unloaded;
         }
     }
 }
@@ -404,16 +404,16 @@ struct load_sound_work {
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
     load_sound_work* Work = (load_sound_work*)Data;
-    asset_sound_info* Info = Work->Assets->SoundInfos + Work->ID.Value;
+    asset_sound_info* Info = &Work->Assets->Assets[Work->ID.Value].Sound;
     *Work->Sound = DEBUGLoadWAV(Info->Filename, Info->FirstSampleIndex, Info->SampleCount);
     CompletePreviousWritesBeforeFutureWrites;
-    Work->Assets->Sounds[Work->ID.Value].Sound = Work->Sound;
-    Work->Assets->Sounds[Work->ID.Value].State = Work->FinalState;
+    Work->Assets->Slots[Work->ID.Value].Sound = Work->Sound;
+    Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
     EndTaskWithMemory(Work->Task);
 }
 
 internal void LoadSound(game_assets* Assets, sound_id ID) {
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Sounds[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
             load_sound_work* Work = PushStruct(&Task->Arena, load_sound_work);
@@ -428,7 +428,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             LoadSoundWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
-            Assets->Sounds[ID.Value].State = AssetState_Unloaded;
+            Assets->Slots[ID.Value].State = AssetState_Unloaded;
         }
     }
 }

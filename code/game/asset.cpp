@@ -6,6 +6,7 @@
 #include "bmp.cpp"
 #include "memory.cpp"
 #include "random.cpp"
+#include "asset_type_id.h"
 
 enum asset_tag_id {
     Tag_Smoothness,
@@ -14,38 +15,35 @@ enum asset_tag_id {
     Tag_Count
 };
 
-enum asset_type_id {
-    Asset_None,
-    Asset_Shadow,
-    Asset_Tree,
-    Asset_Sword,
-    Asset_Stairwell,
-    Asset_Rock,
-    Asset_Grass,
-    Asset_Tuft,
-    Asset_Stone,
-    Asset_Head,
-    Asset_Cape,
-    Asset_Torso,
-    // Sounds
-    Asset_Bloop,
-    Asset_Crack,
-    Asset_Drop,
-    Asset_Glide,
-    Asset_Music,
-    Asset_Puhp,
-    Asset_Count
-};
-
 struct asset_tag {
     uint32 ID;
     real32 Value;
 };
 
+struct asset_bitmap_info {
+    v2 AlignPercentage;
+    char* Filename;
+};
+
+struct sound_id {
+    uint32 Value;
+};
+
+struct asset_sound_info {
+    char* Filename;
+    uint32 FirstSampleIndex;
+    uint32 SampleCount;
+    sound_id NextIDToPlay;
+};
+
 struct asset {
     uint32 FirstTagIndex;
     uint32 OnePastLastTagIndex;
-    uint32 SlotID;
+
+    union {
+        asset_bitmap_info Bitmap;
+        asset_sound_info Sound;
+    };
 };
 
 struct asset_vector {
@@ -78,21 +76,6 @@ struct asset_slot {
     };
 };
 
-struct asset_bitmap_info {
-    v2 AlignPercentage;
-    char* Filename;
-};
-
-struct sound_id {
-    uint32 Value;
-};
-
-struct asset_sound_info {
-    char* Filename;
-    uint32 FirstSampleIndex;
-    uint32 SampleCount;
-    sound_id NextIDToPlay;
-};
 
 struct asset_group {
     uint32 FirstTagIndex;
@@ -105,19 +88,12 @@ struct game_assets {
 
     real32 TagRange[Tag_Count];
 
-    uint32 BitmapCount;
-    asset_bitmap_info* BitmapInfos;
-    asset_slot* Bitmaps;
-
-    uint32 SoundCount;
-    asset_sound_info* SoundInfos;
-    asset_slot* Sounds;
-
     uint32 TagCount;
     asset_tag* Tags;
 
     uint32 AssetCount;
     asset* Assets;
+    asset_slot* Slots;
 
     asset_type AssetTypes[Asset_Count];
 
@@ -138,27 +114,6 @@ internal void SetTopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
     Bitmap->AlignPercentage = Align;
 }
 
-internal bitmap_id DEBUGAddBitmapInfo(game_assets* Assets, char* Filename, v2 AlignPercentage) {
-    Assert(Assets->DEBUGUsedBitmapCount < Assets->BitmapCount);
-    bitmap_id ID = { Assets->DEBUGUsedBitmapCount++ };
-    asset_bitmap_info* Info = Assets->BitmapInfos + ID.Value;
-    Info->AlignPercentage = AlignPercentage;
-    Info->Filename = Filename;
-    return ID;
-}
-
-internal sound_id DEBUGAddSoundInfo(
-    game_assets* Assets, char* Filename, uint32 FirstSampleIndex, uint32 SampleCount
-) {
-    Assert(Assets->DEBUGUsedSoundCount < Assets->SoundCount);
-    sound_id ID = { Assets->DEBUGUsedSoundCount++ };
-    asset_sound_info* Info = Assets->SoundInfos + ID.Value;
-    Info->Filename = PushString(&Assets->Arena, Filename);
-    Info->NextIDToPlay.Value = 0;
-    Info->FirstSampleIndex = FirstSampleIndex;
-    Info->SampleCount = SampleCount;
-    return ID;
-}
 
 internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
     Assert(Assets->DEBUGAssetType == 0);
@@ -167,28 +122,34 @@ internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
     Assets->DEBUGAssetType->OnePastLastAssetIndex = Assets->DEBUGAssetType->FirstAssetIndex;
 }
 
-internal void
+internal bitmap_id
 AddBitmapAsset(game_assets* Assets, char* Filename, v2 AlignPercentage = V2(0.5f, 0.5f)) {
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
-    asset* Asset = Assets->Assets + Assets->DEBUGAssetType->OnePastLastAssetIndex++;
+    bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
+    asset* Asset = Assets->Assets + Result.Value;
     Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->SlotID = DEBUGAddBitmapInfo(Assets, Filename, AlignPercentage).Value;
+    Asset->Bitmap.Filename = Filename;
+    Asset->Bitmap.AlignPercentage = AlignPercentage;
     Assets->DEBUGAsset = Asset;
+    return Result;
 }
 
-internal asset* AddSoundAsset(
-    game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, uint32 SampleCount = 0
-) {
+internal sound_id
+AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, uint32 SampleCount = 0) {
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
-    asset* Asset = Assets->Assets + Assets->DEBUGAssetType->OnePastLastAssetIndex++;
+    sound_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
+    asset* Asset = Assets->Assets + Result.Value;
     Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->SlotID = DEBUGAddSoundInfo(Assets, Filename, FirstSampleIndex, SampleCount).Value;
+    Asset->Sound.Filename = Filename;
+    Asset->Sound.FirstSampleIndex = FirstSampleIndex;
+    Asset->Sound.SampleCount = SampleCount;
+    Asset->Sound.NextIDToPlay.Value = 0;
     Assets->DEBUGAsset = Asset;
-    return Asset;
+    return Result;
 }
 
 internal void AddTag(game_assets* Assets, asset_tag_id TagID, real32 Value) {
@@ -206,6 +167,16 @@ internal void EndAssetType(game_assets* Assets) {
     Assets->DEBUGAsset = 0;
 }
 
+internal bool32 IsValid(sound_id ID) {
+    bool32 Result = ID.Value != 0;
+    return Result;
+}
+
+internal bool32 IsValid(bitmap_id ID) {
+    bool32 Result = ID.Value != 0;
+    return Result;
+}
+
 internal game_assets*
 AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
     game_assets* Assets = PushStruct(Arena, game_assets);
@@ -217,20 +188,12 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     }
     Assets->TagRange[Tag_FacingDirection] = 2.0f * Pi32;
 
-    Assets->BitmapCount = 256 * Asset_Count;
-    Assets->DEBUGUsedBitmapCount = 1;
-    Assets->Bitmaps = PushArray(Arena, Assets->BitmapCount, asset_slot);
-    Assets->BitmapInfos = PushArray(Arena, Assets->BitmapCount, asset_bitmap_info);
-
-    Assets->SoundCount = 256 * Asset_Count;
-    Assets->Sounds = PushArray(Arena, Assets->SoundCount, asset_slot);
-    Assets->SoundInfos = PushArray(Arena, Assets->SoundCount, asset_sound_info);
-
     Assets->TagCount = 1024 * Asset_Count;
     Assets->Tags = PushArray(Arena, Assets->TagCount, asset_tag);
 
-    Assets->AssetCount = Assets->BitmapCount + Assets->SoundCount;
+    Assets->AssetCount = 2 * 256 * Asset_Count;
     Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
+    Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
 
     Assets->DEBUGUsedBitmapCount = 1;
     Assets->DEBUGUsedSoundCount = 1;
@@ -331,15 +294,15 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     uint32 OneMusicChunk = 10 * 48000;
     uint32 TotalMusicSampleCount = 7468095;
     BeginAssetType(Assets, Asset_Music);
-    asset* LastMusic = 0;
+    sound_id LastMusic = { 0 };
     for (uint32 FirstSampleIndex = 0; FirstSampleIndex < TotalMusicSampleCount; FirstSampleIndex += OneMusicChunk) {
         uint32 SampleCount = TotalMusicSampleCount - FirstSampleIndex;
         if (SampleCount > OneMusicChunk) {
             SampleCount = OneMusicChunk;
         }
-        asset* ThisMusic = AddSoundAsset(Assets, "test3/music_test.wav", FirstSampleIndex, SampleCount);
-        if (LastMusic) {
-            Assets->SoundInfos[LastMusic->SlotID].NextIDToPlay.Value = ThisMusic->SlotID;
+        sound_id ThisMusic = AddSoundAsset(Assets, "test3/music_test.wav", FirstSampleIndex, SampleCount);
+        if (IsValid(LastMusic)) {
+            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic;
         }
         LastMusic = ThisMusic;
     }
@@ -353,31 +316,21 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     return Assets;
 }
 
-internal bool32 IsValid(sound_id ID) {
-    bool32 Result = ID.Value != 0;
-    return Result;
-}
-
-internal bool32 IsValid(bitmap_id ID) {
-    bool32 Result = ID.Value != 0;
-    return Result;
-}
-
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
-    Assert(ID.Value <= Assets->BitmapCount);
-    loaded_bitmap* Result = Assets->Bitmaps[ID.Value].Bitmap;
+    Assert(ID.Value <= Assets->AssetCount);
+    loaded_bitmap* Result = Assets->Slots[ID.Value].Bitmap;
     return Result;
 }
 
 internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
-    Assert(ID.Value <= Assets->SoundCount);
-    loaded_sound* Result = Assets->Sounds[ID.Value].Sound;
+    Assert(ID.Value <= Assets->AssetCount);
+    loaded_sound* Result = Assets->Slots[ID.Value].Sound;
     return Result;
 }
 
 internal inline asset_sound_info* GetSoundInfo(game_assets* Assets, sound_id ID) {
-    Assert(ID.Value <= Assets->SoundCount);
-    asset_sound_info* Result = Assets->SoundInfos + ID.Value;
+    Assert(ID.Value <= Assets->AssetCount);
+    asset_sound_info* Result = &Assets->Assets[ID.Value].Sound;
     return Result;
 }
 
@@ -436,8 +389,7 @@ GetRandomSlotFrom(game_assets* Assets, asset_type_id TypeID, random_series* Seri
     if (Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
         uint32 Count = Type->OnePastLastAssetIndex - Type->FirstAssetIndex;
         uint32 Choice = RandomChoice(Series, Count);
-        asset* Asset = Assets->Assets + Type->FirstAssetIndex + Choice;
-        Result = Asset->SlotID;
+        Result = Type->FirstAssetIndex + Choice;
     }
     return Result;
 }
@@ -458,8 +410,7 @@ internal uint32 GetFirstAssetFrom(game_assets* Assets, asset_type_id TypeID) {
     uint32 Result = 0;
     asset_type* Type = Assets->AssetTypes + TypeID;
     if (Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
-        asset* Asset = Assets->Assets + Type->FirstAssetIndex;
-        Result = Asset->SlotID;
+        Result = Type->FirstAssetIndex;
     }
     return Result;
 }
@@ -581,46 +532,46 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
         if (ChannelCount == 1) {
             Result.Samples[0] = SampleData;
             Result.Samples[1] = 0;
-        } else if (ChannelCount == 2) {
-            Result.Samples[0] = SampleData;
-            Result.Samples[1] = SampleData + SampleCount;
+    } else if (ChannelCount == 2) {
+        Result.Samples[0] = SampleData;
+        Result.Samples[1] = SampleData + SampleCount;
 #if 0
-            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
-                SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
-                SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-            }
+        for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
+            SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
+            SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
+        }
 #endif
-            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
-                uint16 Source = SampleData[2 * SampleIndex];
-                SampleData[2 * SampleIndex] = SampleData[SampleIndex];
-                SampleData[SampleIndex] = Source;
-            }
-        } else {
-            Assert(!"Invalid channel count");
+        for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
+            uint16 Source = SampleData[2 * SampleIndex];
+            SampleData[2 * SampleIndex] = SampleData[SampleIndex];
+            SampleData[SampleIndex] = Source;
         }
-
-        Result.ChannelCount = 1;
-
-        bool32 AtEnd = true;
-        if (SectionSampleCount) {
-            Assert(SectionFirstSampleIndex + SectionSampleCount <= SampleCount);
-            AtEnd = (SectionFirstSampleIndex + SectionSampleCount) == SampleCount;
-            SampleCount = SectionSampleCount;
-            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
-                Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
-            }
-        }
-        if (AtEnd) {
-            uint32 SampleCountAlign8 = SampleCount + 8; // Align8(SampleCount);
-            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
-                for (uint32 SampleIndex = SampleCount; SampleIndex < SampleCountAlign8; ++SampleIndex) {
-                    Result.Samples[ChannelIndex][SampleIndex] = 0;
-                }
-            }
-        }
-        Result.SampleCount = SampleCount;
+    } else {
+        Assert(!"Invalid channel count");
     }
-    return Result;
+
+    Result.ChannelCount = 1;
+
+    bool32 AtEnd = true;
+    if (SectionSampleCount) {
+        Assert(SectionFirstSampleIndex + SectionSampleCount <= SampleCount);
+        AtEnd = (SectionFirstSampleIndex + SectionSampleCount) == SampleCount;
+        SampleCount = SectionSampleCount;
+        for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
+            Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
+        }
+    }
+    if (AtEnd) {
+        uint32 SampleCountAlign8 = SampleCount + 8; // Align8(SampleCount);
+        for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
+            for (uint32 SampleIndex = SampleCount; SampleIndex < SampleCountAlign8; ++SampleIndex) {
+                Result.Samples[ChannelIndex][SampleIndex] = 0;
+            }
+        }
+    }
+    Result.SampleCount = SampleCount;
 }
+    return Result;
+    }
 
 #endif
