@@ -5,8 +5,6 @@
 #include "game/asset_type_id.h"
 #include "file_formats.h"
 
-FILE* Out = 0;
-
 struct bitmap_id {
     uint32 Value;
 };
@@ -225,7 +223,7 @@ int main(int ArgCount, char** Args) {
     AddSoundAsset(Assets, "test3/puhp_01.wav");
     EndAssetType(Assets);
 #endif
-    Out = fopen("test.hha", "wb");
+    FILE* Out = fopen("test.hha", "wb");
     if (Out) {
         hha_header Header = {};
         Header.MagicValue = HHA_MAGIC_VALUE;
