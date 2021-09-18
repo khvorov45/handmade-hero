@@ -165,7 +165,12 @@ internal void OutputPlayingSounds(
                 uint32 ChunksToMix = TotalChunksToMix;
                 real32 RealChunksRemainingInSound =
                     ((real32)LoadedSound->SampleCount - PlayingSound->SamplesPlayed) / dSampleChunk;
-                uint32 ChunksRemainingInSound = RoundReal32ToInt32(RealChunksRemainingInSound);
+                // NOTE(sen) If this is a round then end position will be
+                // underestimated when it happens to round down at the end of
+                // the sound. Then samples played will be smaller than samples
+                // loaded. If we ceiling instead of rounding then samples played
+                // will never be below samples loaded.
+                uint32 ChunksRemainingInSound = CeilReal32ToInt32(RealChunksRemainingInSound);
                 if (ChunksToMix > ChunksRemainingInSound) {
                     ChunksToMix = ChunksRemainingInSound;
                 }
