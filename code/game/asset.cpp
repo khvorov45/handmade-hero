@@ -100,12 +100,6 @@ struct bitmap_id {
     uint32 Value;
 };
 
-internal void SetTopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
-    Align = TopDownAlign(Bitmap, Align);
-    Bitmap->AlignPercentage = Align;
-}
-
-
 internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
     Assert(Assets->DEBUGAssetType == 0);
     Assets->DEBUGAssetType = Assets->AssetTypes + Type;
@@ -535,7 +529,7 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-        } else {
+            } else {
             Assert(!"Invalid channel count");
         }
 
@@ -559,8 +553,8 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
             }
         }
         Result.SampleCount = SampleCount;
-    }
+        }
     return Result;
-}
+    }
 
 #endif
