@@ -99,8 +99,6 @@ struct game_assets {
 
     asset_type* DEBUGAssetType;
     uint32 DEBUGUsedAssetCount;
-    uint32 DEBUGUsedBitmapCount;
-    uint32 DEBUGUsedSoundCount;
     uint32 DEBUGUsedTagCount;
     asset* DEBUGAsset;
 };
@@ -195,8 +193,6 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
     Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
 
-    Assets->DEBUGUsedBitmapCount = 1;
-    Assets->DEBUGUsedSoundCount = 1;
     Assets->DEBUGUsedAssetCount = 1;
 
     BeginAssetType(Assets, Asset_Shadow);
@@ -532,46 +528,46 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
         if (ChannelCount == 1) {
             Result.Samples[0] = SampleData;
             Result.Samples[1] = 0;
-    } else if (ChannelCount == 2) {
-        Result.Samples[0] = SampleData;
-        Result.Samples[1] = SampleData + SampleCount;
+        } else if (ChannelCount == 2) {
+            Result.Samples[0] = SampleData;
+            Result.Samples[1] = SampleData + SampleCount;
 #if 0
-        for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
-            SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
-            SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-        }
+            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
+                SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
+                SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
+            }
 #endif
-        for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
-            uint16 Source = SampleData[2 * SampleIndex];
-            SampleData[2 * SampleIndex] = SampleData[SampleIndex];
-            SampleData[SampleIndex] = Source;
+            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
+                uint16 Source = SampleData[2 * SampleIndex];
+                SampleData[2 * SampleIndex] = SampleData[SampleIndex];
+                SampleData[SampleIndex] = Source;
+            }
+        } else {
+            Assert(!"Invalid channel count");
         }
-    } else {
-        Assert(!"Invalid channel count");
-    }
 
-    Result.ChannelCount = 1;
+        Result.ChannelCount = 1;
 
-    bool32 AtEnd = true;
-    if (SectionSampleCount) {
-        Assert(SectionFirstSampleIndex + SectionSampleCount <= SampleCount);
-        AtEnd = (SectionFirstSampleIndex + SectionSampleCount) == SampleCount;
-        SampleCount = SectionSampleCount;
-        for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
-            Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
-        }
-    }
-    if (AtEnd) {
-        uint32 SampleCountAlign8 = SampleCount + 8; // Align8(SampleCount);
-        for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
-            for (uint32 SampleIndex = SampleCount; SampleIndex < SampleCountAlign8; ++SampleIndex) {
-                Result.Samples[ChannelIndex][SampleIndex] = 0;
+        bool32 AtEnd = true;
+        if (SectionSampleCount) {
+            Assert(SectionFirstSampleIndex + SectionSampleCount <= SampleCount);
+            AtEnd = (SectionFirstSampleIndex + SectionSampleCount) == SampleCount;
+            SampleCount = SectionSampleCount;
+            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
+                Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
             }
         }
+        if (AtEnd) {
+            uint32 SampleCountAlign8 = SampleCount + 8; // Align8(SampleCount);
+            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
+                for (uint32 SampleIndex = SampleCount; SampleIndex < SampleCountAlign8; ++SampleIndex) {
+                    Result.Samples[ChannelIndex][SampleIndex] = 0;
+                }
+            }
+        }
+        Result.SampleCount = SampleCount;
     }
-    Result.SampleCount = SampleCount;
-}
     return Result;
-    }
+}
 
 #endif
