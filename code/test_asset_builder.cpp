@@ -15,26 +15,15 @@ struct sound_id {
     uint32 Value;
 };
 
-struct asset_bitmap_info {
-    char* Filename;
-    real32 AlignPercentage[2];
+enum asset_type {
+    AssetType_Sound,
+    AssetType_Bitmap
 };
 
-struct asset_sound_info {
+struct asset_source {
+    asset_type Type;
     char* Filename;
     uint32 FirstSampleIndex;
-    uint32 SampleCount;
-    sound_id NextIDToPlay;
-};
-
-struct asset {
-    uint64 DataOffset;
-    uint32 FirstTagIndex;
-    uint32 OnePastLastTagIndex;
-    union {
-        asset_bitmap_info Bitmap;
-        asset_sound_info Sound;
-    };
 };
 
 #define VERY_LARGE_NUMBER 4096
@@ -44,13 +33,14 @@ struct game_assets {
     hha_tag Tags[VERY_LARGE_NUMBER];
 
     uint32 AssetCount;
-    asset Assets[VERY_LARGE_NUMBER];
+    asset_source AssetSources[VERY_LARGE_NUMBER];
+    hha_asset Assets[VERY_LARGE_NUMBER];
 
     uint32 AssetTypeCount;
     hha_asset_type AssetTypes[Asset_Count];
 
     hha_asset_type* DEBUGAssetType;
-    asset* DEBUGAsset;
+    uint32 AssetIndex;
 };
 
 internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
@@ -66,13 +56,15 @@ AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
     bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset* Asset = Assets->Assets + Result.Value;
-    Asset->FirstTagIndex = Assets->TagCount;
-    Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->Bitmap.Filename = Filename;
-    Asset->Bitmap.AlignPercentage[0] = AlignPercentageX;
-    Asset->Bitmap.AlignPercentage[1] = AlignPercentageY;
-    Assets->DEBUGAsset = Asset;
+    asset_source* Source = Assets->AssetSources + Result.Value;
+    hha_asset* HHA = Assets->Assets + Result.Value;
+    HHA->FirstTagIndex = Assets->TagCount;
+    HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
+    HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
+    HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
+    Source->Type = AssetType_Bitmap;
+    Source->Filename = Filename;
+    Assets->AssetIndex = Result.Value;
     return Result;
 }
 
@@ -81,20 +73,23 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
     sound_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset* Asset = Assets->Assets + Result.Value;
-    Asset->FirstTagIndex = Assets->TagCount;
-    Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->Sound.Filename = Filename;
-    Asset->Sound.FirstSampleIndex = FirstSampleIndex;
-    Asset->Sound.SampleCount = SampleCount;
-    Asset->Sound.NextIDToPlay.Value = 0;
-    Assets->DEBUGAsset = Asset;
+    asset_source* Source = Assets->AssetSources + Result.Value;
+    hha_asset* HHA = Assets->Assets + Result.Value;
+    HHA->FirstTagIndex = Assets->TagCount;
+    HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
+    HHA->Sound.SampleCount = SampleCount;
+    HHA->Sound.NextIDToPlay = 0;
+    Source->Type = AssetType_Sound;
+    Source->Filename = Filename;
+    Source->FirstSampleIndex = FirstSampleIndex;
+    Assets->AssetIndex = Result.Value;
     return Result;
 }
 
 internal void AddTag(game_assets* Assets, asset_tag_id TagID, real32 Value) {
-    Assert(Assets->DEBUGAsset);
-    ++Assets->DEBUGAsset->OnePastLastTagIndex;
+    Assert(Assets->AssetIndex);
+    hha_asset* HHA = Assets->Assets + Assets->AssetIndex;
+    ++HHA->OnePastLastTagIndex;
     hha_tag* Tag = Assets->Tags + Assets->TagCount++;
     Tag->ID = TagID;
     Tag->Value = Value;
@@ -104,7 +99,7 @@ internal void EndAssetType(game_assets* Assets) {
     Assert(Assets->DEBUGAssetType != 0);
     Assets->AssetCount = Assets->DEBUGAssetType->OnePastLastAssetIndex;
     Assets->DEBUGAssetType = 0;
-    Assets->DEBUGAsset = 0;
+    Assets->AssetIndex = 0;
 }
 
 int main(int ArgCount, char** Args) {
@@ -114,7 +109,7 @@ int main(int ArgCount, char** Args) {
     Assets->TagCount = 1;
     Assets->AssetCount = 1;
     Assets->DEBUGAssetType = 0;
-    Assets->DEBUGAsset = 0;
+    Assets->AssetIndex = 0;
 #if 1
     BeginAssetType(Assets, Asset_Shadow);
     AddBitmapAsset(Assets, "test/test_hero_shadow.bmp[2]", 0.5f, 0.15668f);
@@ -219,7 +214,7 @@ int main(int ArgCount, char** Args) {
         }
         sound_id ThisMusic = AddSoundAsset(Assets, "test3/music_test.wav", FirstSampleIndex, SampleCount);
         if (LastMusic.Value) {
-            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic;
+            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic.Value;
         }
         LastMusic = ThisMusic;
     }
@@ -250,7 +245,13 @@ int main(int ArgCount, char** Args) {
         fwrite(&Header, sizeof(Header), 1, Out);
         fwrite(Assets->Tags, TagsSize, 1, Out);
         fwrite(Assets->AssetTypes, AssetTypesSize, 1, Out);
-        // fwrite(AssetArray, AssetsSize, 1, Out);
+        fseek(Out, AssetsSize, SEEK_CUR);
+        for (uint32 AssetIndex = 0; AssetIndex < Header.AssetCount; ++AssetIndex) {
+            asset_source* Source = Assets->AssetSources + AssetIndex;
+            hha_asset* Dest = Assets->Assets + AssetIndex;
+        }
+        fseek(Out, (uint32)Header.Assets, SEEK_SET);
+        fwrite(Assets->Assets, AssetsSize, 1, Out);
 
         fclose(Out);
     } else {
