@@ -22,6 +22,17 @@
       "cwd": "${workspaceFolder}/data",
       "environment": [],
       "console": "internalConsole"
+    },
+    {
+      "name": "Windows assets",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/test_asset_builder.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/data",
+      "environment": [],
+      "console": "internalConsole"
     }
   ]
 }

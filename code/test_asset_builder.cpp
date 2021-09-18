@@ -3,6 +3,7 @@
 #include "types.h"
 #include "util.h"
 #include "game/asset_type_id.h"
+#include "file_formats.h"
 
 FILE* Out = 0;
 
@@ -12,11 +13,6 @@ struct bitmap_id {
 
 struct sound_id {
     uint32 Value;
-};
-
-struct asset_tag {
-    uint32 ID;
-    real32 Value;
 };
 
 struct asset_bitmap_info {
@@ -41,39 +37,37 @@ struct asset {
     };
 };
 
-struct asset_type {
-    uint32 FirstAssetIndex;
-    uint32 OnePastLastAssetIndex;
-};
-
 #define VERY_LARGE_NUMBER 4096
 
 struct game_assets {
     uint32 TagCount;
+    hha_tag Tags[VERY_LARGE_NUMBER];
+
     uint32 AssetCount;
-    asset_tag Tags[VERY_LARGE_NUMBER];
     asset Assets[VERY_LARGE_NUMBER];
-    asset_type AssetTypes[Asset_Count];
-    uint32 DEBUGUsedAssetCount;
-    uint32 DEBUGUsedTagCount;
-    asset_type* DEBUGAssetType;
+
+    uint32 AssetTypeCount;
+    hha_asset_type AssetTypes[Asset_Count];
+
+    hha_asset_type* DEBUGAssetType;
     asset* DEBUGAsset;
 };
 
 internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
     Assert(Assets->DEBUGAssetType == 0);
     Assets->DEBUGAssetType = Assets->AssetTypes + Type;
-    Assets->DEBUGAssetType->FirstAssetIndex = Assets->DEBUGUsedAssetCount;
+    Assets->DEBUGAssetType->TypeID = Type;
+    Assets->DEBUGAssetType->FirstAssetIndex = Assets->AssetCount;
     Assets->DEBUGAssetType->OnePastLastAssetIndex = Assets->DEBUGAssetType->FirstAssetIndex;
 }
 
 internal bitmap_id
 AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f) {
     Assert(Assets->DEBUGAssetType != 0);
-    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
+    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
     bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
     asset* Asset = Assets->Assets + Result.Value;
-    Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
+    Asset->FirstTagIndex = Assets->TagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
     Asset->Bitmap.Filename = Filename;
     Asset->Bitmap.AlignPercentage[0] = AlignPercentageX;
@@ -85,10 +79,10 @@ AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.
 internal sound_id
 AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, uint32 SampleCount = 0) {
     Assert(Assets->DEBUGAssetType != 0);
-    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
+    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
     sound_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
     asset* Asset = Assets->Assets + Result.Value;
-    Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
+    Asset->FirstTagIndex = Assets->TagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
     Asset->Sound.Filename = Filename;
     Asset->Sound.FirstSampleIndex = FirstSampleIndex;
@@ -101,14 +95,14 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
 internal void AddTag(game_assets* Assets, asset_tag_id TagID, real32 Value) {
     Assert(Assets->DEBUGAsset);
     ++Assets->DEBUGAsset->OnePastLastTagIndex;
-    asset_tag* Tag = Assets->Tags + Assets->DEBUGUsedTagCount++;
+    hha_tag* Tag = Assets->Tags + Assets->TagCount++;
     Tag->ID = TagID;
     Tag->Value = Value;
 }
 
 internal void EndAssetType(game_assets* Assets) {
     Assert(Assets->DEBUGAssetType != 0);
-    Assets->DEBUGUsedAssetCount = Assets->DEBUGAssetType->OnePastLastAssetIndex;
+    Assets->AssetCount = Assets->DEBUGAssetType->OnePastLastAssetIndex;
     Assets->DEBUGAssetType = 0;
     Assets->DEBUGAsset = 0;
 }
@@ -119,8 +113,6 @@ int main(int ArgCount, char** Args) {
 
     Assets->TagCount = 1;
     Assets->AssetCount = 1;
-    Assets->DEBUGUsedAssetCount = 1;
-    Assets->DEBUGUsedTagCount = 0;
     Assets->DEBUGAssetType = 0;
     Assets->DEBUGAsset = 0;
 #if 1
@@ -240,7 +232,28 @@ int main(int ArgCount, char** Args) {
 #endif
     Out = fopen("test.hha", "wb");
     if (Out) {
+        hha_header Header = {};
+        Header.MagicValue = HHA_MAGIC_VALUE;
+        Header.Version = HHA_VERSION;
+        Header.TagCount = Assets->TagCount;
+        Header.AssetTypeCount = Asset_Count;
+        Header.AssetCount = Assets->AssetCount;
+
+        uint32 TagsSize = sizeof(hha_tag) * Header.TagCount;
+        uint32 AssetTypesSize = sizeof(hha_asset_type) * Header.AssetTypeCount;
+        uint32 AssetsSize = sizeof(hha_asset) * Header.AssetCount;
+
+        Header.Tags = sizeof(Header);
+        Header.AssetTypes = Header.Tags + TagsSize;
+        Header.Assets = Header.AssetTypes + AssetTypesSize;
+
+        fwrite(&Header, sizeof(Header), 1, Out);
+        fwrite(Assets->Tags, TagsSize, 1, Out);
+        fwrite(Assets->AssetTypes, AssetTypesSize, 1, Out);
+        // fwrite(AssetArray, AssetsSize, 1, Out);
 
         fclose(Out);
+    } else {
+        printf("ERROR: Couldn't open file\n");
     }
 }
