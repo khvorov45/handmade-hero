@@ -8,13 +8,6 @@
 #include "random.cpp"
 #include "asset_type_id.h"
 
-enum asset_tag_id {
-    Tag_Smoothness,
-    Tag_Flatness,
-    Tag_FacingDirection, // Angle in radians off of due right
-    Tag_Count
-};
-
 struct asset_tag {
     uint32 ID;
     real32 Value;

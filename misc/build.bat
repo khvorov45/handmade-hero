@@ -6,6 +6,7 @@ set CommonCompilerFlags=-Od -MTd -nologo -GR- -Gm- -EHa- -Oi -fp:fast -fp:except
 mkdir build
 pushd build
 del *.pdb
+cl %CommonCompilerFlags% ..\code\test_asset_builder.cpp -Fetest_asset_builder.exe -D_CRT_SECURE_NO_WARNINGS /link %CommonLinkerFlags%
 cl %CommonCompilerFlags% ..\code\game\lib.cpp -Fmgame_lib.map -Fegame_lib.dll -Fogame_lib.obj  -LD /link /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no -PDB:win32_lib_%random%.pdb
 cl %CommonCompilerFlags% ..\code\win32\main.cpp -Fmwin32_handmade.map -Fewin32_main.exe -Fowin32_main.obj /link %CommonLinkerFlags%
 popd
