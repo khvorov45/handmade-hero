@@ -47,7 +47,7 @@ internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
     Result.y = SafeRatio0(Result.y, (real32)Bitmap->Height);
     return Result;
 }
-
+#if 0
 internal loaded_bitmap DEBUGLoadBMP(char* Filename, v2 AlignPercentage = V2(0.5f, 0.5f)) {
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Filename);
     loaded_bitmap Result = {};
@@ -110,5 +110,5 @@ internal loaded_bitmap DEBUGLoadBMP(char* Filename, v2 AlignPercentage = V2(0.5f
     Result.Memory = (uint8*)Pixels;
     return Result;
 }
-
+#endif
 #endif

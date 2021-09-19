@@ -89,17 +89,19 @@ struct game_assets {
     asset_slot* Slots;
 
     asset_type AssetTypes[Asset_Count];
-
+#if 0
     asset_type* DEBUGAssetType;
     uint32 DEBUGUsedAssetCount;
     uint32 DEBUGUsedTagCount;
     asset* DEBUGAsset;
+#endif
 };
 
 struct bitmap_id {
     uint32 Value;
 };
 
+#if 0
 internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
     Assert(Assets->DEBUGAssetType == 0);
     Assets->DEBUGAssetType = Assets->AssetTypes + Type;
@@ -151,6 +153,7 @@ internal void EndAssetType(game_assets* Assets) {
     Assets->DEBUGAssetType = 0;
     Assets->DEBUGAsset = 0;
 }
+#endif
 
 internal bool32 IsValid(sound_id ID) {
     bool32 Result = ID.Value != 0;
@@ -180,6 +183,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
     Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
 
+#if 0
     Assets->DEBUGUsedAssetCount = 1;
 
     BeginAssetType(Assets, Asset_Shadow);
@@ -295,7 +299,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     AddSoundAsset(Assets, "test3/puhp_00.wav");
     AddSoundAsset(Assets, "test3/puhp_01.wav");
     EndAssetType(Assets);
-
+#endif
     return Assets;
 }
 
@@ -407,6 +411,8 @@ internal sound_id GetFirstSoundFrom(game_assets* Assets, asset_type_id TypeID) {
     sound_id Result = { GetFirstAssetFrom(Assets, TypeID) };
     return Result;
 }
+
+#if 0
 
 #pragma pack(push, 1)
 struct WAVE_header {
@@ -556,5 +562,6 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
     }
     return Result;
 }
+#endif
 
 #endif

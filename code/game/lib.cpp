@@ -363,6 +363,12 @@ struct load_bitmap_work {
     loaded_bitmap* Bitmap;
 };
 
+internal loaded_bitmap DEBUGLoadBMP(char* Filename, v2 AlignPercentage = V2(0.5f, 0.5f)) {
+    Assert(!"NO");
+    loaded_bitmap Result = {};
+    return Result;
+}
+
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
     asset_bitmap_info* Info = &Work->Assets->Assets[Work->ID.Value].Bitmap;
@@ -401,6 +407,14 @@ struct load_sound_work {
     task_with_memory* Task;
     loaded_sound* Sound;
 };
+
+
+internal loaded_sound
+DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCount) {
+    Assert(!"NO");
+    loaded_sound Result = {};
+    return Result;
+}
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
     load_sound_work* Work = (load_sound_work*)Data;
@@ -491,7 +505,7 @@ internal void FillGroundChunk(
                 v4 Color = V4(1.0f, 0.0f, 0.0f, 1.0f);
                 if (ChunkX % 2 == ChunkY % 2) {
                     Color = V4(0.0f, 0.0f, 1.0f, 1.0f);
-                }
+            }
 #else
                 v4 Color = V4(1, 1, 1, 1);
 #endif
@@ -507,8 +521,8 @@ internal void FillGroundChunk(
                     v2 P = Center + Offset;
                     PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
                 }
-            }
         }
+    }
 
         for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
             for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
@@ -538,7 +552,7 @@ internal void FillGroundChunk(
         } else {
             EndTaskWithMemory(Task);
         }
-    }
+}
 }
 
 struct hero_bitmap_ids {
@@ -816,7 +830,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     world* World = GameState->World;
     world* TileMap = World;
 
-#if 1
+    // NOTE(sen) Debug sound volume/pitch shift
+#if 0
     {
         v2 MusicVolume;
         MusicVolume.E[1] = Clamp01((real32)Input->MouseX / (real32)Buffer->Width);
@@ -825,7 +840,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         real32 MusicPitch = Clamp01((real32)Input->MouseY / (real32)Buffer->Height);
         ChangePitch(&GameState->AudioState, GameState->Music, MusicPitch + 0.5f);
-    }
+}
 #endif
 
     for (int32 ControllerIndex = 0;
@@ -866,7 +881,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if 0
             if (Controller->Start.EndedDown) {
                 ConHero->dZ = 3.0f;
-            }
+        }
 #endif
 #if 0
             if (Controller->ActionUp.EndedDown) {
@@ -880,7 +895,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
             if (Controller->ActionRight.EndedDown) {
                 ConHero->dSword = { 1.0f, 0.0f };
-            }
+    }
 #else
             real32 ZoomRate = 0.0f;
             if (Controller->ActionUp.EndedDown) {
@@ -1138,7 +1153,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-            }
+        }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -1166,7 +1181,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-        }
+    }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
