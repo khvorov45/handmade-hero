@@ -21,10 +21,6 @@ struct asset_sound_info {
     sound_id NextIDToPlay;
 };
 
-struct asset {
-    hha_asset HHA;
-};
-
 struct asset_vector {
     real32 E[Tag_Count];
 };
@@ -70,18 +66,12 @@ struct game_assets {
     hha_tag* Tags;
 
     uint32 AssetCount;
-    asset* Assets;
+    hha_asset* Assets;
     asset_slot* Slots;
 
     asset_type AssetTypes[Asset_Count];
 
     uint8* HHAContents;
-#if 0
-    asset_type* DEBUGAssetType;
-    uint32 DEBUGUsedAssetCount;
-    uint32 DEBUGUsedTagCount;
-    asset* DEBUGAsset;
-#endif
 };
 
 #if 0
@@ -97,7 +87,7 @@ AddBitmapAsset(game_assets* Assets, char* Filename, v2 AlignPercentage = V2(0.5f
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
     bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset* Asset = Assets->Assets + Result.Value;
+    hha_asset* Asset = Assets->Assets + Result.Value;
     Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
     Asset->Bitmap.Filename = PushString(&Assets->Arena, Filename);;
@@ -111,7 +101,7 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
     sound_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset* Asset = Assets->Assets + Result.Value;
+    hha_asset* Asset = Assets->Assets + Result.Value;
     Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
     Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
     Asset->Sound.Filename = PushString(&Assets->Arena, Filename);
@@ -165,20 +155,13 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         Assert(Header->Version == HHA_VERSION);
 
         Assets->AssetCount = Header->AssetCount;
-        Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
+        Assets->Assets = (hha_asset*)((uint8*)ReadResult.Contents + Header->Assets);
         Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
 
         Assets->TagCount = Header->TagCount;
         Assets->Tags = (hha_tag*)((uint8*)ReadResult.Contents + Header->Tags);
 
         hha_asset_type* HHAAssetTypes = (hha_asset_type*)((uint8*)ReadResult.Contents + Header->AssetTypes);
-        hha_asset* HHAAssets = (hha_asset*)((uint8*)ReadResult.Contents + Header->Assets);
-
-        for (uint32 Index = 0; Index < Header->AssetCount; ++Index) {
-            hha_asset* Source = HHAAssets + Index;
-            asset* Dest = Assets->Assets + Index;
-            Dest->HHA = *Source;
-        }
 
         for (uint32 Index = 0; Index < Header->AssetTypeCount; ++Index) {
             hha_asset_type* Source = HHAAssetTypes + Index;
@@ -328,7 +311,7 @@ internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
 
 internal inline hha_sound* GetSoundInfo(game_assets* Assets, sound_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
-    hha_sound* Result = &Assets->Assets[ID.Value].HHA.Sound;
+    hha_sound* Result = &Assets->Assets[ID.Value].Sound;
     return Result;
 }
 
@@ -342,10 +325,10 @@ internal uint32 GetBestMatchAssetFrom(
     for (uint32 AssetIndex = Type->FirstAssetIndex;
         AssetIndex < Type->OnePastLastAssetIndex;
         ++AssetIndex) {
-        asset* Asset = Assets->Assets + AssetIndex;
+        hha_asset* Asset = Assets->Assets + AssetIndex;
         real32 TotalWeightedDiff = 0;
-        for (uint32 TagIndex = Asset->HHA.FirstTagIndex;
-            TagIndex < Asset->HHA.OnePastLastTagIndex;
+        for (uint32 TagIndex = Asset->FirstTagIndex;
+            TagIndex < Asset->OnePastLastTagIndex;
             ++TagIndex) {
             hha_tag* Tag = Assets->Tags + TagIndex;
             real32 A = MatchVector->E[Tag->ID];

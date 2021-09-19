@@ -365,7 +365,7 @@ struct load_bitmap_work {
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
-    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value].HHA;
+    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value];
     hha_bitmap* Info = &HHAAsset->Bitmap;
     loaded_bitmap* Bitmap = Work->Bitmap;
     Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
@@ -411,7 +411,7 @@ struct load_sound_work {
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
     load_sound_work* Work = (load_sound_work*)Data;
-    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value].HHA;
+    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value];
     hha_sound* Info = &HHAAsset->Sound;
     loaded_sound* Sound = Work->Sound;
     Sound->ChannelCount = Info->ChannelCount;
