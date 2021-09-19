@@ -363,16 +363,17 @@ struct load_bitmap_work {
     loaded_bitmap* Bitmap;
 };
 
-internal loaded_bitmap DEBUGLoadBMP(char* Filename, v2 AlignPercentage = V2(0.5f, 0.5f)) {
-    Assert(!"NO");
-    loaded_bitmap Result = {};
-    return Result;
-}
-
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     load_bitmap_work* Work = (load_bitmap_work*)Data;
-    asset_bitmap_info* Info = &Work->Assets->Assets[Work->ID.Value].Bitmap;
-    *Work->Bitmap = DEBUGLoadBMP(Info->Filename, Info->AlignPercentage);
+    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value].HHA;
+    hha_bitmap* Info = &HHAAsset->Bitmap;
+    loaded_bitmap* Bitmap = Work->Bitmap;
+    Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
+    Bitmap->Width = Info->Dim[0];
+    Bitmap->Height = Info->Dim[1];
+    Bitmap->Pitch = Bitmap->Width * 4;
+    Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
+    Bitmap->Memory = Work->Assets->HHAContents + HHAAsset->DataOffset;
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Slots[Work->ID.Value].Bitmap = Work->Bitmap;
     Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
@@ -408,18 +409,19 @@ struct load_sound_work {
     loaded_sound* Sound;
 };
 
-
-internal loaded_sound
-DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCount) {
-    Assert(!"NO");
-    loaded_sound Result = {};
-    return Result;
-}
-
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
     load_sound_work* Work = (load_sound_work*)Data;
-    asset_sound_info* Info = &Work->Assets->Assets[Work->ID.Value].Sound;
-    *Work->Sound = DEBUGLoadWAV(Info->Filename, Info->FirstSampleIndex, Info->SampleCount);
+    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value].HHA;
+    hha_sound* Info = &HHAAsset->Sound;
+    loaded_sound* Sound = Work->Sound;
+    Sound->ChannelCount = Info->ChannelCount;
+    Assert(Sound->ChannelCount < ArrayCount(Sound->Samples));
+    Sound->SampleCount = Info->SampleCount;
+    uint64 SampleDataOffset = HHAAsset->DataOffset;
+    for (uint32 ChannelIndex = 0; ChannelIndex < Sound->ChannelCount; ChannelIndex++) {
+        Sound->Samples[ChannelIndex] = (int16*)(Work->Assets->HHAContents + SampleDataOffset);
+        SampleDataOffset += Sound->SampleCount * sizeof(int16);
+    }
     CompletePreviousWritesBeforeFutureWrites;
     Work->Assets->Slots[Work->ID.Value].Sound = Work->Sound;
     Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
@@ -505,7 +507,7 @@ internal void FillGroundChunk(
                 v4 Color = V4(1.0f, 0.0f, 0.0f, 1.0f);
                 if (ChunkX % 2 == ChunkY % 2) {
                     Color = V4(0.0f, 0.0f, 1.0f, 1.0f);
-            }
+                }
 #else
                 v4 Color = V4(1, 1, 1, 1);
 #endif
@@ -521,8 +523,8 @@ internal void FillGroundChunk(
                     v2 P = Center + Offset;
                     PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
                 }
+            }
         }
-    }
 
         for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
             for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
@@ -552,7 +554,7 @@ internal void FillGroundChunk(
         } else {
             EndTaskWithMemory(Task);
         }
-}
+    }
 }
 
 struct hero_bitmap_ids {
@@ -840,7 +842,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         real32 MusicPitch = Clamp01((real32)Input->MouseY / (real32)Buffer->Height);
         ChangePitch(&GameState->AudioState, GameState->Music, MusicPitch + 0.5f);
-}
+    }
 #endif
 
     for (int32 ControllerIndex = 0;
@@ -881,7 +883,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if 0
             if (Controller->Start.EndedDown) {
                 ConHero->dZ = 3.0f;
-        }
+            }
 #endif
 #if 0
             if (Controller->ActionUp.EndedDown) {
@@ -895,7 +897,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             }
             if (Controller->ActionRight.EndedDown) {
                 ConHero->dSword = { 1.0f, 0.0f };
-    }
+            }
 #else
             real32 ZoomRate = 0.0f;
             if (Controller->ActionUp.EndedDown) {
@@ -1153,7 +1155,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                         ClosestHero = TestEntity;
                     }
                 }
-        }
+            }
 
 #endif
             if (ClosestHero && ClosestHeroDSq > Square(6.0f)) {
@@ -1181,7 +1183,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             InvalidCodePath;
         }
         break;
-    }
+        }
 
         if (!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
             MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);

@@ -7,14 +7,6 @@
 #include "file_formats.h"
 #include "game/math.cpp"
 
-struct bitmap_id {
-    uint32 Value;
-};
-
-struct sound_id {
-    uint32 Value;
-};
-
 enum asset_type {
     AssetType_Sound,
     AssetType_Bitmap
@@ -78,7 +70,7 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
     HHA->FirstTagIndex = Assets->TagCount;
     HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
     HHA->Sound.SampleCount = SampleCount;
-    HHA->Sound.NextIDToPlay = 0;
+    HHA->Sound.NextIDToPlay.Value = 0;
     Source->Type = AssetType_Sound;
     Source->Filename = Filename;
     Source->FirstSampleIndex = FirstSampleIndex;
@@ -489,7 +481,7 @@ int main(int ArgCount, char** Args) {
         }
         sound_id ThisMusic = AddSoundAsset(Assets, "test3/music_test.wav", FirstSampleIndex, SampleCount);
         if (LastMusic.Value) {
-            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic.Value;
+            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic;
         }
         LastMusic = ThisMusic;
     }

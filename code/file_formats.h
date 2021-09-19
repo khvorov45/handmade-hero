@@ -9,6 +9,14 @@
 #define HHA_MAGIC_VALUE HHA_CODE('h','h','a','f')
 #define HHA_VERSION 0
 
+struct sound_id {
+    uint32 Value;
+};
+
+struct bitmap_id {
+    uint32 Value;
+};
+
 struct hha_header {
     uint32 MagicValue;
     uint32 Version;
@@ -38,7 +46,7 @@ struct hha_bitmap {
 
 struct hha_sound {
     uint32 SampleCount;
-    uint32 NextIDToPlay;
+    sound_id NextIDToPlay;
     uint32 ChannelCount;
 };
 
