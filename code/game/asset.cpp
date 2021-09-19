@@ -529,7 +529,7 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-            } else {
+        } else {
             Assert(!"Invalid channel count");
         }
 
@@ -553,8 +553,8 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
             }
         }
         Result.SampleCount = SampleCount;
-        }
-    return Result;
     }
+    return Result;
+}
 
 #endif

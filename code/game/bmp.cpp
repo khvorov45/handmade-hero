@@ -40,25 +40,6 @@ struct loaded_bitmap {
     real32 WidthOverHeight;
 };
 
-internal v4 SRGB255ToLinear1(v4 Color) {
-    v4 Result;
-    v4 Color01 = Color * (1.0f / 255.0f);
-    Result.r = Square(Color01.r);
-    Result.g = Square(Color01.g);
-    Result.b = Square(Color01.b);
-    Result.a = Color01.a;
-    return Result;
-}
-
-internal v4 Linear1ToSRGB255(v4 Color) {
-    v4 Result01;
-    Result01.r = SquareRoot(Color.r);
-    Result01.g = SquareRoot(Color.g);
-    Result01.b = SquareRoot(Color.b);
-    Result01.a = Color.a;
-    v4 Result = Result01 * 255.0f;
-    return Result;
-}
 
 internal v2 TopDownAlign(loaded_bitmap* Bitmap, v2 Align) {
     v2 Result = V2(Align.x, (Bitmap->Height - 1) - Align.y);

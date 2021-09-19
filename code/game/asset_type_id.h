@@ -6,7 +6,7 @@ enum asset_type_id {
     Asset_Shadow,
     Asset_Tree,
     Asset_Sword,
-    Asset_Stairwell,
+    //Asset_Stairwell,
     Asset_Rock,
     Asset_Grass,
     Asset_Tuft,

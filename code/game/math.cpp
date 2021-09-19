@@ -544,4 +544,24 @@ inline v2 Perp(v2 A) {
     return Result;
 }
 
+internal v4 SRGB255ToLinear1(v4 Color) {
+    v4 Result;
+    v4 Color01 = Color * (1.0f / 255.0f);
+    Result.r = Square(Color01.r);
+    Result.g = Square(Color01.g);
+    Result.b = Square(Color01.b);
+    Result.a = Color01.a;
+    return Result;
+}
+
+internal v4 Linear1ToSRGB255(v4 Color) {
+    v4 Result01;
+    Result01.r = SquareRoot(Color.r);
+    Result01.g = SquareRoot(Color.g);
+    Result01.b = SquareRoot(Color.b);
+    Result01.a = Color.a;
+    v4 Result = Result01 * 255.0f;
+    return Result;
+}
+
 #endif
