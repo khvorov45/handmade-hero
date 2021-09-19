@@ -9,11 +9,6 @@
 #include "asset_type_id.h"
 #include "../file_formats.h"
 
-struct asset_tag {
-    uint32 ID;
-    real32 Value;
-};
-
 struct asset_bitmap_info {
     v2 AlignPercentage;
     char* Filename;
@@ -28,13 +23,6 @@ struct asset_sound_info {
 
 struct asset {
     hha_asset HHA;
-    /* uint32 FirstTagIndex;
-     uint32 OnePastLastTagIndex;
-
-     union {
-         asset_bitmap_info Bitmap;
-         asset_sound_info Sound;
-     };*/
 };
 
 struct asset_vector {
@@ -79,7 +67,7 @@ struct game_assets {
     real32 TagRange[Tag_Count];
 
     uint32 TagCount;
-    asset_tag* Tags;
+    hha_tag* Tags;
 
     uint32 AssetCount;
     asset* Assets;
@@ -134,10 +122,10 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
     return Result;
 }
 
-internal void AddTag(game_assets* Assets, asset_tag_id TagID, real32 Value) {
+internal void AddTag(game_assets* Assets, hha_tag_id TagID, real32 Value) {
     Assert(Assets->DEBUGAsset);
     ++Assets->DEBUGAsset->OnePastLastTagIndex;
-    asset_tag* Tag = Assets->Tags + Assets->DEBUGUsedTagCount++;
+    hha_tag* Tag = Assets->Tags + Assets->DEBUGUsedTagCount++;
     Tag->ID = TagID;
     Tag->Value = Value;
 }
@@ -181,18 +169,10 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
 
         Assets->TagCount = Header->TagCount;
-        Assets->Tags = PushArray(Arena, Assets->TagCount, asset_tag);
+        Assets->Tags = (hha_tag*)((uint8*)ReadResult.Contents + Header->Tags);
 
-        hha_tag* HHATags = (hha_tag*)((uint8*)ReadResult.Contents + Header->Tags);
         hha_asset_type* HHAAssetTypes = (hha_asset_type*)((uint8*)ReadResult.Contents + Header->AssetTypes);
         hha_asset* HHAAssets = (hha_asset*)((uint8*)ReadResult.Contents + Header->Assets);
-
-        for (uint32 Index = 0; Index < Header->TagCount; ++Index) {
-            hha_tag* Source = HHATags + Index;
-            asset_tag* Dest = Assets->Tags + Index;
-            Dest->ID = Source->ID;
-            Dest->Value = Source->Value;
-        }
 
         for (uint32 Index = 0; Index < Header->AssetCount; ++Index) {
             hha_asset* Source = HHAAssets + Index;
@@ -367,7 +347,7 @@ internal uint32 GetBestMatchAssetFrom(
         for (uint32 TagIndex = Asset->HHA.FirstTagIndex;
             TagIndex < Asset->HHA.OnePastLastTagIndex;
             ++TagIndex) {
-            asset_tag* Tag = Assets->Tags + TagIndex;
+            hha_tag* Tag = Assets->Tags + TagIndex;
             real32 A = MatchVector->E[Tag->ID];
             real32 B = Tag->Value;
             real32 D0 = AbsoluteValue(A - B);
