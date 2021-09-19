@@ -7,6 +7,7 @@
 #include "memory.cpp"
 #include "random.cpp"
 #include "asset_type_id.h"
+#include "../file_formats.h"
 
 struct asset_tag {
     uint32 ID;
@@ -175,13 +176,31 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         Assets->TagRange[TagType] = 100000.0f;
     }
     Assets->TagRange[Tag_FacingDirection] = 2.0f * Pi32;
+    debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile("test.hha");
+    if (ReadResult.Size != 0) {
+        hha_header* Header = (hha_header*)ReadResult.Contents;
+        Assert(Header->MagicValue == HHA_MAGIC_VALUE);
+        Assert(Header->Version == HHA_VERSION);
 
-    Assets->TagCount = 1024 * Asset_Count;
-    Assets->Tags = PushArray(Arena, Assets->TagCount, asset_tag);
+        Assets->AssetCount = Header->AssetCount;
+        Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
+        Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
 
-    Assets->AssetCount = 2 * 256 * Asset_Count;
-    Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
-    Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
+        Assets->TagCount = Header->TagCount;
+        Assets->Tags = PushArray(Arena, Assets->TagCount, asset_tag);
+
+        hha_tag* HHATags = (hha_tag*)((uint8*)ReadResult.Contents + Header->Tags);
+        for (uint32 TagIndex = 0; TagIndex < Assets->TagCount; ++TagIndex) {
+            hha_tag* Source = HHATags + TagIndex;
+            asset_tag* Dest = Assets->Tags + TagIndex;
+            Dest->ID = Source->ID;
+            Dest->Value = Source->Value;
+        }
+#if 0
+        for () {}
+        for () {}
+#endif
+    }
 
 #if 0
     Assets->DEBUGUsedAssetCount = 1;
