@@ -355,6 +355,34 @@ internal void EndTaskWithMemory(task_with_memory* Task) {
     Task->BeingUsed = false;
 }
 
+struct load_asset_work {
+    task_with_memory* Task;
+    asset_slot* Slot;
+    platform_file_handle* Handle;
+    uint64 Offset;
+    uint64 Size;
+    void* Destination;
+    asset_state FinalState;
+};
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
+    load_asset_work* Work = (load_asset_work*)Data;
+
+#if 0
+    Platform.ReadDataFromFile(Work->Handle, Work->Offset, Work->Size, Work->Destination);
+#endif
+    CompletePreviousWritesBeforeFutureWrites;
+#if 0
+    if (PlatformNoFileErrors(Work->Handle))
+#endif
+    {
+        Work->Slot->State = Work->FinalState;
+    }
+
+    EndTaskWithMemory(Work->Task);
+}
+
+#if 0
 struct load_bitmap_work {
     game_assets* Assets;
     bitmap_id ID;
@@ -379,21 +407,40 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
     Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
     EndTaskWithMemory(Work->Task);
 }
+#endif
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
-            load_bitmap_work* Work = PushStruct(&Task->Arena, load_bitmap_work);
-            Work->Assets = Assets;
-            Work->ID = ID;
+            hha_asset* HHAAsset = Assets->Assets + ID.Value;
+            hha_bitmap* Info = &HHAAsset->Bitmap;
+            loaded_bitmap* Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
+
+            Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
+            Bitmap->Width = Info->Dim[0];
+            Bitmap->Height = Info->Dim[1];
+            Bitmap->Pitch = Bitmap->Width * 4;
+            Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
+
+            uint32 MemorySize = Bitmap->Pitch * Bitmap->Height;
+            Bitmap->Memory = PushSize(&Assets->Arena, MemorySize);
+
+            load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
-            Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
+            Work->Slot = Assets->Slots + ID.Value;
+            Work->Handle = 0;
+            Work->Offset = HHAAsset->DataOffset;
+            Work->Size = MemorySize;
+            Work->Destination = Bitmap->Memory;
             Work->FinalState = AssetState_Loaded;
+            Work->Slot->Bitmap = Bitmap;
+
+            Bitmap->Memory = Assets->HHAContents + HHAAsset->DataOffset;
 #if 1
-            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadBitmapWork, Work);
+            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
-            LoadBitmapWork(Assets->TranState->LowPriorityQueue, Work);
+            LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
             Assets->Slots[ID.Value].State = AssetState_Unloaded;
