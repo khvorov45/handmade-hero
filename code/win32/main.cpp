@@ -938,6 +938,29 @@ internal void Win32MakeQueue(platform_work_queue* Queue, uint32 ThreadCount) {
     }
 }
 
+PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
+    platform_file_group Result = {};
+    return Result;
+}
+
+PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd) {
+
+}
+
+PLATFORM_OPEN_FILE(Win32OpenFile) {
+    platform_file_handle* Handle = 0;
+    return Handle;
+}
+
+PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile) {
+
+}
+
+PLATFORM_FILE_ERROR(Win32FileError) {
+
+}
+
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
     win32_state Win32State = {};
@@ -1029,7 +1052,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     ReleaseDC(Window, RefreshDC);
     if (Win32RefreshRate > 1) {
         MonitorRefreshHz = Win32RefreshRate;
-    }
+}
 #endif
 
     real32 GameRefreshHz = 30;
@@ -1110,11 +1133,17 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         );
     }
 
-    GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
-    GameMemory.DEBUGPlatformWriteEntireFile = DEBUGPlatformWriteEntireFile;
-    GameMemory.DEBUGPlatformReadEntireFile = DEBUGWin32ReadEntireFile;
-    GameMemory.PlatformAddEntry = Win32AddEntry;
-    GameMemory.PlatformCompleteAllWork = Win32CompleteAllWork;
+    GameMemory.PlatformAPI.GetAllFilesOfTypeBegin = Win32GetAllFilesOfTypeBegin;
+    GameMemory.PlatformAPI.GetAllFilesOfTypeEnd = Win32GetAllFilesOfTypeEnd;
+    GameMemory.PlatformAPI.OpenFile = Win32OpenFile;
+    GameMemory.PlatformAPI.ReadDataFromFile = Win32ReadDataFromFile;
+    GameMemory.PlatformAPI.FileError = Win32FileError;
+
+    GameMemory.PlatformAPI.DEBUGFreeFileMemory = DEBUGPlatformFreeFileMemory;
+    GameMemory.PlatformAPI.DEBUGWriteEntireFile = DEBUGPlatformWriteEntireFile;
+    GameMemory.PlatformAPI.DEBUGReadEntireFile = DEBUGWin32ReadEntireFile;
+    GameMemory.PlatformAPI.AddEntry = Win32AddEntry;
+    GameMemory.PlatformAPI.CompleteAllWork = Win32CompleteAllWork;
     GameMemory.HighPriorityQueue = &HighPriorityQueue;
     GameMemory.LowPriorityQueue = &LowPriorityQueue;
 

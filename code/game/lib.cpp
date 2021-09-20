@@ -391,7 +391,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
             Work->FinalState = AssetState_Loaded;
 #if 1
-            PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadBitmapWork, Work);
+            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadBitmapWork, Work);
 #else
             LoadBitmapWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
@@ -439,7 +439,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Work->Sound = PushStruct(&Assets->Arena, loaded_sound);
             Work->FinalState = AssetState_Loaded;
 #if 1
-            PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadSoundWork, Work);
+            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadSoundWork, Work);
 #else
             LoadSoundWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
@@ -550,7 +550,7 @@ internal void FillGroundChunk(
 
         if (AllResourcesPresent(RenderGroup)) {
             GroundBuffer->P = *ChunkP;
-            PlatformAddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
+            Platform.AddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
         } else {
             EndTaskWithMemory(Task);
         }
@@ -564,9 +564,7 @@ struct hero_bitmap_ids {
 };
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
-    PlatformAddEntry = Memory->PlatformAddEntry;
-    PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
-    DEBUGPlatformReadEntireFile = Memory->DEBUGPlatformReadEntireFile;
+    Platform = Memory->PlatformAPI;
 #if HANDMADE_INTERNAL
     DebugGlobalMemory = Memory;
 #endif
