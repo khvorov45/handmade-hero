@@ -166,4 +166,6 @@ global_variable platform_add_entry* PlatformAddEntry;
 global_variable platform_complete_all_work* PlatformCompleteAllWork;
 global_variable debug_platform_read_entire_file* DEBUGPlatformReadEntireFile;
 
+typedef struct platform_file_handle platform_file_handle;
+
 #endif

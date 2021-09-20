@@ -1,6 +1,7 @@
 #if !defined(HANDMADE_ASSET)
 #define HANDMADE_ASSET
 
+#include "lib.hpp"
 #include "../types.h"
 #include "math.cpp"
 #include "bmp.cpp"
@@ -57,7 +58,7 @@ struct asset_group {
 };
 
 struct asset_file {
-    //platform_file_handle Handle;
+    platform_file_handle* Handle;
     hha_header Header;
     hha_asset_type* AssetTypeArray;
     uint32 TagBase;
@@ -162,7 +163,6 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
 #if 0
     Assets->TagCount = 0;
     Assets->AssetCount = 0;
-
     {
         platform_file_group FileGroup = PlatformGetAllFilesOfTypeBegin("hha");
         Assets->FileCount = FileGroup.FileCount;
@@ -170,6 +170,8 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         for (uint32 FileIndex = 0; FileIndex < Assets->FileCount; ++FileIndex) {
 
             asset_file* File = Assets->Files + FileIndex;
+
+            File->TagBase = Assets->TagCount;
 
             uint32 AssetTypeArraySize = File->Header.AssetTypeCount * sizeof(hha_asset_type);
 
@@ -203,8 +205,21 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
     Assets->Tags = PushArray(Arena, Assets->TagCount, hha_tag);
 
+    // Tags
+    for (uint32 FileIndex = 0; FileIndex < Assets->FileCount; ++FileIndex) {
+        asset_file* File = Assets->Files + FileIndex;
+        if (PlatformNoFileErrors(File->Handle)) {
+            uint32 TagArraySize = sizeof(hha_tag) * File->Header.TagCount;
+            PlatformReadDataFromFile(
+                File->Handle,
+                File->Header.Tags,
+                TagArraySize,
+                Asset->Tags + File->TagBase
+            );
+        }
+    }
+
     uint32 AssetCount = 0;
-    uint32 TagCount = 0;
     for (uint32 DestTypeID = 0; DestTypeID < Asset_Count; ++DestTypeID) {
         asset_type* DestType = Assets->AssetTypes + DestTypeID;
         DestType->FirstAssetIndex = AssetCount;
@@ -214,7 +229,20 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
                 for (uint32 SourceIndex = 0; SourceIndex < File->Header.AssetTypeCount; ++SourceIndex) {
                     hha_asset_type* SourceType = File->AssetTypeArray + SourceIndex;
                     if (SourceType->TypeID = DestTypeID) {
-                        PlatformReadDataFromFile(File->Handle, 0, sizeof(File->Header), &File->Header));
+                        uint32 AssetCountForType = SourceType->OnePastLastAssetIndex - SourceType->FirstAssetIndex;
+                        PlatformReadDataFromFile(
+                            File->Handle,
+                            File->Header.Assets + SourceType->FirstAssetIndex * sizeof(hha_asset),
+                            sizeof(hha_asset) * AssetCountForType,
+                            Assets->Assets + AssetCount
+                        );
+                        for (uint32 AssetIndex = AssetCount; AssetIndex < AssetCount + AssetCountForType; ++AssetIndex) {
+                            hha_asset* Asset = Assets->Assets + AssetIndex;
+                            Asset->FirstTagIndex += File->TagBase;
+                            Asset->OnePastLastTagIndex += File->TagBase;
+                        }
+                        AssetCount += AssetCountForType;
+                        Assert(AssetCount < Assets->AssetCount);
                     }
                 }
             }
@@ -222,8 +250,8 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         DestType->OnePastLastAssetIdnex = AssetCount;
     }
     Assert(AssetCount == Assets->AssetCount);
-    Assert(TagCount == Assets->TagCount);
-#endif
+
+#else
 
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile("test.hha");
     if (ReadResult.Size != 0) {
@@ -253,6 +281,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
 
         Assets->HHAContents = (uint8*)ReadResult.Contents;
     }
+#endif
 
 #if 0
     Assets->DEBUGUsedAssetCount = 1;
