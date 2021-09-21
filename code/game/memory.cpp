@@ -98,4 +98,10 @@ internal char* PushString(memory_arena* Arena, char* Source) {
     return Dest;
 }
 
+internal void Copy(memory_index Size, void* SourceInit, void* DestInit) {
+    uint8* Source = (uint8*)SourceInit;
+    uint8* Dest = (uint8*)DestInit;
+    while (Size--) { *Dest++ = *Source++; }
+}
+
 #endif

@@ -382,33 +382,6 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
     EndTaskWithMemory(Work->Task);
 }
 
-#if 0
-struct load_bitmap_work {
-    game_assets* Assets;
-    bitmap_id ID;
-    asset_state FinalState;
-    task_with_memory* Task;
-    loaded_bitmap* Bitmap;
-};
-
-internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
-    load_bitmap_work* Work = (load_bitmap_work*)Data;
-    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value];
-    hha_bitmap* Info = &HHAAsset->Bitmap;
-    loaded_bitmap* Bitmap = Work->Bitmap;
-    Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
-    Bitmap->Width = Info->Dim[0];
-    Bitmap->Height = Info->Dim[1];
-    Bitmap->Pitch = Bitmap->Width * 4;
-    Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
-    Bitmap->Memory = Work->Assets->HHAContents + HHAAsset->DataOffset;
-    CompletePreviousWritesBeforeFutureWrites;
-    Work->Assets->Slots[Work->ID.Value].Bitmap = Work->Bitmap;
-    Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
-    EndTaskWithMemory(Work->Task);
-}
-#endif
-
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
@@ -426,6 +399,8 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             uint32 MemorySize = Bitmap->Pitch * Bitmap->Height;
             Bitmap->Memory = PushSize(&Assets->Arena, MemorySize);
 
+            Bitmap->Memory = Assets->HHAContents + HHAAsset->DataOffset;
+
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
             Work->Slot = Assets->Slots + ID.Value;
@@ -435,8 +410,6 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Destination = Bitmap->Memory;
             Work->FinalState = AssetState_Loaded;
             Work->Slot->Bitmap = Bitmap;
-
-            Bitmap->Memory = Assets->HHAContents + HHAAsset->DataOffset;
 #if 1
             Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
@@ -448,45 +421,37 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
     }
 }
 
-struct load_sound_work {
-    game_assets* Assets;
-    sound_id ID;
-    asset_state FinalState;
-    task_with_memory* Task;
-    loaded_sound* Sound;
-};
-
-internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundWork) {
-    load_sound_work* Work = (load_sound_work*)Data;
-    hha_asset* HHAAsset = &Work->Assets->Assets[Work->ID.Value];
-    hha_sound* Info = &HHAAsset->Sound;
-    loaded_sound* Sound = Work->Sound;
-    Sound->ChannelCount = Info->ChannelCount;
-    Assert(Sound->ChannelCount < ArrayCount(Sound->Samples));
-    Sound->SampleCount = Info->SampleCount;
-    uint64 SampleDataOffset = HHAAsset->DataOffset;
-    for (uint32 ChannelIndex = 0; ChannelIndex < Sound->ChannelCount; ChannelIndex++) {
-        Sound->Samples[ChannelIndex] = (int16*)(Work->Assets->HHAContents + SampleDataOffset);
-        SampleDataOffset += Sound->SampleCount * sizeof(int16);
-    }
-    CompletePreviousWritesBeforeFutureWrites;
-    Work->Assets->Slots[Work->ID.Value].Sound = Work->Sound;
-    Work->Assets->Slots[Work->ID.Value].State = Work->FinalState;
-    EndTaskWithMemory(Work->Task);
-}
-
 internal void LoadSound(game_assets* Assets, sound_id ID) {
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
-            load_sound_work* Work = PushStruct(&Task->Arena, load_sound_work);
-            Work->Assets = Assets;
-            Work->ID = ID;
+            hha_asset* HHAAsset = Assets->Assets + ID.Value;
+            hha_sound* Info = &HHAAsset->Sound;
+            loaded_sound* Sound = PushStruct(&Assets->Arena, loaded_sound);
+            Sound->SampleCount = Info->SampleCount;
+            Sound->ChannelCount = Info->ChannelCount;
+            uint32 MemorySize = Sound->ChannelCount * Sound->SampleCount * sizeof(int16);
+            void* Memory = PushSize(&Assets->Arena, MemorySize);
+
+            int16* SoundAt = (int16*)Memory;
+            for (uint32 ChannelIndex = 0; ChannelIndex < Sound->ChannelCount; ++ChannelIndex) {
+                Sound->Samples[ChannelIndex] = SoundAt;
+                SoundAt += Sound->SampleCount;
+            }
+
+            load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
-            Work->Sound = PushStruct(&Assets->Arena, loaded_sound);
+            Work->Slot = Assets->Slots + ID.Value;
+            Work->Handle = 0;
+            Work->Offset = HHAAsset->DataOffset;
+            Work->Size = MemorySize;
+            Work->Destination = Memory;
             Work->FinalState = AssetState_Loaded;
+            Work->Slot->Sound = Sound;
+
+            Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
-            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadSoundWork, Work);
+            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
             LoadSoundWork(Assets->TranState->LowPriorityQueue, Work);
 #endif

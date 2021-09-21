@@ -3,6 +3,7 @@
 
 #include "lib.hpp"
 #include "../types.h"
+#include "../intrinsics.h"
 #include "math.cpp"
 #include "bmp.cpp"
 #include "memory.cpp"
@@ -406,14 +407,22 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
     asset_slot* Slot = Assets->Slots + ID.Value;
-    loaded_bitmap* Result = Slot->State >= AssetState_Loaded ? Slot->Bitmap : 0;
+    loaded_bitmap* Result = 0;
+    if (Slot->State >= AssetState_Loaded) {
+        CompletePreviousReadsBeforeFutureReads;
+        Result = Slot->Bitmap;
+    }
     return Result;
 }
 
 internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
     asset_slot* Slot = Assets->Slots + ID.Value;
-    loaded_sound* Result = Slot->State >= AssetState_Loaded ? Slot->Sound : 0;
+    loaded_sound* Result = 0;
+    if (Slot->State >= AssetState_Loaded) {
+        CompletePreviousReadsBeforeFutureReads;
+        Result = Slot->Sound;
+    }
     return Result;
 }
 
