@@ -399,8 +399,6 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             uint32 MemorySize = Bitmap->Pitch * Bitmap->Height;
             Bitmap->Memory = PushSize(&Assets->Arena, MemorySize);
 
-            Bitmap->Memory = Assets->HHAContents + HHAAsset->DataOffset;
-
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
             Work->Slot = Assets->Slots + ID.Value;
@@ -410,6 +408,8 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Destination = Bitmap->Memory;
             Work->FinalState = AssetState_Loaded;
             Work->Slot->Bitmap = Bitmap;
+
+            Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
 #if 1
             Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
@@ -535,8 +535,8 @@ internal void FillGroundChunk(
                     v2 P = Center + Offset;
                     PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
                 }
+                }
             }
-        }
 
         for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
             for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
@@ -566,8 +566,8 @@ internal void FillGroundChunk(
         } else {
             EndTaskWithMemory(Task);
         }
+        }
     }
-}
 
 struct hero_bitmap_ids {
     bitmap_id Head;
@@ -927,8 +927,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
-    }
+            }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -981,8 +981,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 );
 #endif
             }
+            }
         }
-    }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1369,7 +1369,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-}
+    }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
