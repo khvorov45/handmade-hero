@@ -53,6 +53,11 @@ struct asset_slot {
     };
 };
 
+struct asset {
+    hha_asset HHA;
+    uint32 FileIndex;
+};
+
 struct asset_group {
     uint32 FirstTagIndex;
     uint32 OnePastLastTagIndex;
@@ -78,12 +83,12 @@ struct game_assets {
     hha_tag* Tags;
 
     uint32 AssetCount;
-    hha_asset* Assets;
+    asset* Assets;
     asset_slot* Slots;
 
     asset_type AssetTypes[Asset_Count];
 
-    uint8* HHAContents;
+    // uint8* HHAContents;
 };
 
 #if 0
@@ -161,7 +166,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     }
     Assets->TagRange[Tag_FacingDirection] = 2.0f * Pi32;
 
-#if 0
+#if 1
     Assets->TagCount = 0;
     Assets->AssetCount = 0;
     {
@@ -174,17 +179,17 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
 
             File->TagBase = Assets->TagCount;
 
-            uint32 AssetTypeArraySize = File->Header.AssetTypeCount * sizeof(hha_asset_type);
-
             ZeroStruct(File->Header);
             File->Handle = Platform.OpenFile(FileGroup, FileIndex);
             Platform.ReadDataFromFile(File->Handle, 0, sizeof(File->Header), &File->Header);
+
+            uint32 AssetTypeArraySize = File->Header.AssetTypeCount * sizeof(hha_asset_type);
             File->AssetTypeArray = (hha_asset_type*)PushSize(Arena, AssetTypeArraySize);
             Platform.ReadDataFromFile(
                 File->Handle,
                 File->Header.AssetTypes,
                 AssetTypeArraySize,
-                &File->AssetTypeArray
+                File->AssetTypeArray
             );
             if (File->Header.MagicValue != HHA_MAGIC_VALUE) {
                 Platform.FileError(File->Handle, "HHA File has an invalid magic value");
@@ -202,7 +207,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         Platform.GetAllFilesOfTypeEnd(FileGroup);
     }
 
-    Assets->Assets = PushArray(Arena, Assets->AssetCount, hha_asset);
+    Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
     Assets->Slots = PushArray(Arena, Assets->AssetCount, asset_slot);
     Assets->Tags = PushArray(Arena, Assets->TagCount, hha_tag);
 
@@ -231,26 +236,31 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
                     hha_asset_type* SourceType = File->AssetTypeArray + SourceIndex;
                     if (SourceType->TypeID == DestTypeID) {
                         uint32 AssetCountForType = SourceType->OnePastLastAssetIndex - SourceType->FirstAssetIndex;
+                        temporary_memory TempMem = BeginTemporaryMemory(Arena);
+                        hha_asset* HHAAssetArray = PushArray(TempMem.Arena, AssetCountForType, hha_asset);
                         Platform.ReadDataFromFile(
                             File->Handle,
                             File->Header.Assets + SourceType->FirstAssetIndex * sizeof(hha_asset),
                             sizeof(hha_asset) * AssetCountForType,
-                            Assets->Assets + AssetCount
+                            HHAAssetArray
                         );
-                        for (uint32 AssetIndex = AssetCount; AssetIndex < AssetCount + AssetCountForType; ++AssetIndex) {
-                            hha_asset* Asset = Assets->Assets + AssetIndex;
-                            Asset->FirstTagIndex += File->TagBase;
-                            Asset->OnePastLastTagIndex += File->TagBase;
+                        for (uint32 AssetIndex = 0; AssetIndex < AssetCountForType; ++AssetIndex) {
+                            hha_asset* HHAAsset = HHAAssetArray + AssetIndex;
+                            Assert(AssetCount < Assets->AssetCount);
+                            asset* Asset = Assets->Assets + AssetCount++;
+                            Asset->FileIndex = FileIndex;
+                            Asset->HHA = *HHAAsset;
+                            Asset->HHA.FirstTagIndex += File->TagBase;
+                            Asset->HHA.OnePastLastTagIndex += File->TagBase;
                         }
-                        AssetCount += AssetCountForType;
-                        Assert(AssetCount < Assets->AssetCount);
+                        EndTemporaryMemory(TempMem);
                     }
                 }
             }
         }
         DestType->OnePastLastAssetIndex = AssetCount;
     }
-    Assert(AssetCount == Assets->AssetCount);
+    //Assert(AssetCount == Assets->AssetCount);
 
 #else
 
@@ -428,7 +438,7 @@ internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
 
 internal inline hha_sound* GetSoundInfo(game_assets* Assets, sound_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
-    hha_sound* Result = &Assets->Assets[ID.Value].Sound;
+    hha_sound* Result = &Assets->Assets[ID.Value].HHA.Sound;
     return Result;
 }
 
@@ -442,7 +452,7 @@ internal uint32 GetBestMatchAssetFrom(
     for (uint32 AssetIndex = Type->FirstAssetIndex;
         AssetIndex < Type->OnePastLastAssetIndex;
         ++AssetIndex) {
-        hha_asset* Asset = Assets->Assets + AssetIndex;
+        hha_asset* Asset = &Assets->Assets[AssetIndex].HHA;
         real32 TotalWeightedDiff = 0;
         for (uint32 TagIndex = Asset->FirstTagIndex;
             TagIndex < Asset->OnePastLastTagIndex;

@@ -938,9 +938,15 @@ internal void Win32MakeQueue(platform_work_queue* Queue, uint32 ThreadCount) {
     }
 }
 
+struct win32_file_handle {
+    platform_file_handle H;
+    HANDLE Win32Handle;
+};
+
 PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
-    platform_file_group Result = {};
-    return Result;
+    platform_file_group FileGroup = {};
+    FileGroup.FileCount = 1;
+    return FileGroup;
 }
 
 PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd) {
@@ -948,18 +954,38 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd) {
 }
 
 PLATFORM_OPEN_FILE(Win32OpenFile) {
-    platform_file_handle* Handle = 0;
-    return Handle;
-}
-
-PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile) {
-
+    char* Filename = "test.hha";
+    win32_file_handle* Result = (win32_file_handle*)VirtualAlloc(0, sizeof(win32_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);;
+    if (Result) {
+        Result->Win32Handle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);
+        Result->H.NoErrors = Result->Win32Handle != INVALID_HANDLE_VALUE;
+    }
+    return (platform_file_handle*)Result;
 }
 
 PLATFORM_FILE_ERROR(Win32FileError) {
-
+#if HANDMADE_INTERNAL
+    OutputDebugStringA("WIN32 FILE ERROR: ");
+    OutputDebugStringA(Message);
+    OutputDebugStringA("\n");
+#endif
+    Handle->NoErrors = false;
 }
 
+PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile) {
+    if (PlatformNoFileErrors(Source)) {
+        win32_file_handle* Handle = (win32_file_handle*)Source;
+        OVERLAPPED Overlapped = {};
+        Overlapped.Offset = (uint32)(Offset & 0xFFFFFFFF);
+        Overlapped.OffsetHigh = (uint32)((Offset >> 32) & 0xFFFFFFFF);
+        uint32 FileSize32 = SafeTruncateUint64(Size);
+        DWORD BytesRead;
+        BOOL ReadFileResult = ReadFile(Handle->Win32Handle, Dest, FileSize32, &BytesRead, &Overlapped);
+        if (ReadFileResult == 0 || FileSize32 != BytesRead) {
+            Win32FileError(Source, "Read file failed");
+        }
+    }
+}
 
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
@@ -1052,7 +1078,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     ReleaseDC(Window, RefreshDC);
     if (Win32RefreshRate > 1) {
         MonitorRefreshHz = Win32RefreshRate;
-}
+    }
 #endif
 
     real32 GameRefreshHz = 30;

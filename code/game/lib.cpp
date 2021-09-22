@@ -368,25 +368,28 @@ struct load_asset_work {
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
     load_asset_work* Work = (load_asset_work*)Data;
 
-#if 0
     Platform.ReadDataFromFile(Work->Handle, Work->Offset, Work->Size, Work->Destination);
-#endif
     CompletePreviousWritesBeforeFutureWrites;
-#if 0
-    if (PlatformNoFileErrors(Work->Handle))
-#endif
-    {
+    if (PlatformNoFileErrors(Work->Handle)) {
         Work->Slot->State = Work->FinalState;
     }
 
     EndTaskWithMemory(Work->Task);
 }
 
+internal inline platform_file_handle*
+GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
+    Assert(FileIndex < Assets->FileCount);
+    platform_file_handle* Handle = Assets->Files[FileIndex].Handle;
+    return Handle;
+}
+
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
-            hha_asset* HHAAsset = Assets->Assets + ID.Value;
+            asset* Asset = Assets->Assets + ID.Value;
+            hha_asset* HHAAsset = &Asset->HHA;
             hha_bitmap* Info = &HHAAsset->Bitmap;
             loaded_bitmap* Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
 
@@ -402,14 +405,14 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
             Work->Slot = Assets->Slots + ID.Value;
-            Work->Handle = 0;
+            Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
             Work->Size = MemorySize;
             Work->Destination = Bitmap->Memory;
             Work->FinalState = AssetState_Loaded;
             Work->Slot->Bitmap = Bitmap;
 
-            Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
+            //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
 #if 1
             Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
@@ -425,7 +428,8 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
-            hha_asset* HHAAsset = Assets->Assets + ID.Value;
+            asset* Asset = Assets->Assets + ID.Value;
+            hha_asset* HHAAsset = &Asset->HHA;
             hha_sound* Info = &HHAAsset->Sound;
             loaded_sound* Sound = PushStruct(&Assets->Arena, loaded_sound);
             Sound->SampleCount = Info->SampleCount;
@@ -442,14 +446,14 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
             Work->Slot = Assets->Slots + ID.Value;
-            Work->Handle = 0;
+            Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
             Work->Size = MemorySize;
             Work->Destination = Memory;
             Work->FinalState = AssetState_Loaded;
             Work->Slot->Sound = Sound;
 
-            Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
+            //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
             Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
@@ -535,8 +539,8 @@ internal void FillGroundChunk(
                     v2 P = Center + Offset;
                     PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
                 }
-                }
             }
+        }
 
         for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
             for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
@@ -566,8 +570,8 @@ internal void FillGroundChunk(
         } else {
             EndTaskWithMemory(Task);
         }
-        }
     }
+}
 
 struct hero_bitmap_ids {
     bitmap_id Head;
@@ -981,8 +985,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 );
 #endif
             }
-            }
         }
+    }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1369,7 +1373,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-    }
+        }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;

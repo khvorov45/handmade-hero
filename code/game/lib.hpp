@@ -72,7 +72,7 @@ typedef void platform_add_entry(platform_work_queue* Queue, platform_work_queue_
 typedef void platform_complete_all_work(platform_work_queue* Queue);
 
 struct platform_file_handle {
-    bool32 HasErrors;
+    bool32 NoErrors;
     void* Data;
 };
 
@@ -81,7 +81,7 @@ struct platform_file_group {
     void* Data;
 };
 
-#define PlatformNoFileErrors(Handle) (!(Handle)->HasErrors)
+#define PlatformNoFileErrors(Handle) ((Handle)->NoErrors)
 
 #define PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(name) platform_file_group name(char* Type)
 typedef PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
