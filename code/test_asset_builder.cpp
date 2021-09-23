@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory.h>
 #include "types.h"
 #include "util.h"
 #include "intrinsics.h"
@@ -429,6 +430,9 @@ internal void Initialize(game_assets* Assets) {
     Assets->AssetCount = 1;
     Assets->DEBUGAssetType = 0;
     Assets->AssetIndex = 0;
+
+    Assets->AssetTypeCount = Asset_Count;
+    memset(Assets->AssetTypes, 0, sizeof(Assets->AssetTypes));
 }
 
 internal void WriteHero() {
