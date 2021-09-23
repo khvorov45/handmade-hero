@@ -541,6 +541,18 @@ internal sound_id GetFirstSoundFrom(game_assets* Assets, asset_type_id TypeID) {
     return Result;
 }
 
+internal sound_id GetNextSoundInChain(game_assets* Assets, sound_id SoundID) {
+    sound_id Result = {};
+    hha_sound* Info = GetSoundInfo(Assets, SoundID);
+    switch (Info->Chain) {
+    case HHASoundChain_None: break;
+    case HHASoundChain_Advance: Result.Value = SoundID.Value + 1; break;
+    case HHASoundChain_Loop: Result.Value = SoundID.Value; break;
+        InvalidDefaultCase;
+    }
+    return Result;
+}
+
 #if 0
 
 #pragma pack(push, 1)

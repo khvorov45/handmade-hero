@@ -39,6 +39,12 @@ struct hha_asset_type {
     uint32 OnePastLastAssetIndex;
 };
 
+enum hha_sound_chain {
+    HHASoundChain_None,
+    HHASoundChain_Loop,
+    HHASoundChain_Advance,
+};
+
 struct hha_bitmap {
     uint32 Dim[2];
     real32 AlignPercentage[2];
@@ -46,8 +52,8 @@ struct hha_bitmap {
 
 struct hha_sound {
     uint32 SampleCount;
-    sound_id NextIDToPlay;
     uint32 ChannelCount;
+    uint32 Chain;
 };
 
 struct hha_asset {

@@ -945,7 +945,7 @@ struct win32_file_handle {
 
 PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
     platform_file_group FileGroup = {};
-    FileGroup.FileCount = 1;
+    FileGroup.FileCount = 3;
     return FileGroup;
 }
 
@@ -954,7 +954,12 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd) {
 }
 
 PLATFORM_OPEN_FILE(Win32OpenFile) {
-    char* Filename = "test.hha";
+    char* Filename = "test1.hha";
+    switch (FileIndex) {
+    case 0: Filename = "test1.hha"; break;
+    case 1: Filename = "test2.hha"; break;
+    case 2: Filename = "test3.hha"; break;
+    }
     win32_file_handle* Result = (win32_file_handle*)VirtualAlloc(0, sizeof(win32_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);;
     if (Result) {
         Result->Win32Handle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);

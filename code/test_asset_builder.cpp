@@ -71,7 +71,7 @@ AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, 
     HHA->FirstTagIndex = Assets->TagCount;
     HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
     HHA->Sound.SampleCount = SampleCount;
-    HHA->Sound.NextIDToPlay.Value = 0;
+    HHA->Sound.Chain = HHASoundChain_None;
     Source->Type = AssetType_Sound;
     Source->Filename = Filename;
     Source->FirstSampleIndex = FirstSampleIndex;
@@ -549,17 +549,15 @@ internal void WriteSounds() {
     uint32 OneMusicChunk = 10 * 48000;
     uint32 TotalMusicSampleCount = 7468095;
     BeginAssetType(Assets, Asset_Music);
-    sound_id LastMusic = { 0 };
     for (uint32 FirstSampleIndex = 0; FirstSampleIndex < TotalMusicSampleCount; FirstSampleIndex += OneMusicChunk) {
         uint32 SampleCount = TotalMusicSampleCount - FirstSampleIndex;
         if (SampleCount > OneMusicChunk) {
             SampleCount = OneMusicChunk;
         }
         sound_id ThisMusic = AddSoundAsset(Assets, "test3/music_test.wav", FirstSampleIndex, SampleCount);
-        if (LastMusic.Value) {
-            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic;
+        if (FirstSampleIndex + OneMusicChunk < TotalMusicSampleCount) {
+            Assets->Assets[ThisMusic.Value].Sound.Chain = HHASoundChain_Advance;
         }
-        LastMusic = ThisMusic;
     }
     EndAssetType(Assets);
 
