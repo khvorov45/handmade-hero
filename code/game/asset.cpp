@@ -168,7 +168,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
 
 #if 1
     Assets->TagCount = 0;
-    Assets->AssetCount = 0;
+    Assets->AssetCount = 1;
     {
         platform_file_group FileGroup = Platform.GetAllFilesOfTypeBegin("hha");
         Assets->FileCount = FileGroup.FileCount;
@@ -199,7 +199,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
             }
             if (PlatformNoFileErrors(File->Handle)) {
                 Assets->TagCount += File->Header.TagCount;
-                Assets->AssetCount += File->Header.AssetCount;
+                Assets->AssetCount += (File->Header.AssetCount - 1);
             } else {
                 InvalidCodePath
             }
@@ -226,6 +226,8 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     }
 
     uint32 AssetCount = 0;
+    ZeroStruct(*(Assets->Assets + AssetCount));
+    ++AssetCount;
     for (uint32 DestTypeID = 0; DestTypeID < Asset_Count; ++DestTypeID) {
         asset_type* DestType = Assets->AssetTypes + DestTypeID;
         DestType->FirstAssetIndex = AssetCount;
@@ -260,7 +262,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
         }
         DestType->OnePastLastAssetIndex = AssetCount;
     }
-    //Assert(AssetCount == Assets->AssetCount);
+    Assert(AssetCount == Assets->AssetCount);
 
 #else
 
