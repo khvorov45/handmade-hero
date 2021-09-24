@@ -71,16 +71,20 @@ internal playing_sound* PlaySound(audio_state* AudioState, sound_id SoundID) {
 internal void ChangeVolume(
     audio_state* AudioState, playing_sound* Sound, real32 FadeDurationInSeconds, v2 Volume
 ) {
-    if (FadeDurationInSeconds <= 0.0f) {
-        Sound->CurrentVolume = Sound->TargetVolume = Volume;
-    } else {
-        Sound->TargetVolume = Volume;
-        Sound->dCurrentVolume = (Volume - Sound->CurrentVolume) * (1.0f / FadeDurationInSeconds);
+    if (Sound) {
+        if (FadeDurationInSeconds <= 0.0f) {
+            Sound->CurrentVolume = Sound->TargetVolume = Volume;
+        } else {
+            Sound->TargetVolume = Volume;
+            Sound->dCurrentVolume = (Volume - Sound->CurrentVolume) * (1.0f / FadeDurationInSeconds);
+        }
     }
 }
 
 internal void ChangePitch(audio_state* AudioState, playing_sound* Sound, real32 dSample) {
-    Sound->dSample = dSample;
+    if (Sound) {
+        Sound->dSample = dSample;
+    }
 }
 
 internal void PrefetchSound(game_assets* Assets, sound_id ID);

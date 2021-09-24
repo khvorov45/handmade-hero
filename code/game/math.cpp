@@ -192,6 +192,11 @@ inline v3& operator+=(v3& A, v3 B) {
     return A;
 }
 
+inline v4& operator+=(v4& A, v4 B) {
+    A = A + B;
+    return A;
+}
+
 inline v2 operator-(v2 A, v2 B) {
     v2 Result;
     Result.x = A.x - B.x;
@@ -520,6 +525,15 @@ inline v3 Clamp01(v3 Value) {
     Result.x = Clamp01(Result.x);
     Result.y = Clamp01(Result.y);
     Result.z = Clamp01(Result.z);
+    return Result;
+}
+
+inline v4 Clamp01(v4 Value) {
+    v4 Result = Value;
+    Result.x = Clamp01(Result.x);
+    Result.y = Clamp01(Result.y);
+    Result.z = Clamp01(Result.z);
+    Result.w = Clamp01(Result.w);
     return Result;
 }
 

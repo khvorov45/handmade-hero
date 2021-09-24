@@ -605,7 +605,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         InitializeAudioState(&GameState->AudioState, &GameState->WorldArena);
 
-        GameState->GeneralEntropy = RandomSeed(1234);
+        GameState->EffectsEntropy = RandomSeed(1234);
 
         AddLowEntity_(GameState, EntityType_Null, NullPosition());
 
@@ -794,6 +794,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         GameState->Music =
             PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
+        ChangeVolume(&GameState->AudioState, GameState->Music, 0.1f, V2(0.0f, 0.0f));
 
         TranState->GroundBufferCount = 128;
         TranState->GroundBuffers =
@@ -931,8 +932,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
-            }
+        }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1124,7 +1125,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                             AddCollisionRule(
                                 GameState, Sword->StorageIndex, Entity->StorageIndex, false
                             );
-                            PlaySound(&GameState->AudioState, GetRandomSoundFrom(TranState->Assets, Asset_Bloop, &GameState->GeneralEntropy));
+                            PlaySound(&GameState->AudioState, GetRandomSoundFrom(TranState->Assets, Asset_Bloop, &GameState->EffectsEntropy));
                         }
                     }
                 }
@@ -1361,6 +1362,38 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if 0
     Saturation(RenderGroup, 1.0f);
 #endif
+    RenderGroup->GlobalAlpha = 1.0f;
+    RenderGroup->Transform.OffsetP = V3(0, 0, 0);
+#if 1
+    for (uint32 ParticleSpawnIndex = 0; ParticleSpawnIndex < 1; ++ParticleSpawnIndex) {
+        particle* Particle = GameState->Particles + GameState->NextParticle++;
+        if (GameState->NextParticle >= ArrayCount(GameState->Particles)) {
+            GameState->NextParticle = 0;
+        }
+        Particle->P = V3(RandomBetween(&GameState->EffectsEntropy, -0.25f, 0.25f), 0, 0);
+        Particle->dP = V3(RandomBetween(&GameState->EffectsEntropy, -0.5f, 0.5f), RandomBetween(&GameState->EffectsEntropy, 0.7f, 1.0f), 0.0f);
+        Particle->Color = V4(
+            RandomBetween(&GameState->EffectsEntropy, 0.0f, 1.0f),
+            RandomBetween(&GameState->EffectsEntropy, 0.0f, 1.0f),
+            RandomBetween(&GameState->EffectsEntropy, 0.0f, 1.0f),
+            1.0f
+        );
+        Particle->dColor = V4(0.0f, 0.0f, 0.0f, -0.25f);
+    }
+#endif
+    for (uint32 ParticleIndex = 0; ParticleIndex < ArrayCount(GameState->Particles); ++ParticleIndex) {
+        particle* Particle = GameState->Particles + ParticleIndex;
+
+        Particle->P += Particle->dP * Input->dtForFrame;
+        Particle->Color += Input->dtForFrame * Particle->dColor;
+        v4 Color = Clamp01(Particle->Color);
+
+        if (Color.a > 0.9f) {
+            Color.a = 0.9f * Clamp01MapToRange(1.0f, Color.a, 0.9f);
+        }
+
+        PushBitmap(RenderGroup, GetFirstBitmapFrom(TranState->Assets, Asset_Head), 1.0f, Particle->P, Color);
+    }
 
     TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, DrawBuffer);
 
@@ -1373,7 +1406,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-        }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
