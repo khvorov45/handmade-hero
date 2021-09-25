@@ -40,13 +40,13 @@ enum asset_state {
 };
 
 struct loaded_sound {
+    int16* Samples[2];
     uint32 SampleCount;
     uint32 ChannelCount;
-    int16* Samples[2];
 };
 
 struct asset_slot {
-    asset_state State;
+    uint32 State;
     union {
         loaded_bitmap* Bitmap;
         loaded_sound* Sound;

@@ -217,9 +217,9 @@ MakeEmptyBitmap(memory_arena* Arena, int32 Width, int32 Height, bool32 ClearToZe
 
     loaded_bitmap Result = {};
 
-    Result.Width = Width;
-    Result.Height = Height;
-    Result.Pitch = Width * BITMAP_BYTES_PER_PIXEL;
+    Result.Width = SafeTruncateToUint16(Width);
+    Result.Height = SafeTruncateToUint16(Height);
+    Result.Pitch = SafeTruncateToUint16(Width * BITMAP_BYTES_PER_PIXEL);
 
     int32 TotalBitmapSize = Width * Height * BITMAP_BYTES_PER_PIXEL;
     Result.Memory = PushSize(Arena, TotalBitmapSize, 16);
@@ -394,9 +394,9 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             loaded_bitmap* Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
 
             Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
-            Bitmap->Width = Info->Dim[0];
-            Bitmap->Height = Info->Dim[1];
-            Bitmap->Pitch = Bitmap->Width * 4;
+            Bitmap->Width = SafeTruncateToUint16(Info->Dim[0]);
+            Bitmap->Height = SafeTruncateToUint16(Info->Dim[1]);
+            Bitmap->Pitch = SafeTruncateToUint16(Bitmap->Width * 4);
             Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
 
             uint32 MemorySize = Bitmap->Pitch * Bitmap->Height;
@@ -790,10 +790,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             SubArena(&Task->Arena, &TranState->TranArena, Megabytes(1));
         }
 
-        TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(64), TranState);
+        TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(2), TranState);
 
-        GameState->Music =
-            PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
+        // GameState->Music = PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
         ChangeVolume(&GameState->AudioState, GameState->Music, 0.1f, V2(0.0f, 0.0f));
 
         TranState->GroundBufferCount = 128;
@@ -939,9 +938,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap* DrawBuffer = &DrawBuffer_;
-    DrawBuffer->Height = Buffer->Height;
-    DrawBuffer->Pitch = Buffer->Pitch;
-    DrawBuffer->Width = Buffer->Width;
+    DrawBuffer->Height = SafeTruncateToUint16(Buffer->Height);
+    DrawBuffer->Pitch = SafeTruncateToUint16(Buffer->Pitch);
+    DrawBuffer->Width = SafeTruncateToUint16(Buffer->Width);
     DrawBuffer->Memory = Buffer->Memory;
 
     render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4));
@@ -1362,9 +1361,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if 0
     Saturation(RenderGroup, 1.0f);
 #endif
+
+#if 0
     RenderGroup->GlobalAlpha = 1.0f;
     RenderGroup->Transform.OffsetP = V3(0, 0, 0);
-#if 1
+
     for (uint32 ParticleSpawnIndex = 0; ParticleSpawnIndex < 3; ++ParticleSpawnIndex) {
         particle* Particle = GameState->Particles + GameState->NextParticle++;
         if (GameState->NextParticle >= ArrayCount(GameState->Particles)) {
@@ -1386,7 +1387,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Particle->dColor = V4(0.0f, 0.0f, 0.0f, -0.25f);
         Particle->BitmapID = GetRandomBitmapFrom(TranState->Assets, Asset_Head, &GameState->EffectsEntropy);
     }
-#endif
 
     ZeroStruct(GameState->ParticleCells);
 
@@ -1468,6 +1468,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
         PushBitmap(RenderGroup, Particle->BitmapID, 1.0f, Particle->P, Color);
     }
+#endif
 
     TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, DrawBuffer);
 

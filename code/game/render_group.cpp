@@ -623,14 +623,14 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-            }
+                }
             Pixel++;
-        }
+            }
         Row += Buffer->Pitch;
-    }
+        }
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
-}
+    }
 
 #if 1
 #include "../../iacaMarks.h"
@@ -1305,9 +1305,9 @@ internal void RenderGroupToOutput(
         } break;
             InvalidDefaultCase;
         }
-    }
+        }
     END_TIMED_BLOCK(RenderGroupToOutput);
-}
+    }
 
 struct tile_render_work {
     render_group* RenderGroup;
@@ -1373,7 +1373,7 @@ internal void TiledRenderGroupToOutput(
         }
     }
     Platform.CompleteAllWork(RenderQueue);
-}
+    }
 
 internal inline bool32 AllResourcesPresent(render_group* Group) {
     bool32 Result = Group->MissingResourceCount == 0;
