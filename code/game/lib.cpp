@@ -385,13 +385,16 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
 }
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+    asset_slot* Slot = Assets->Slots + ID.Value;
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Slot->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
+
             asset* Asset = Assets->Assets + ID.Value;
             hha_asset* HHAAsset = &Asset->HHA;
             hha_bitmap* Info = &HHAAsset->Bitmap;
-            loaded_bitmap* Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
+
+            loaded_bitmap* Bitmap = &Slot->Bitmap;
 
             Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
             Bitmap->Width = SafeTruncateToUint16(Info->Dim[0]);
@@ -410,7 +413,6 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Size = MemorySize;
             Work->Destination = Bitmap->Memory;
             Work->FinalState = AssetState_Loaded;
-            Work->Slot->Bitmap = Bitmap;
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
 #if 1
@@ -419,19 +421,20 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
-            Assets->Slots[ID.Value].State = AssetState_Unloaded;
+            Slot->State = AssetState_Unloaded;
         }
     }
 }
 
 internal void LoadSound(game_assets* Assets, sound_id ID) {
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Assets->Slots[ID.Value].State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+    asset_slot* Slot = Assets->Slots + ID.Value;
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Slot->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
             asset* Asset = Assets->Assets + ID.Value;
             hha_asset* HHAAsset = &Asset->HHA;
             hha_sound* Info = &HHAAsset->Sound;
-            loaded_sound* Sound = PushStruct(&Assets->Arena, loaded_sound);
+            loaded_sound* Sound = &Slot->Sound;
             Sound->SampleCount = Info->SampleCount;
             Sound->ChannelCount = Info->ChannelCount;
             uint32 MemorySize = Sound->ChannelCount * Sound->SampleCount * sizeof(int16);
@@ -451,7 +454,6 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Work->Size = MemorySize;
             Work->Destination = Memory;
             Work->FinalState = AssetState_Loaded;
-            Work->Slot->Sound = Sound;
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
@@ -460,7 +462,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             LoadSoundWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
-            Assets->Slots[ID.Value].State = AssetState_Unloaded;
+            Slot->State = AssetState_Unloaded;
         }
     }
 }
@@ -790,10 +792,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             SubArena(&Task->Arena, &TranState->TranArena, Megabytes(1));
         }
 
-        TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(2), TranState);
+        TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(3), TranState);
 
-        // GameState->Music = PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
-        ChangeVolume(&GameState->AudioState, GameState->Music, 0.1f, V2(0.0f, 0.0f));
+        GameState->Music = PlaySound(&GameState->AudioState, GetFirstSoundFrom(TranState->Assets, Asset_Music));
+        ChangeVolume(&GameState->AudioState, GameState->Music, 0.1f, V2(0.1f, 0.1f));
 
         TranState->GroundBufferCount = 128;
         TranState->GroundBuffers =

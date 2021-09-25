@@ -48,8 +48,8 @@ struct loaded_sound {
 struct asset_slot {
     uint32 State;
     union {
-        loaded_bitmap* Bitmap;
-        loaded_sound* Sound;
+        loaded_bitmap Bitmap;
+        loaded_sound Sound;
     };
 };
 
@@ -428,7 +428,7 @@ internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
     loaded_bitmap* Result = 0;
     if (Slot->State >= AssetState_Loaded) {
         CompletePreviousReadsBeforeFutureReads;
-        Result = Slot->Bitmap;
+        Result = &Slot->Bitmap;
     }
     return Result;
 }
@@ -439,7 +439,7 @@ internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
     loaded_sound* Result = 0;
     if (Slot->State >= AssetState_Loaded) {
         CompletePreviousReadsBeforeFutureReads;
-        Result = Slot->Sound;
+        Result = &Slot->Sound;
     }
     return Result;
 }
