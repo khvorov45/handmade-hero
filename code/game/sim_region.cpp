@@ -134,9 +134,16 @@ struct ground_buffer {
     loaded_bitmap Bitmap;
 };
 
+struct particle_cell {
+    real32 Density;
+    v3 VelocityTimesDensity;
+};
+
 struct particle {
+    bitmap_id BitmapID;
     v3 P;
     v3 dP;
+    v3 ddP;
     v4 Color;
     v4 dColor;
 };
@@ -180,8 +187,10 @@ struct game_state {
     audio_state AudioState;
     playing_sound* Music;
 
+#define PARTICLE_CELL_DIM 32
     uint32 NextParticle;
     particle Particles[256];
+    particle_cell ParticleCells[PARTICLE_CELL_DIM][PARTICLE_CELL_DIM];
 };
 
 struct environment_map {
@@ -500,15 +509,15 @@ internal void EndSim(sim_region* Region, game_state* GameState) {
                 NewCameraP.AbsTileY += 9;
             } else if (CameraFollowingEntity.High->P.y < -5.0f * TileMap->TileSideInMeters) {
                 NewCameraP.AbsTileY -= 9;
-            }
+        }
 #else
             //real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
             //NewCameraP.Offset_.z = CamZOffset;
 #endif
             GameState->CameraP = NewCameraP;
-        }
     }
+}
 }
 
 struct test_wall {
