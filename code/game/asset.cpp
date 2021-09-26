@@ -37,6 +37,18 @@ enum asset_state {
     AssetState_Queued,
     AssetState_Loaded,
     AssetState_Locked,
+
+    AssetState_StateMask = 0xFFF,
+
+    AssetState_Sound = 0x1000,
+    AssetState_Bitmap = 0x2000,
+
+    AssetState_TypeMask = 0xF000,
+};
+
+struct asset_memory_size {
+    uint32 Total;
+    uint32 Section;
 };
 
 struct loaded_sound {
@@ -75,6 +87,7 @@ struct game_assets {
     memory_arena Arena;
 
     uint64 TotalMemoryUsed;
+    uint64 TargetMemoryUsed;
 
     real32 TagRange[Tag_Count];
 
@@ -163,6 +176,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     SubArena(&Assets->Arena, Arena, Size);
     Assets->TranState = TranState;
     Assets->TotalMemoryUsed = 0;
+    Assets->TargetMemoryUsed = Size;
 
     for (uint32 TagType = 0; TagType < Tag_Count; ++TagType) {
         Assets->TagRange[TagType] = 100000.0f;
@@ -425,11 +439,21 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     return Assets;
 }
 
+internal uint32 GetState(asset_slot* Slot) {
+    uint32 Result = Slot->State & AssetState_StateMask;
+    return Result;
+}
+
+internal uint32 GetType(asset_slot* Slot) {
+    uint32 Result = Slot->State & AssetState_TypeMask;
+    return Result;
+}
+
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
     asset_slot* Slot = Assets->Slots + ID.Value;
     loaded_bitmap* Result = 0;
-    if (Slot->State >= AssetState_Loaded) {
+    if (GetState(Slot) >= AssetState_Loaded) {
         CompletePreviousReadsBeforeFutureReads;
         Result = &Slot->Bitmap;
     }
@@ -440,7 +464,7 @@ internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
     asset_slot* Slot = Assets->Slots + ID.Value;
     loaded_sound* Result = 0;
-    if (Slot->State >= AssetState_Loaded) {
+    if (GetState(Slot) >= AssetState_Loaded) {
         CompletePreviousReadsBeforeFutureReads;
         Result = &Slot->Sound;
     }
@@ -707,5 +731,67 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
     return Result;
 }
 #endif
+
+internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
+    void* Result = Platform.AllocateMemory(Size);
+    if (Result) {
+        Assets->TotalMemoryUsed += Size;
+    }
+    return Result;
+}
+
+internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* Memory) {
+    Platform.DeallocateMemory(Memory);
+    if (Memory) {
+        Assets->TotalMemoryUsed -= Size;
+    }
+}
+
+internal asset_memory_size GetSizeOfAsset(game_assets* Assets, uint32 Type, uint32 SlotIndex) {
+    asset* Asset = Assets->Assets + SlotIndex;
+    asset_memory_size Result = {};
+    if (Type == AssetState_Sound) {
+        hha_sound* Sound = &Asset->HHA.Sound;
+        Result.Section = Sound->SampleCount * sizeof(int16);
+        Result.Total = Sound->ChannelCount * Result.Section;
+    } else {
+        Assert(Type == AssetState_Bitmap);
+        hha_bitmap* Info = &Asset->HHA.Bitmap;
+        uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
+        uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
+        Result.Section = Width * 4;
+        Result.Total = Result.Section * Height;
+    }
+    return Result;
+}
+
+internal void EvictAsset(game_assets* Assets, uint32 SlotIndex) {
+    asset_slot* Slot = Assets->Slots + SlotIndex;
+    Assert(GetState(Slot) == AssetState_Loaded);
+    asset_memory_size Size = GetSizeOfAsset(Assets, GetType(Slot), SlotIndex);
+    void* Memory = 0;
+    if (GetType(Slot) == AssetState_Sound) {
+        Memory = Slot->Sound.Samples[0];
+    } else {
+        Assert(GetType(Slot) == AssetState_Bitmap);
+        Memory = Slot->Bitmap.Memory;
+    }
+    ReleaseAssetMemory(Assets, Size.Total, Memory);
+    Slot->State = AssetState_Unloaded;
+}
+
+internal void EvictAssetsAsNecessary(game_assets* Assets) {
+#if 0
+    while (Assets->TotalMemoryUsed > Assets->TargetMemoryUsed) {
+        uint32 SlotIndex = GetLeastRecentlyUsedAsset(Assets);
+        if (SlotIndex) {
+            EvictAsset(Assets, SlotIndex);
+        } else {
+            InvalidCodePath;
+            break;
+        }
+    }
+#endif
+}
 
 #endif

@@ -38,4 +38,10 @@ inline uint16 SafeTruncateToUint16(int32 Value) {
     return (uint16)(Value);
 }
 
+inline int16 SafeTruncateToInt16(int32 Value) {
+    Assert(Value <= 32767);
+    Assert(Value >= -32768);
+    return (int16)(Value);
+}
+
 #endif

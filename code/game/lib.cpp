@@ -362,7 +362,7 @@ struct load_asset_work {
     uint64 Offset;
     uint64 Size;
     void* Destination;
-    asset_state FinalState;
+    uint32 FinalState;
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
@@ -388,21 +388,6 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
     return Handle;
 }
 
-internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
-    void* Result = Platform.AllocateMemory(Size);
-    if (Result) {
-        Assets->TotalMemoryUsed += Size;
-    }
-    return Result;
-}
-
-internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* Memory) {
-    Platform.DeallocateMemory(Memory);
-    if (Memory) {
-        Assets->TotalMemoryUsed -= Size;
-    }
-}
-
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
     asset_slot* Slot = Assets->Slots + ID.Value;
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Slot->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
@@ -418,20 +403,20 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
             Bitmap->Width = SafeTruncateToUint16(Info->Dim[0]);
             Bitmap->Height = SafeTruncateToUint16(Info->Dim[1]);
-            Bitmap->Pitch = SafeTruncateToUint16(Bitmap->Width * 4);
             Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
 
-            uint32 MemorySize = Bitmap->Pitch * Bitmap->Height;
-            Bitmap->Memory = AcquireAssetMemory(Assets, MemorySize); //PushSize(&Assets->Arena, MemorySize);
+            asset_memory_size MemorySize = GetSizeOfAsset(Assets, AssetState_Bitmap, ID.Value);
+            Bitmap->Pitch = SafeTruncateToInt16(MemorySize.Section);
+            Bitmap->Memory = AcquireAssetMemory(Assets, MemorySize.Total); //PushSize(&Assets->Arena, MemorySize);
 
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
             Work->Slot = Assets->Slots + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
-            Work->Size = MemorySize;
+            Work->Size = MemorySize.Total;
             Work->Destination = Bitmap->Memory;
-            Work->FinalState = AssetState_Loaded;
+            Work->FinalState = AssetState_Loaded | AssetState_Bitmap;
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
 #if 1
@@ -456,8 +441,8 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             loaded_sound* Sound = &Slot->Sound;
             Sound->SampleCount = Info->SampleCount;
             Sound->ChannelCount = Info->ChannelCount;
-            uint32 MemorySize = Sound->ChannelCount * Sound->SampleCount * sizeof(int16);
-            void* Memory = AcquireAssetMemory(Assets, MemorySize); // PushSize(&Assets->Arena, MemorySize);
+            asset_memory_size MemorySize = GetSizeOfAsset(Assets, AssetState_Sound, ID.Value);
+            void* Memory = AcquireAssetMemory(Assets, MemorySize.Total); // PushSize(&Assets->Arena, MemorySize);
 
             int16* SoundAt = (int16*)Memory;
             for (uint32 ChannelIndex = 0; ChannelIndex < Sound->ChannelCount; ++ChannelIndex) {
@@ -470,9 +455,9 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Work->Slot = Assets->Slots + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
-            Work->Size = MemorySize;
+            Work->Size = MemorySize.Total;
             Work->Destination = Memory;
-            Work->FinalState = AssetState_Loaded;
+            Work->FinalState = AssetState_Loaded | AssetState_Sound;
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
@@ -1497,6 +1482,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     EndTemporaryMemory(SimMemory);
     EndTemporaryMemory(RenderMemory);
+
+    EvictAssetsAsNecessary(TranState->Assets);
 
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
