@@ -397,28 +397,36 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
             hha_asset* HHAAsset = &Asset->HHA;
             hha_bitmap* Info = &HHAAsset->Bitmap;
 
-            loaded_bitmap* Bitmap = &Asset->Bitmap;
+            asset_memory_size Size = {};
+            uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
+            uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
+            Size.Section = Width * 4;
+            Size.Data = Size.Section * Height;
+            Size.Total = Size.Data + sizeof(asset_memory_header);
+
+            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total);
+
+            loaded_bitmap* Bitmap = &Asset->Header->Bitmap;
 
             Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
             Bitmap->Width = SafeTruncateToUint16(Info->Dim[0]);
             Bitmap->Height = SafeTruncateToUint16(Info->Dim[1]);
             Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
 
-            asset_memory_size MemorySize = GetSizeOfAsset(Assets, AssetState_Bitmap, ID.Value);
-            Bitmap->Pitch = SafeTruncateToInt16(MemorySize.Section);
-            Bitmap->Memory = AcquireAssetMemory(Assets, MemorySize.Total); //PushSize(&Assets->Arena, MemorySize);
+            Bitmap->Pitch = SafeTruncateToInt16(Size.Section);
+            Bitmap->Memory = Asset->Header + 1;
 
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
             Work->Asset = Assets->Assets + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
-            Work->Size = MemorySize.Data;
+            Work->Size = Size.Data;
             Work->Destination = Bitmap->Memory;
-            Work->FinalState = AssetState_Loaded | AssetState_Bitmap | (Locked ? AssetState_Lock : 0);
+            Work->FinalState = AssetState_Loaded | (Locked ? AssetState_Lock : 0);
 
             if (!Locked) {
-                AddAssetHeaderToList(Assets, ID.Value, Bitmap->Memory, MemorySize);
+                AddAssetHeaderToList(Assets, ID.Value, Size);
             } else {
                 Asset->State |= AssetState_Lock;
             }
@@ -442,11 +450,18 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
         if (Task) {
             hha_asset* HHAAsset = &Asset->HHA;
             hha_sound* Info = &HHAAsset->Sound;
-            loaded_sound* Sound = &Asset->Sound;
+
+            asset_memory_size Size = {};
+            Size.Section = Info->SampleCount * sizeof(int16);
+            Size.Data = Info->ChannelCount * Size.Section;
+            Size.Total = Size.Data + sizeof(asset_memory_header);
+
+            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total);
+
+            loaded_sound* Sound = &Asset->Header->Sound;
             Sound->SampleCount = Info->SampleCount;
             Sound->ChannelCount = Info->ChannelCount;
-            asset_memory_size MemorySize = GetSizeOfAsset(Assets, AssetState_Sound, ID.Value);
-            void* Memory = AcquireAssetMemory(Assets, MemorySize.Total); // PushSize(&Assets->Arena, MemorySize);
+            void* Memory = Asset->Header + 1;
 
             int16* SoundAt = (int16*)Memory;
             for (uint32 ChannelIndex = 0; ChannelIndex < Sound->ChannelCount; ++ChannelIndex) {
@@ -459,11 +474,11 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Work->Asset = Assets->Assets + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
-            Work->Size = MemorySize.Data;
+            Work->Size = Size.Data;
             Work->Destination = Memory;
-            Work->FinalState = AssetState_Loaded | AssetState_Sound;
+            Work->FinalState = AssetState_Loaded;
 
-            AddAssetHeaderToList(Assets, ID.Value, Memory, MemorySize);
+            AddAssetHeaderToList(Assets, ID.Value, Size);
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
@@ -943,8 +958,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
-            }
+        }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1495,7 +1510,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-        }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
