@@ -416,10 +416,12 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
             Work->Offset = HHAAsset->DataOffset;
             Work->Size = MemorySize.Data;
             Work->Destination = Bitmap->Memory;
-            Work->FinalState = (Locked ? AssetState_Locked : AssetState_Loaded) | AssetState_Bitmap;
+            Work->FinalState = AssetState_Loaded | AssetState_Bitmap | (Locked ? AssetState_Lock : 0);
 
             if (!Locked) {
                 AddAssetHeaderToList(Assets, ID.Value, Bitmap->Memory, MemorySize);
+            } else {
+                Slot->State |= AssetState_Lock;
             }
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
@@ -943,8 +945,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
-    }
+            }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1495,7 +1497,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-}
+        }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;

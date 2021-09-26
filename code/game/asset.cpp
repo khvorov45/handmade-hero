@@ -43,7 +43,6 @@ enum asset_state {
     AssetState_Unloaded,
     AssetState_Queued,
     AssetState_Loaded,
-    AssetState_Locked,
 
     AssetState_StateMask = 0xFFF,
 
@@ -51,6 +50,8 @@ enum asset_state {
     AssetState_Bitmap = 0x2000,
 
     AssetState_TypeMask = 0xF000,
+
+    AssetState_Lock = 0x10000,
 };
 
 struct asset_memory_size {
@@ -176,6 +177,11 @@ internal bool32 IsValid(sound_id ID) {
 
 internal bool32 IsValid(bitmap_id ID) {
     bool32 Result = ID.Value != 0;
+    return Result;
+}
+
+internal bool32 IsLocked(asset_slot* Slot) {
+    bool32 Result = (Slot->State & AssetState_Lock) != 0;
     return Result;
 }
 
@@ -494,7 +500,7 @@ internal asset_memory_size GetSizeOfAsset(game_assets* Assets, uint32 Type, uint
 }
 
 internal void MoveHeaderToFront(game_assets* Assets, uint32 SlotIndex, asset_slot* Slot) {
-    if (GetState(Slot) != AssetState_Locked) {
+    if (!IsLocked(Slot)) {
         asset_memory_size Size = GetSizeOfAsset(Assets, GetType(Slot), SlotIndex);
         void* Memory = 0;
         if (GetType(Slot) == AssetState_Bitmap) {
@@ -514,7 +520,7 @@ internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID, bool
     asset_slot* Slot = Assets->Slots + ID.Value;
     loaded_bitmap* Result = 0;
     if (GetState(Slot) >= AssetState_Loaded) {
-        Assert(!MustBeLocked || GetState(Slot) == AssetState_Locked);
+        Assert(!MustBeLocked || IsLocked(Slot));
         CompletePreviousReadsBeforeFutureReads;
         Result = &Slot->Bitmap;
         MoveHeaderToFront(Assets, ID.Value, Slot);
@@ -819,6 +825,7 @@ internal void AddAssetHeaderToList(game_assets* Assets, uint32 SlotIndex, void* 
 internal void EvictAsset(game_assets* Assets, asset_memory_header* Header) {
     asset_slot* Slot = Assets->Slots + Header->SlotIndex;
     Assert(GetState(Slot) == AssetState_Loaded);
+    Assert(!IsLocked(Slot));
     asset_memory_size Size = GetSizeOfAsset(Assets, GetType(Slot), Header->SlotIndex);
     void* Memory = 0;
     if (GetType(Slot) == AssetState_Sound) {
