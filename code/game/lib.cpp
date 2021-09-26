@@ -357,7 +357,7 @@ internal void EndTaskWithMemory(task_with_memory* Task) {
 
 struct load_asset_work {
     task_with_memory* Task;
-    asset* Slot;
+    asset* Asset;
     platform_file_handle* Handle;
     uint64 Offset;
     uint64 Size;
@@ -376,7 +376,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
         ZeroSize(Work->Size, Work->Destination);
     }
 
-    Work->Slot->State = Work->FinalState;
+    Work->Asset->State = Work->FinalState;
 
     EndTaskWithMemory(Work->Task);
 }
@@ -389,16 +389,15 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
 }
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
-    asset* Slot = Assets->Assets + ID.Value;
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Slot->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+    asset* Asset = Assets->Assets + ID.Value;
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
 
-            asset* Asset = Assets->Assets + ID.Value;
             hha_asset* HHAAsset = &Asset->HHA;
             hha_bitmap* Info = &HHAAsset->Bitmap;
 
-            loaded_bitmap* Bitmap = &Slot->Bitmap;
+            loaded_bitmap* Bitmap = &Asset->Bitmap;
 
             Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
             Bitmap->Width = SafeTruncateToUint16(Info->Dim[0]);
@@ -411,7 +410,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
 
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
-            Work->Slot = Assets->Assets + ID.Value;
+            Work->Asset = Assets->Assets + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
             Work->Size = MemorySize.Data;
@@ -421,7 +420,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
             if (!Locked) {
                 AddAssetHeaderToList(Assets, ID.Value, Bitmap->Memory, MemorySize);
             } else {
-                Slot->State |= AssetState_Lock;
+                Asset->State |= AssetState_Lock;
             }
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
@@ -431,20 +430,19 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
             LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
-            Slot->State = AssetState_Unloaded;
+            Asset->State = AssetState_Unloaded;
         }
     }
 }
 
 internal void LoadSound(game_assets* Assets, sound_id ID) {
-    asset* Slot = Assets->Assets + ID.Value;
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Slot->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+    asset* Asset = Assets->Assets + ID.Value;
+    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
         if (Task) {
-            asset* Asset = Assets->Assets + ID.Value;
             hha_asset* HHAAsset = &Asset->HHA;
             hha_sound* Info = &HHAAsset->Sound;
-            loaded_sound* Sound = &Slot->Sound;
+            loaded_sound* Sound = &Asset->Sound;
             Sound->SampleCount = Info->SampleCount;
             Sound->ChannelCount = Info->ChannelCount;
             asset_memory_size MemorySize = GetSizeOfAsset(Assets, AssetState_Sound, ID.Value);
@@ -458,7 +456,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
 
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
-            Work->Slot = Assets->Assets + ID.Value;
+            Work->Asset = Assets->Assets + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
             Work->Size = MemorySize.Data;
@@ -474,7 +472,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
-            Slot->State = AssetState_Unloaded;
+            Asset->State = AssetState_Unloaded;
         }
     }
 }
@@ -945,8 +943,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
-    }
+            }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1497,7 +1495,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&TranState->TranArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
-}
+        }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
