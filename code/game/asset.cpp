@@ -461,6 +461,54 @@ internal uint32 GetType(asset_slot* Slot) {
     return Result;
 }
 
+internal void InsertAssetheaderAtFront(game_assets* Assets, asset_memory_header* Header) {
+    Header->Prev = &Assets->LoadedAssetSentinel;
+    Header->Next = Assets->LoadedAssetSentinel.Next;
+    Header->Prev->Next = Header;
+    Header->Next->Prev = Header;
+}
+
+internal void RemoveAssetHeaderFromList(asset_memory_header* Header) {
+    Header->Prev->Next = Header->Next;
+    Header->Next->Prev = Header->Prev;
+    Header->Next = Header->Prev = 0;
+}
+
+internal asset_memory_size GetSizeOfAsset(game_assets* Assets, uint32 Type, uint32 SlotIndex) {
+    asset* Asset = Assets->Assets + SlotIndex;
+    asset_memory_size Result = {};
+    if (Type == AssetState_Sound) {
+        hha_sound* Sound = &Asset->HHA.Sound;
+        Result.Section = Sound->SampleCount * sizeof(int16);
+        Result.Data = Sound->ChannelCount * Result.Section;
+    } else {
+        Assert(Type == AssetState_Bitmap);
+        hha_bitmap* Info = &Asset->HHA.Bitmap;
+        uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
+        uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
+        Result.Section = Width * 4;
+        Result.Data = Result.Section * Height;
+    }
+    Result.Total = Result.Data + sizeof(asset_memory_header);
+    return Result;
+}
+
+internal void MoveHeaderToFront(game_assets* Assets, uint32 SlotIndex, asset_slot* Slot) {
+    if (GetState(Slot) != AssetState_Locked) {
+        asset_memory_size Size = GetSizeOfAsset(Assets, GetType(Slot), SlotIndex);
+        void* Memory = 0;
+        if (GetType(Slot) == AssetState_Bitmap) {
+            Memory = Slot->Bitmap.Memory;
+        } else {
+            Assert(GetType(Slot) == AssetState_Sound);
+            Memory = Slot->Sound.Samples[0];
+        }
+        asset_memory_header* Header = (asset_memory_header*)((uint8*)Memory + Size.Data);;
+        RemoveAssetHeaderFromList(Header);
+        InsertAssetheaderAtFront(Assets, Header);
+    }
+}
+
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID, bool32 MustBeLocked) {
     Assert(ID.Value <= Assets->AssetCount);
     asset_slot* Slot = Assets->Slots + ID.Value;
@@ -469,6 +517,7 @@ internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID, bool
         Assert(!MustBeLocked || GetState(Slot) == AssetState_Locked);
         CompletePreviousReadsBeforeFutureReads;
         Result = &Slot->Bitmap;
+        MoveHeaderToFront(Assets, ID.Value, Slot);
     }
     return Result;
 }
@@ -480,6 +529,7 @@ internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
     if (GetState(Slot) >= AssetState_Loaded) {
         CompletePreviousReadsBeforeFutureReads;
         Result = &Slot->Sound;
+        MoveHeaderToFront(Assets, ID.Value, Slot);
     }
     return Result;
 }
@@ -762,37 +812,8 @@ internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* M
 
 internal void AddAssetHeaderToList(game_assets* Assets, uint32 SlotIndex, void* Memory, asset_memory_size Size) {
     asset_memory_header* Header = (asset_memory_header*)((uint8*)Memory + Size.Data);
-    asset_memory_header* Sentinel = &Assets->LoadedAssetSentinel;
     Header->SlotIndex = SlotIndex;
-    Header->Prev = Sentinel;
-    Header->Next = Sentinel->Next;
-    Header->Next->Prev = Header;
-    Header->Prev->Next = Header;
-}
-
-internal void RemoveAssetHeaderFromList(asset_memory_header* Header) {
-    Header->Prev->Next = Header->Next;
-    Header->Next->Prev = Header->Prev;
-    Header->Next = Header->Prev = 0;
-}
-
-internal asset_memory_size GetSizeOfAsset(game_assets* Assets, uint32 Type, uint32 SlotIndex) {
-    asset* Asset = Assets->Assets + SlotIndex;
-    asset_memory_size Result = {};
-    if (Type == AssetState_Sound) {
-        hha_sound* Sound = &Asset->HHA.Sound;
-        Result.Section = Sound->SampleCount * sizeof(int16);
-        Result.Data = Sound->ChannelCount * Result.Section;
-    } else {
-        Assert(Type == AssetState_Bitmap);
-        hha_bitmap* Info = &Asset->HHA.Bitmap;
-        uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
-        uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
-        Result.Section = Width * 4;
-        Result.Data = Result.Section * Height;
-    }
-    Result.Total = Result.Data + sizeof(asset_memory_header);
-    return Result;
+    InsertAssetheaderAtFront(Assets, Header);
 }
 
 internal void EvictAsset(game_assets* Assets, asset_memory_header* Header) {
