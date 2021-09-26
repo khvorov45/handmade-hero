@@ -32,6 +32,13 @@ struct asset_type {
     uint32 OnePastLastAssetIndex;
 };
 
+struct asset_memory_header {
+    asset_memory_header* Next;
+    asset_memory_header* Prev;
+    uint32 SlotIndex;
+    uint32 Reserved;
+};
+
 enum asset_state {
     AssetState_Unloaded,
     AssetState_Queued,
@@ -48,6 +55,7 @@ enum asset_state {
 
 struct asset_memory_size {
     uint32 Total;
+    uint32 Data;
     uint32 Section;
 };
 
@@ -88,6 +96,7 @@ struct game_assets {
 
     uint64 TotalMemoryUsed;
     uint64 TargetMemoryUsed;
+    asset_memory_header LoadedAssetSentinel;
 
     real32 TagRange[Tag_Count];
 
@@ -177,6 +186,9 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     Assets->TranState = TranState;
     Assets->TotalMemoryUsed = 0;
     Assets->TargetMemoryUsed = Size;
+
+    Assets->LoadedAssetSentinel.Next = &Assets->LoadedAssetSentinel;
+    Assets->LoadedAssetSentinel.Prev = &Assets->LoadedAssetSentinel;
 
     for (uint32 TagType = 0; TagType < Tag_Count; ++TagType) {
         Assets->TagRange[TagType] = 100000.0f;
@@ -747,28 +759,45 @@ internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* M
     }
 }
 
+internal void AddAssetHeaderToList(game_assets* Assets, uint32 SlotIndex, void* Memory, asset_memory_size Size) {
+    asset_memory_header* Header = (asset_memory_header*)((uint8*)Memory + Size.Data);
+    asset_memory_header* Sentinel = &Assets->LoadedAssetSentinel;
+    Header->SlotIndex = SlotIndex;
+    Header->Prev = Sentinel;
+    Header->Next = Sentinel->Next;
+    Header->Next->Prev = Header;
+    Header->Prev->Next = Header;
+}
+
+internal void RemoveAssetHeaderFromList(asset_memory_header* Header) {
+    Header->Prev->Next = Header->Next;
+    Header->Next->Prev = Header->Prev;
+    Header->Next = Header->Prev = 0;
+}
+
 internal asset_memory_size GetSizeOfAsset(game_assets* Assets, uint32 Type, uint32 SlotIndex) {
     asset* Asset = Assets->Assets + SlotIndex;
     asset_memory_size Result = {};
     if (Type == AssetState_Sound) {
         hha_sound* Sound = &Asset->HHA.Sound;
         Result.Section = Sound->SampleCount * sizeof(int16);
-        Result.Total = Sound->ChannelCount * Result.Section;
+        Result.Data = Sound->ChannelCount * Result.Section;
     } else {
         Assert(Type == AssetState_Bitmap);
         hha_bitmap* Info = &Asset->HHA.Bitmap;
         uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
         uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
         Result.Section = Width * 4;
-        Result.Total = Result.Section * Height;
+        Result.Data = Result.Section * Height;
     }
+    Result.Total = Result.Data + sizeof(asset_memory_header);
     return Result;
 }
 
-internal void EvictAsset(game_assets* Assets, uint32 SlotIndex) {
-    asset_slot* Slot = Assets->Slots + SlotIndex;
+internal void EvictAsset(game_assets* Assets, asset_memory_header* Header) {
+    asset_slot* Slot = Assets->Slots + Header->SlotIndex;
     Assert(GetState(Slot) == AssetState_Loaded);
-    asset_memory_size Size = GetSizeOfAsset(Assets, GetType(Slot), SlotIndex);
+    asset_memory_size Size = GetSizeOfAsset(Assets, GetType(Slot), Header->SlotIndex);
     void* Memory = 0;
     if (GetType(Slot) == AssetState_Sound) {
         Memory = Slot->Sound.Samples[0];
@@ -776,16 +805,17 @@ internal void EvictAsset(game_assets* Assets, uint32 SlotIndex) {
         Assert(GetType(Slot) == AssetState_Bitmap);
         Memory = Slot->Bitmap.Memory;
     }
+    RemoveAssetHeaderFromList(Header);
     ReleaseAssetMemory(Assets, Size.Total, Memory);
     Slot->State = AssetState_Unloaded;
 }
 
 internal void EvictAssetsAsNecessary(game_assets* Assets) {
-#if 0
+#if 1
     while (Assets->TotalMemoryUsed > Assets->TargetMemoryUsed) {
-        uint32 SlotIndex = GetLeastRecentlyUsedAsset(Assets);
-        if (SlotIndex) {
-            EvictAsset(Assets, SlotIndex);
+        asset_memory_header* Asset = Assets->LoadedAssetSentinel.Prev;
+        if (Asset != &Assets->LoadedAssetSentinel) {
+            EvictAsset(Assets, Asset);
         } else {
             InvalidCodePath;
             break;

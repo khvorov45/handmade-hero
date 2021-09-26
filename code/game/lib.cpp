@@ -414,9 +414,11 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Slot = Assets->Slots + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
-            Work->Size = MemorySize.Total;
+            Work->Size = MemorySize.Data;
             Work->Destination = Bitmap->Memory;
             Work->FinalState = AssetState_Loaded | AssetState_Bitmap;
+
+            AddAssetHeaderToList(Assets, ID.Value, Bitmap->Memory, MemorySize);
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
 #if 1
@@ -455,15 +457,17 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Work->Slot = Assets->Slots + ID.Value;
             Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
             Work->Offset = HHAAsset->DataOffset;
-            Work->Size = MemorySize.Total;
+            Work->Size = MemorySize.Data;
             Work->Destination = Memory;
             Work->FinalState = AssetState_Loaded | AssetState_Sound;
+
+            AddAssetHeaderToList(Assets, ID.Value, Memory, MemorySize);
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
             Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
-            LoadSoundWork(Assets->TranState->LowPriorityQueue, Work);
+            LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
 #endif
         } else {
             Slot->State = AssetState_Unloaded;
