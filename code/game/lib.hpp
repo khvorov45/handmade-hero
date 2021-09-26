@@ -97,6 +97,12 @@ typedef PLATFORM_READ_DATA_FROM_FILE(platform_read_data_from_file);
 #define PLATFORM_FILE_ERROR(name) void name(platform_file_handle* Handle, char* Message)
 typedef PLATFORM_FILE_ERROR(platform_file_error);
 
+#define PLATFORM_ALLOCATE_MEMORY(name) void* name(memory_index Size)
+typedef PLATFORM_ALLOCATE_MEMORY(platform_allocate_memory);
+
+#define PLATFORM_DEALLOCATE_MEMORY(name) void name(void* Memory)
+typedef PLATFORM_DEALLOCATE_MEMORY(platform_deallocate_memory);
+
 struct platform_api {
     platform_add_entry* AddEntry;
     platform_complete_all_work* CompleteAllWork;
@@ -106,6 +112,9 @@ struct platform_api {
     platform_open_next_file* OpenNextFile;
     platform_read_data_from_file* ReadDataFromFile;
     platform_file_error* FileError;
+
+    platform_allocate_memory* AllocateMemory;
+    platform_deallocate_memory* DeallocateMemory;
 
     debug_platform_read_entire_file* DEBUGReadEntireFile;
     debug_platform_free_file_memory* DEBUGFreeFileMemory;
