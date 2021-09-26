@@ -35,9 +35,9 @@ struct loaded_bitmap {
     void* Memory;
     v2 AlignPercentage;
     real32 WidthOverHeight;
-    int16 Width;
-    int16 Height;
-    int16 Pitch;
+    int32 Width;
+    int32 Height;
+    int32 Pitch;
 };
 
 

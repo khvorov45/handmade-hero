@@ -217,9 +217,9 @@ MakeEmptyBitmap(memory_arena* Arena, int32 Width, int32 Height, bool32 ClearToZe
 
     loaded_bitmap Result = {};
 
-    Result.Width = SafeTruncateToUint16(Width);
-    Result.Height = SafeTruncateToUint16(Height);
-    Result.Pitch = SafeTruncateToUint16(Width * BITMAP_BYTES_PER_PIXEL);
+    Result.Width = Width;
+    Result.Height = Height;
+    Result.Pitch = Width * BITMAP_BYTES_PER_PIXEL;
 
     int32 TotalBitmapSize = Width * Height * BITMAP_BYTES_PER_PIXEL;
     Result.Memory = PushSize(Arena, TotalBitmapSize, 16);
@@ -398,8 +398,8 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
             hha_bitmap* Info = &HHAAsset->Bitmap;
 
             asset_memory_size Size = {};
-            uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
-            uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
+            uint32 Width = Info->Dim[0];
+            uint32 Height = Info->Dim[1];
             Size.Section = Width * 4;
             Size.Data = Size.Section * Height;
             Size.Total = Size.Data + sizeof(asset_memory_header);
@@ -409,11 +409,11 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
             loaded_bitmap* Bitmap = &Asset->Header->Bitmap;
 
             Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
-            Bitmap->Width = SafeTruncateToUint16(Info->Dim[0]);
-            Bitmap->Height = SafeTruncateToUint16(Info->Dim[1]);
+            Bitmap->Width = Info->Dim[0];
+            Bitmap->Height = Info->Dim[1];
             Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
 
-            Bitmap->Pitch = SafeTruncateToInt16(Size.Section);
+            Bitmap->Pitch = Size.Section;
             Bitmap->Memory = Asset->Header + 1;
 
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
@@ -965,9 +965,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap* DrawBuffer = &DrawBuffer_;
-    DrawBuffer->Height = SafeTruncateToUint16(Buffer->Height);
-    DrawBuffer->Pitch = SafeTruncateToUint16(Buffer->Pitch);
-    DrawBuffer->Width = SafeTruncateToUint16(Buffer->Width);
+    DrawBuffer->Height = Buffer->Height;
+    DrawBuffer->Pitch = Buffer->Pitch;
+    DrawBuffer->Width = Buffer->Width;
     DrawBuffer->Memory = Buffer->Memory;
 
     render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4), false);

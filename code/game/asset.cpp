@@ -475,8 +475,8 @@ internal asset_memory_size GetSizeOfAsset(game_assets* Assets, bool32 IsSound, u
         Result.Data = Sound->ChannelCount * Result.Section;
     } else {
         hha_bitmap* Info = &Asset->HHA.Bitmap;
-        uint32 Width = SafeTruncateToUint16(Info->Dim[0]);
-        uint32 Height = SafeTruncateToUint16(Info->Dim[1]);
+        uint32 Width = Info->Dim[0];
+        uint32 Height = Info->Dim[1];
         Result.Section = Width * 4;
         Result.Data = Result.Section * Height;
     }
