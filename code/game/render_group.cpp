@@ -71,9 +71,11 @@ struct render_group {
     uint32 PushBufferSize;
     uint8* PushBufferBase;
     uint32 MissingResourceCount;
+    bool32 AssetsShouldBeLocked;
 };
 
-internal render_group* AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize) {
+internal render_group*
+AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize, bool32 AssetsShouldBeLocked) {
     render_group* Result = PushStruct(Arena, render_group);
     Result->Assets = Assets;
     if (MaxPushBufferSize == 0) {
@@ -86,6 +88,7 @@ internal render_group* AllocateRenderGroup(game_assets* Assets, memory_arena* Ar
     Result->Transform.OffsetP = V3(0, 0, 0);
     Result->Transform.Scale = 1.0f;
     Result->MissingResourceCount = 0;
+    Result->AssetsShouldBeLocked = AssetsShouldBeLocked;
     return Result;
 }
 
@@ -184,16 +187,16 @@ internal inline void PushBitmap(
     }
 }
 
-internal void LoadBitmap(game_assets* Assets, bitmap_id ID);
+internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked);
 internal inline void PushBitmap(
     render_group* Group, bitmap_id ID, real32 Height,
     v3 Offset, v4 Color = V4(1, 1, 1, 1)
 ) {
-    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID);
+    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID, Group->AssetsShouldBeLocked);
     if (Bitmap) {
         PushBitmap(Group, Bitmap, Height, Offset, Color);
     } else {
-        LoadBitmap(Group->Assets, ID);
+        LoadBitmap(Group->Assets, ID, Group->AssetsShouldBeLocked);
         ++Group->MissingResourceCount;
     }
 }
@@ -265,7 +268,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-    }
+}
 #endif
 }
 
@@ -598,7 +601,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-                }
+            }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -623,14 +626,14 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-                }
-            Pixel++;
-            }
-        Row += Buffer->Pitch;
         }
+            Pixel++;
+    }
+        Row += Buffer->Pitch;
+}
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
-    }
+}
 
 #if 1
 #include "../../iacaMarks.h"
@@ -1299,15 +1302,15 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-            }
+        }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
-        }
-        }
-    END_TIMED_BLOCK(RenderGroupToOutput);
     }
+}
+    END_TIMED_BLOCK(RenderGroupToOutput);
+}
 
 struct tile_render_work {
     render_group* RenderGroup;
@@ -1373,7 +1376,7 @@ internal void TiledRenderGroupToOutput(
         }
     }
     Platform.CompleteAllWork(RenderQueue);
-    }
+}
 
 internal inline bool32 AllResourcesPresent(render_group* Group) {
     bool32 Result = Group->MissingResourceCount == 0;

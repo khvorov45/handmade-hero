@@ -461,11 +461,12 @@ internal uint32 GetType(asset_slot* Slot) {
     return Result;
 }
 
-internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
+internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID, bool32 MustBeLocked) {
     Assert(ID.Value <= Assets->AssetCount);
     asset_slot* Slot = Assets->Slots + ID.Value;
     loaded_bitmap* Result = 0;
     if (GetState(Slot) >= AssetState_Loaded) {
+        Assert(!MustBeLocked || GetState(Slot) == AssetState_Locked);
         CompletePreviousReadsBeforeFutureReads;
         Result = &Slot->Bitmap;
     }
@@ -813,9 +814,12 @@ internal void EvictAsset(game_assets* Assets, asset_memory_header* Header) {
 internal void EvictAssetsAsNecessary(game_assets* Assets) {
 #if 1
     while (Assets->TotalMemoryUsed > Assets->TargetMemoryUsed) {
-        asset_memory_header* Asset = Assets->LoadedAssetSentinel.Prev;
-        if (Asset != &Assets->LoadedAssetSentinel) {
-            EvictAsset(Assets, Asset);
+        asset_memory_header* Header = Assets->LoadedAssetSentinel.Prev;
+        if (Header != &Assets->LoadedAssetSentinel) {
+            asset_slot* Slot = Assets->Slots + Header->SlotIndex;
+            if (GetState(Slot) >= AssetState_Loaded) {
+                EvictAsset(Assets, Header);
+            }
         } else {
             InvalidCodePath;
             break;

@@ -388,7 +388,7 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
     return Handle;
 }
 
-internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
+internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
     asset_slot* Slot = Assets->Slots + ID.Value;
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Slot->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
         task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
@@ -416,9 +416,11 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Work->Offset = HHAAsset->DataOffset;
             Work->Size = MemorySize.Data;
             Work->Destination = Bitmap->Memory;
-            Work->FinalState = AssetState_Loaded | AssetState_Bitmap;
+            Work->FinalState = (Locked ? AssetState_Locked : AssetState_Loaded) | AssetState_Bitmap;
 
-            AddAssetHeaderToList(Assets, ID.Value, Bitmap->Memory, MemorySize);
+            if (!Locked) {
+                AddAssetHeaderToList(Assets, ID.Value, Bitmap->Memory, MemorySize);
+            }
 
             //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
 #if 1
@@ -479,8 +481,8 @@ internal void PrefetchSound(game_assets* Assets, sound_id ID) {
     LoadSound(Assets, ID);
 }
 
-internal void PrefetchBitmap(game_assets* Assets, bitmap_id ID) {
-    LoadBitmap(Assets, ID);
+internal void PrefetchBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked) {
+    LoadBitmap(Assets, ID, Locked);
 }
 
 struct fill_ground_chunk_work {
@@ -512,7 +514,7 @@ internal void FillGroundChunk(
         Assert(Width == Height);
         v2 HalfDim = 0.5f * V2(Width, Height);
 
-        render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0);
+        render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0, true);
         Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)(Buffer->Width - 2) / Width);
         Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
 
@@ -953,7 +955,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     DrawBuffer->Width = SafeTruncateToUint16(Buffer->Width);
     DrawBuffer->Memory = Buffer->Memory;
 
-    render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4));
+    render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4), false);
 
     real32 WidthOfMonitor = 0.635f;
     real32 MetersToPixels = (real32)(DrawBuffer->Width) * WidthOfMonitor; // NOTE(sen) Should be a division;
