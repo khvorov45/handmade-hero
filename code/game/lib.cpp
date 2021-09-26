@@ -369,10 +369,14 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
     load_asset_work* Work = (load_asset_work*)Data;
 
     Platform.ReadDataFromFile(Work->Handle, Work->Offset, Work->Size, Work->Destination);
+
     CompletePreviousWritesBeforeFutureWrites;
-    if (PlatformNoFileErrors(Work->Handle)) {
-        Work->Slot->State = Work->FinalState;
+
+    if (!PlatformNoFileErrors(Work->Handle)) {
+        ZeroSize(Work->Size, Work->Destination);
     }
+
+    Work->Slot->State = Work->FinalState;
 
     EndTaskWithMemory(Work->Task);
 }
@@ -382,6 +386,21 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
     Assert(FileIndex < Assets->FileCount);
     platform_file_handle* Handle = Assets->Files[FileIndex].Handle;
     return Handle;
+}
+
+internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
+    void* Result = Platform.AllocateMemory(Size);
+    if (Result) {
+        Assets->TotalMemoryUsed += Size;
+    }
+    return Result;
+}
+
+internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* Memory) {
+    Platform.DeallocateMemory(Memory);
+    if (Memory) {
+        Assets->TotalMemoryUsed -= Size;
+    }
 }
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
@@ -403,7 +422,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
 
             uint32 MemorySize = Bitmap->Pitch * Bitmap->Height;
-            Bitmap->Memory = PushSize(&Assets->Arena, MemorySize);
+            Bitmap->Memory = AcquireAssetMemory(Assets, MemorySize); //PushSize(&Assets->Arena, MemorySize);
 
             load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
             Work->Task = Task;
@@ -438,7 +457,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Sound->SampleCount = Info->SampleCount;
             Sound->ChannelCount = Info->ChannelCount;
             uint32 MemorySize = Sound->ChannelCount * Sound->SampleCount * sizeof(int16);
-            void* Memory = PushSize(&Assets->Arena, MemorySize);
+            void* Memory = AcquireAssetMemory(Assets, MemorySize); // PushSize(&Assets->Arena, MemorySize);
 
             int16* SoundAt = (int16*)Memory;
             for (uint32 ChannelIndex = 0; ChannelIndex < Sound->ChannelCount; ++ChannelIndex) {

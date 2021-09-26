@@ -74,6 +74,8 @@ struct game_assets {
     struct transient_state* TranState;
     memory_arena Arena;
 
+    uint64 TotalMemoryUsed;
+
     real32 TagRange[Tag_Count];
 
     uint32 FileCount;
@@ -160,6 +162,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     game_assets* Assets = PushStruct(Arena, game_assets);
     SubArena(&Assets->Arena, Arena, Size);
     Assets->TranState = TranState;
+    Assets->TotalMemoryUsed = 0;
 
     for (uint32 TagType = 0; TagType < Tag_Count; ++TagType) {
         Assets->TagRange[TagType] = 100000.0f;
