@@ -813,6 +813,7 @@ internal void EvictAssetsAsNecessary(game_assets* Assets) {
 }
 
 internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
+    EvictAssetsAsNecessary(Assets);
     void* Result = Platform.AllocateMemory(Size);
     if (Result) {
         Assets->TotalMemoryUsed += Size;
