@@ -84,9 +84,21 @@ struct asset_file {
     uint32 TagBase;
 };
 
+enum asset_memory_block_flags {
+    AssetMemory_Used = 0x1,
+};
+
+struct asset_memory_block {
+    asset_memory_block* Prev;
+    asset_memory_block* Next;
+    uint64 Flags;
+    memory_index Size;
+};
+
 struct game_assets {
     struct transient_state* TranState;
-    memory_arena Arena;
+
+    asset_memory_block MemorySentinel;
 
     uint64 TotalMemoryUsed;
     uint64 TargetMemoryUsed;
@@ -177,10 +189,29 @@ internal bool32 IsLocked(asset* Asset) {
     return Result;
 }
 
+internal asset_memory_block* InsertBlock(asset_memory_block* Prev, memory_index Size, void* Memory) {
+    Assert(Size > sizeof(asset_memory_block));
+    asset_memory_block* Block = (asset_memory_block*)Memory;
+    Block->Flags = 0;
+    Block->Size = Size - sizeof(asset_memory_block);
+    Block->Prev = Prev;
+    Block->Next = Prev->Next;
+    Block->Prev->Next = Block;
+    Block->Next->Prev = Block;
+    return Block;
+}
+
 internal game_assets*
 AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
     game_assets* Assets = PushStruct(Arena, game_assets);
-    SubArena(&Assets->Arena, Arena, Size);
+
+    Assets->MemorySentinel.Flags = 0;
+    Assets->MemorySentinel.Size = 0;
+    Assets->MemorySentinel.Prev = &Assets->MemorySentinel;
+    Assets->MemorySentinel.Next = &Assets->MemorySentinel;
+
+    InsertBlock(&Assets->MemorySentinel, Size, PushSize(Arena, Size));
+
     Assets->TranState = TranState;
     Assets->TotalMemoryUsed = 0;
     Assets->TargetMemoryUsed = Size;
@@ -779,10 +810,16 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
 #endif
 
 internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* Memory) {
-    Platform.DeallocateMemory(Memory);
     if (Memory) {
         Assets->TotalMemoryUsed -= Size;
     }
+#if 0
+    Platform.DeallocateMemory(Memory);
+#else
+    asset_memory_block* Block = (asset_memory_block*)Memory - 1;
+    Block->Flags &= ~AssetMemory_Used;
+#endif
+
 }
 
 internal void EvictAsset(game_assets* Assets, asset_memory_header* Header) {
@@ -812,9 +849,53 @@ internal void EvictAssetsAsNecessary(game_assets* Assets) {
 #endif
 }
 
+asset_memory_block* FindBlockForSize(game_assets* Assets, memory_index Size) {
+    asset_memory_block* Result = 0;
+    for (asset_memory_block* Block = Assets->MemorySentinel.Next; Block != &Assets->MemorySentinel; Block = Block->Next) {
+        if (!(Block->Flags & AssetMemory_Used) && Block->Size >= Size) {
+            Result = Block;
+            break;
+        }
+    }
+    return Result;
+}
+
 internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
+    void* Result = 0;
+#if 0
     EvictAssetsAsNecessary(Assets);
-    void* Result = Platform.AllocateMemory(Size);
+    Result = Platform.AllocateMemory(Size);
+#else
+    for (;;) {
+        asset_memory_block* Block = FindBlockForSize(Assets, Size);
+        if (Block) {
+            Block->Flags |= AssetMemory_Used;
+
+            Assert(Size <= Block->Size);
+            Result = (uint8*)(Block + 1);
+
+            memory_index RemainingSize = Block->Size - Size;
+            memory_index BlockSplitThreshold = 4096;
+            if (RemainingSize > BlockSplitThreshold) {
+                Block->Size -= RemainingSize;
+                InsertBlock(Block, RemainingSize, (uint8*)Result + Size);
+            }
+
+            break;
+        } else {
+            for (asset_memory_header* Header = Assets->LoadedAssetSentinel.Prev;
+                Header != &Assets->LoadedAssetSentinel;
+                Header = Header->Prev) {
+
+                asset* Asset = Assets->Assets + Header->AssetIndex;
+                if (GetState(Asset) >= AssetState_Loaded) {
+                    EvictAsset(Assets, Header);
+                    break;
+                }
+            }
+        }
+    }
+#endif
     if (Result) {
         Assets->TotalMemoryUsed += Size;
     }
