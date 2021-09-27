@@ -939,19 +939,19 @@ internal void Win32MakeQueue(platform_work_queue* Queue, uint32 ThreadCount) {
 }
 
 struct win32_file_handle {
-    platform_file_handle H;
     HANDLE Win32Handle;
 };
 
 struct win32_file_group {
-    platform_file_group H;
     HANDLE FindHandle;
     WIN32_FIND_DATAA FindData;
 };
 
 PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
 
+    platform_file_group Result = {};
     win32_file_group* Win32FileGroup = (win32_file_group*)VirtualAlloc(0, sizeof(win32_file_group), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    Result.Platform = Win32FileGroup;
 
     char* TypeAt = Type;
     char Wildcard[32] = "*.";
@@ -960,13 +960,13 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
     }
     Wildcard[sizeof(Wildcard) - 1] = 0;
 
-    Win32FileGroup->H.FileCount = 0;
+    Result.FileCount = 0;
 
     // Count
     WIN32_FIND_DATAA FindData;
     HANDLE FindHandle = FindFirstFileA(Wildcard, &FindData);
     while (FindHandle != INVALID_HANDLE_VALUE) {
-        ++Win32FileGroup->H.FileCount;
+        ++Result.FileCount;
         if (!FindNextFileA(FindHandle, &FindData)) {
             break;
         }
@@ -975,11 +975,11 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
 
     Win32FileGroup->FindHandle = FindFirstFileA(Wildcard, &Win32FileGroup->FindData);
 
-    return (platform_file_group*)Win32FileGroup;
+    return Result;
 }
 
 PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd) {
-    win32_file_group* Win32FileGroup = (win32_file_group*)FileGroup;
+    win32_file_group* Win32FileGroup = (win32_file_group*)FileGroup->Platform;
     if (Win32FileGroup) {
         FindClose(Win32FileGroup->FindHandle);
         VirtualFree(Win32FileGroup, 0, MEM_RELEASE);
@@ -987,21 +987,22 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd) {
 }
 
 PLATFORM_OPEN_FILE(Win32OpenFile) {
-    win32_file_group* Win32FileGroup = (win32_file_group*)FileGroup;
-    win32_file_handle* Result = 0;
+    win32_file_group* Win32FileGroup = (win32_file_group*)FileGroup->Platform;
+    platform_file_handle Result = {};
     if (Win32FileGroup->FindHandle != INVALID_HANDLE_VALUE) {
-        Result = (win32_file_handle*)VirtualAlloc(0, sizeof(win32_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);;
-        if (Result) {
+        win32_file_handle* Win32Handle = (win32_file_handle*)VirtualAlloc(0, sizeof(win32_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        Result.Platform = Win32Handle;
+        if (Win32Handle) {
             char* Filename = Win32FileGroup->FindData.cFileName;
-            Result->Win32Handle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);
-            Result->H.NoErrors = Result->Win32Handle != INVALID_HANDLE_VALUE;
+            Win32Handle->Win32Handle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);
+            Result.NoErrors = Win32Handle->Win32Handle != INVALID_HANDLE_VALUE;
         }
         if (!FindNextFileA(Win32FileGroup->FindHandle, &Win32FileGroup->FindData)) {
             FindClose(Win32FileGroup->FindHandle);
             Win32FileGroup->FindHandle = INVALID_HANDLE_VALUE;
         }
     }
-    return (platform_file_handle*)Result;
+    return Result;
 }
 
 PLATFORM_FILE_ERROR(Win32FileError) {
@@ -1015,7 +1016,7 @@ PLATFORM_FILE_ERROR(Win32FileError) {
 
 PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile) {
     if (PlatformNoFileErrors(Source)) {
-        win32_file_handle* Handle = (win32_file_handle*)Source;
+        win32_file_handle* Handle = (win32_file_handle*)Source->Platform;
         OVERLAPPED Overlapped = {};
         Overlapped.Offset = (uint32)(Offset & 0xFFFFFFFF);
         Overlapped.OffsetHigh = (uint32)((Offset >> 32) & 0xFFFFFFFF);

@@ -384,7 +384,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
 internal inline platform_file_handle*
 GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
     Assert(FileIndex < Assets->FileCount);
-    platform_file_handle* Handle = Assets->Files[FileIndex].Handle;
+    platform_file_handle* Handle = &Assets->Files[FileIndex].Handle;
     return Handle;
 }
 
