@@ -944,7 +944,7 @@ struct win32_file_handle {
 
 struct win32_file_group {
     HANDLE FindHandle;
-    WIN32_FIND_DATAA FindData;
+    WIN32_FIND_DATAW FindData;
 };
 
 PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
@@ -954,26 +954,26 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
     Result.Platform = Win32FileGroup;
 
     char* TypeAt = Type;
-    char Wildcard[32] = "*.";
+    wchar_t Wildcard[32] = L"*.";
     for (uint32 WildcardIndex = 2; WildcardIndex < sizeof(Wildcard) && *TypeAt; ++WildcardIndex, ++TypeAt) {
         Wildcard[WildcardIndex] = *TypeAt;
     }
-    Wildcard[sizeof(Wildcard) - 1] = 0;
+    Wildcard[ArrayCount(Wildcard) / 2 - 1] = 0;
 
     Result.FileCount = 0;
 
     // Count
-    WIN32_FIND_DATAA FindData;
-    HANDLE FindHandle = FindFirstFileA(Wildcard, &FindData);
+    WIN32_FIND_DATAW FindData;
+    HANDLE FindHandle = FindFirstFileW(Wildcard, &FindData);
     while (FindHandle != INVALID_HANDLE_VALUE) {
         ++Result.FileCount;
-        if (!FindNextFileA(FindHandle, &FindData)) {
+        if (!FindNextFileW(FindHandle, &FindData)) {
             break;
         }
     }
     FindClose(FindHandle);
 
-    Win32FileGroup->FindHandle = FindFirstFileA(Wildcard, &Win32FileGroup->FindData);
+    Win32FileGroup->FindHandle = FindFirstFileW(Wildcard, &Win32FileGroup->FindData);
 
     return Result;
 }
@@ -993,11 +993,11 @@ PLATFORM_OPEN_FILE(Win32OpenFile) {
         win32_file_handle* Win32Handle = (win32_file_handle*)VirtualAlloc(0, sizeof(win32_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         Result.Platform = Win32Handle;
         if (Win32Handle) {
-            char* Filename = Win32FileGroup->FindData.cFileName;
-            Win32Handle->Win32Handle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);
+            wchar_t* Filename = Win32FileGroup->FindData.cFileName;
+            Win32Handle->Win32Handle = CreateFileW(Filename, GENERIC_READ, FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);
             Result.NoErrors = Win32Handle->Win32Handle != INVALID_HANDLE_VALUE;
         }
-        if (!FindNextFileA(Win32FileGroup->FindHandle, &Win32FileGroup->FindData)) {
+        if (!FindNextFileW(Win32FileGroup->FindHandle, &Win32FileGroup->FindData)) {
             FindClose(Win32FileGroup->FindHandle);
             Win32FileGroup->FindHandle = INVALID_HANDLE_VALUE;
         }
