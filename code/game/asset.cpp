@@ -778,26 +778,11 @@ DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampl
 }
 #endif
 
-internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
-    void* Result = Platform.AllocateMemory(Size);
-    if (Result) {
-        Assets->TotalMemoryUsed += Size;
-    }
-    return Result;
-}
-
 internal void ReleaseAssetMemory(game_assets* Assets, memory_index Size, void* Memory) {
     Platform.DeallocateMemory(Memory);
     if (Memory) {
         Assets->TotalMemoryUsed -= Size;
     }
-}
-
-internal void AddAssetHeaderToList(game_assets* Assets, uint32 AssetIndex, asset_memory_size Size) {
-    asset_memory_header* Header = Assets->Assets[AssetIndex].Header;
-    Header->AssetIndex = AssetIndex;
-    Header->TotalSize = Size.Total;
-    InsertAssetheaderAtFront(Assets, Header);
 }
 
 internal void EvictAsset(game_assets* Assets, asset_memory_header* Header) {
@@ -825,6 +810,21 @@ internal void EvictAssetsAsNecessary(game_assets* Assets) {
         }
     }
 #endif
+}
+
+internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
+    void* Result = Platform.AllocateMemory(Size);
+    if (Result) {
+        Assets->TotalMemoryUsed += Size;
+    }
+    return Result;
+}
+
+internal void AddAssetHeaderToList(game_assets* Assets, uint32 AssetIndex, asset_memory_size Size) {
+    asset_memory_header* Header = Assets->Assets[AssetIndex].Header;
+    Header->AssetIndex = AssetIndex;
+    Header->TotalSize = Size.Total;
+    InsertAssetheaderAtFront(Assets, Header);
 }
 
 #endif
