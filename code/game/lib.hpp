@@ -81,9 +81,15 @@ struct platform_file_group {
     void* Platform;
 };
 
+enum platform_file_type {
+    PlatformFileType_AssetFile,
+    PlatformFileType_SavedGameFile,
+    PlatformFileType_Count,
+};
+
 #define PlatformNoFileErrors(Handle) ((Handle)->NoErrors)
 
-#define PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(name) platform_file_group name(char* Type)
+#define PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(name) platform_file_group name(platform_file_type Type)
 typedef PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
 
 #define PLATFORM_GET_ALL_FILES_OF_TYPE_END(name) void name(platform_file_group* FileGroup)

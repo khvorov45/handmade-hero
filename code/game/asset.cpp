@@ -224,7 +224,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     Assets->TagCount = 1;
     Assets->AssetCount = 1;
     {
-        platform_file_group FileGroup = Platform.GetAllFilesOfTypeBegin("hha");
+        platform_file_group FileGroup = Platform.GetAllFilesOfTypeBegin(PlatformFileType_AssetFile);
         Assets->FileCount = FileGroup.FileCount;
         Assets->Files = PushArray(Arena, Assets->FileCount, asset_file);
         for (uint32 FileIndex = 0; FileIndex < Assets->FileCount; ++FileIndex) {

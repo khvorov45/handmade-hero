@@ -953,12 +953,12 @@ PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin) {
     win32_file_group* Win32FileGroup = (win32_file_group*)VirtualAlloc(0, sizeof(win32_file_group), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     Result.Platform = Win32FileGroup;
 
-    char* TypeAt = Type;
-    wchar_t Wildcard[32] = L"*.";
-    for (uint32 WildcardIndex = 2; WildcardIndex < sizeof(Wildcard) && *TypeAt; ++WildcardIndex, ++TypeAt) {
-        Wildcard[WildcardIndex] = *TypeAt;
-    }
-    Wildcard[ArrayCount(Wildcard) / 2 - 1] = 0;
+    wchar_t* Wildcard = L"";
+    switch (Type) {
+    case PlatformFileType_AssetFile: Wildcard = L"*.hha"; break;
+    case PlatformFileType_SavedGameFile: Wildcard = L"*.hhs"; break;
+        InvalidDefaultCase;
+    };
 
     Result.FileCount = 0;
 
