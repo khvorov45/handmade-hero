@@ -10,39 +10,19 @@
 #define STB_TRUETYPE_IMPLEMENTATION 1
 #include "stb_truetype.h"
 
-#if 0
-internal loaded_bitmap MakeNothingsTest(memory_arena* Arena) {
-    debug_read_file_result TTFFile = Platform.DEBUGReadEntireFile("C:/Windows/Fonts/arial.ttf");
-    stbtt_fontinfo Font;
-    stbtt_InitFont(&Font, (uint8*)TTFFile.Contents, stbtt_GetFontOffsetForIndex((uint8*)TTFFile.Contents, 0));
-    int32 Width, Height, XOffset, YOffset;
-    uint8* MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, 128.0f), 'N', &Width, &Height, &XOffset, &YOffset);
-    loaded_bitmap Result = MakeEmptyBitmap(Arena, Width, Height, false);
-
-    uint8* Source = MonoBitmap;
-    uint8* DestRow = (uint8*)Result.Memory + (Height - 1) * Result.Pitch;
-    for (int32 Y = 0; Y < Height; ++Y) {
-        uint32* Dest = (uint32*)DestRow;
-        for (int32 X = 0; X < Width; ++X) {
-            uint8 Alpha = *Source++;
-            *Dest++ = (Alpha << 24) | (Alpha << 16) | (Alpha << 8) | (Alpha << 0);
-        }
-        DestRow -= Result.Pitch;
-    }
-    stbtt_FreeBitmap(MonoBitmap, 0);
-    return Result;
-}
-#endif
-
 enum asset_type {
     AssetType_Sound,
-    AssetType_Bitmap
+    AssetType_Bitmap,
+    AssetType_Font,
 };
 
 struct asset_source {
     asset_type Type;
     char* Filename;
-    uint32 FirstSampleIndex;
+    union {
+        uint32 FirstSampleIndex;
+        uint32 Codepoint;
+    };
 };
 
 #define VERY_LARGE_NUMBER 4096
@@ -83,6 +63,23 @@ AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.
     HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
     Source->Type = AssetType_Bitmap;
     Source->Filename = Filename;
+    Assets->AssetIndex = Result.Value;
+    return Result;
+}
+
+bitmap_id AddCharacterAsset(game_assets* Assets, char* FontFile, uint32 Codepoint, real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f) {
+    Assert(Assets->DEBUGAssetType != 0);
+    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
+    bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
+    asset_source* Source = Assets->AssetSources + Result.Value;
+    hha_asset* HHA = Assets->Assets + Result.Value;
+    HHA->FirstTagIndex = Assets->TagCount;
+    HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
+    HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
+    HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
+    Source->Type = AssetType_Font;
+    Source->Filename = FontFile;
+    Source->Codepoint = Codepoint;
     Assets->AssetIndex = Result.Value;
     return Result;
 }
@@ -239,6 +236,37 @@ LoadBMP(char* Filename) {
     return Result;
 }
 
+loaded_bitmap LoadGlyphBitmap(char* FontFile, uint32 Codepoint) {
+    loaded_bitmap Result = {};
+    entire_file TTFFile = ReadEntireFile(FontFile);
+    if (TTFFile.ContentsSize != 0) {
+        stbtt_fontinfo Font;
+        stbtt_InitFont(&Font, (uint8*)TTFFile.Contents, stbtt_GetFontOffsetForIndex((uint8*)TTFFile.Contents, 0));
+        int32 Width, Height, XOffset, YOffset;
+        uint8* MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, 128.0f), Codepoint, &Width, &Height, &XOffset, &YOffset);
+
+        Result.Height = Height;
+        Result.Width = Width;
+        Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
+        Result.Memory = malloc(Height * Result.Pitch);
+        Result.Free = Result.Memory;
+
+        uint8* Source = MonoBitmap;
+        uint8* DestRow = (uint8*)Result.Memory + (Height - 1) * Result.Pitch;
+        for (int32 Y = 0; Y < Height; ++Y) {
+            uint32* Dest = (uint32*)DestRow;
+            for (int32 X = 0; X < Width; ++X) {
+                uint8 Alpha = *Source++;
+                *Dest++ = (Alpha << 24) | (Alpha << 16) | (Alpha << 8) | (Alpha << 0);
+            }
+            DestRow -= Result.Pitch;
+        }
+        stbtt_FreeBitmap(MonoBitmap, 0);
+        free(TTFFile.Contents);
+    }
+    return Result;
+}
+
 struct loaded_sound {
     uint32 SampleCount;
     uint32 ChannelCount;
@@ -368,7 +396,7 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-            } else {
+        } else {
             Assert(!"Invalid channel count");
         }
 
@@ -392,9 +420,9 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             }
         }
         Result.SampleCount = SampleCount;
-        }
-    return Result;
     }
+    return Result;
+}
 
 internal void WriteHHA(game_assets* Assets, char* Filename) {
     FILE* Out = fopen(Filename, "wb");
@@ -433,8 +461,13 @@ internal void WriteHHA(game_assets* Assets, char* Filename) {
                 }
                 free(WAV.Free);
             } else {
-                Assert(Source->Type == AssetType_Bitmap);
-                loaded_bitmap Bitmap = LoadBMP(Source->Filename);
+                loaded_bitmap Bitmap;
+                if (Source->Type == AssetType_Font) {
+                    Bitmap = LoadGlyphBitmap(Source->Filename, Source->Codepoint);
+                } else {
+                    Assert(Source->Type == AssetType_Bitmap);
+                    Bitmap = LoadBMP(Source->Filename);
+                }
                 Dest->Bitmap.Dim[0] = Bitmap.Width;
                 Dest->Bitmap.Dim[1] = Bitmap.Height;
                 Assert(Bitmap.Width * 4 == Bitmap.Pitch);
@@ -542,6 +575,13 @@ internal void WriteNonHero() {
     AddBitmapAsset(Assets, "test2/ground01.bmp");
     AddBitmapAsset(Assets, "test2/ground02.bmp");
     AddBitmapAsset(Assets, "test2/ground03.bmp");
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Font);
+    for (uint32 Character = 'A'; Character <= 'Z'; ++Character) {
+        AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", Character);
+        AddTag(Assets, Tag_UnicodeCodepoint, (real32)Character);
+    }
     EndAssetType(Assets);
 
     WriteHHA(Assets, "test2.hha");

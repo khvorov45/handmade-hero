@@ -1414,7 +1414,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             1.0f
         );
         Particle->dColor = V4(0.0f, 0.0f, 0.0f, -0.25f);
-        Particle->BitmapID = GetRandomBitmapFrom(TranState->Assets, Asset_Head, &GameState->EffectsEntropy);
+
+        asset_vector MatchVector = {};
+        asset_vector WeightVector = {};
+
+        char Nothings[] = "NOTHINGS";
+
+        MatchVector.E[Tag_UnicodeCodepoint] = (real32)Nothings[RandomChoice(&GameState->EffectsEntropy, ArrayCount(Nothings) - 1)];
+        WeightVector.E[Tag_UnicodeCodepoint] = 1.0f;
+
+        Particle->BitmapID = GetBestMatchBitmapFrom(TranState->Assets, Asset_Font, &MatchVector, &WeightVector);
+        // Particle->BitmapID = GetRandomBitmapFrom(TranState->Assets, Asset_Font, &GameState->EffectsEntropy);
     }
 
     ZeroStruct(GameState->ParticleCells);
@@ -1497,7 +1507,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             Color.a = 0.9f * Clamp01MapToRange(1.0f, Color.a, 0.9f);
         }
 
-        PushBitmap(RenderGroup, Particle->BitmapID, 1.0f, Particle->P, Color);
+        PushBitmap(RenderGroup, Particle->BitmapID, 0.1f, Particle->P, Color);
     }
 #endif
 

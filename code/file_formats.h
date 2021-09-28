@@ -16,6 +16,9 @@ enum asset_type_id {
     Asset_Head,
     Asset_Cape,
     Asset_Torso,
+
+    Asset_Font,
+
     // Sounds
     Asset_Bloop,
     Asset_Crack,
@@ -23,6 +26,7 @@ enum asset_type_id {
     Asset_Glide,
     Asset_Music,
     Asset_Puhp,
+
     Asset_Count
 };
 
@@ -30,6 +34,8 @@ enum asset_tag_id {
     Tag_Smoothness,
     Tag_Flatness,
     Tag_FacingDirection, // Angle in radians off of due right
+    Tag_UnicodeCodepoint,
+
     Tag_Count
 };
 
