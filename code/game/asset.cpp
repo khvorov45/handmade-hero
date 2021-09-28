@@ -8,7 +8,6 @@
 #include "bmp.cpp"
 #include "memory.cpp"
 #include "random.cpp"
-#include "asset_type_id.h"
 #include "../file_formats.h"
 
 struct asset_bitmap_info {

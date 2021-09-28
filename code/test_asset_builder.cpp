@@ -4,7 +4,6 @@
 #include "types.h"
 #include "util.h"
 #include "intrinsics.h"
-#include "game/asset_type_id.h"
 #include "file_formats.h"
 #include "game/math.cpp"
 
@@ -369,7 +368,7 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-        } else {
+            } else {
             Assert(!"Invalid channel count");
         }
 
@@ -393,9 +392,9 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             }
         }
         Result.SampleCount = SampleCount;
-    }
+        }
     return Result;
-}
+    }
 
 internal void WriteHHA(game_assets* Assets, char* Filename) {
     FILE* Out = fopen(Filename, "wb");

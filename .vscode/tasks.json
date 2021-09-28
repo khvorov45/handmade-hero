@@ -26,7 +26,7 @@
       "problemMatcher": {
         "fileLocation": "absolute",
         "pattern": {
-          "regexp": "^([^\\s].*)\\((\\d+)\\)\\s?:\\s(error|warning)(.*)$",
+          "regexp": "^([^\\s].*)\\((\\d+)\\)\\s?:\\s(error|warning|fatal)(.*)$",
           "file": 1,
           "line": 2,
           "severity": 3,

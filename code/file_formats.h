@@ -3,6 +3,36 @@
 
 #include "types.h"
 
+enum asset_type_id {
+    Asset_None,
+    Asset_Shadow,
+    Asset_Tree,
+    Asset_Sword,
+    //Asset_Stairwell,
+    Asset_Rock,
+    Asset_Grass,
+    Asset_Tuft,
+    Asset_Stone,
+    Asset_Head,
+    Asset_Cape,
+    Asset_Torso,
+    // Sounds
+    Asset_Bloop,
+    Asset_Crack,
+    Asset_Drop,
+    Asset_Glide,
+    Asset_Music,
+    Asset_Puhp,
+    Asset_Count
+};
+
+enum asset_tag_id {
+    Tag_Smoothness,
+    Tag_Flatness,
+    Tag_FacingDirection, // Angle in radians off of due right
+    Tag_Count
+};
+
 #pragma pack(push, 1)
 
 #define HHA_CODE(a,b,c,d) (((uint32)(a) << 0) | ((uint32)(b) << 8) | ((uint32)(c) << 16) | ((uint32)(d) << 24))
