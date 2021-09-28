@@ -1507,7 +1507,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             Color.a = 0.9f * Clamp01MapToRange(1.0f, Color.a, 0.9f);
         }
 
-        PushBitmap(RenderGroup, Particle->BitmapID, 0.1f, Particle->P, Color);
+        PushBitmap(RenderGroup, Particle->BitmapID, 0.3f, Particle->P, Color);
     }
 #endif
 

@@ -7,8 +7,14 @@
 #include "file_formats.h"
 #include "game/math.cpp"
 
+#define USE_FONTS_FROM_WINDOWS 1
+
+#if USE_FONTS_FROM_WINDOWS
+#include "windows.h"
+#else
 #define STB_TRUETYPE_IMPLEMENTATION 1
 #include "stb_truetype.h"
+#endif
 
 enum asset_type {
     AssetType_Sound,
@@ -23,6 +29,7 @@ struct asset_source {
         uint32 FirstSampleIndex;
         uint32 Codepoint;
     };
+    char* Fontname;
 };
 
 #define VERY_LARGE_NUMBER 4096
@@ -67,7 +74,12 @@ AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.
     return Result;
 }
 
-bitmap_id AddCharacterAsset(game_assets* Assets, char* FontFile, uint32 Codepoint, real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f) {
+bitmap_id
+AddCharacterAsset(
+    game_assets* Assets, char* FontFile, char* Fontname,
+    uint32 Codepoint,
+    real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f
+) {
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
     bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
@@ -80,6 +92,7 @@ bitmap_id AddCharacterAsset(game_assets* Assets, char* FontFile, uint32 Codepoin
     Source->Type = AssetType_Font;
     Source->Filename = FontFile;
     Source->Codepoint = Codepoint;
+    Source->Fontname = Fontname;
     Assets->AssetIndex = Result.Value;
     return Result;
 }
@@ -236,8 +249,93 @@ LoadBMP(char* Filename) {
     return Result;
 }
 
-loaded_bitmap LoadGlyphBitmap(char* FontFile, uint32 Codepoint) {
+loaded_bitmap LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint) {
     loaded_bitmap Result = {};
+#if USE_FONTS_FROM_WINDOWS
+    local_persist HDC DeviceContext = 0;
+    if (DeviceContext == 0) {
+
+        AddFontResourceExA(FontFile, FR_PRIVATE, 0);
+        int32 Height = 128;
+        HFONT Font = CreateFontA(
+            Height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+            ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+            FontName
+        );
+
+        DeviceContext = CreateCompatibleDC(0);
+        HBITMAP Bitmap = CreateCompatibleBitmap(DeviceContext, 1024, 1024);
+        SelectObject(DeviceContext, Bitmap);
+
+        SelectObject(DeviceContext, Font);
+
+        SetBkColor(DeviceContext, RGB(0, 0, 0));
+
+        TEXTMETRIC TextMetric;
+        GetTextMetrics(DeviceContext, &TextMetric);
+    }
+
+    wchar_t CheesePoint = (wchar_t)Codepoint;
+
+    SIZE Size;
+    GetTextExtentPoint32W(DeviceContext, &CheesePoint, 1, &Size);
+
+    int32 Width = Size.cx;
+    int32 Height = Size.cy;
+
+    //PatBlt(DeviceContext, 0, 0, Width, Height, BLACKNESS);
+    //SetBkMode(DeviceContext, TRANSPARENT);
+    SetTextColor(DeviceContext, RGB(255, 255, 255));
+    TextOutW(DeviceContext, 0, 0, &CheesePoint, 1);
+
+    int32 MinX = 10000;
+    int32 MinY = 10000;
+    int32 MaxX = -10000;
+    int32 MaxY = -10000;
+
+    for (int32 Y = 0; Y < Height; ++Y) {
+        for (int32 X = 0; X < Width; ++X) {
+            COLORREF Pixel = GetPixel(DeviceContext, X, Y);
+            if (Pixel != 0) {
+                if (MinX > X) { MinX = X; }
+                if (MaxX < X) { MaxX = X; }
+                if (MinY > Y) { MinY = Y; }
+                if (MaxY < Y) { MaxY = Y; }
+            }
+        }
+    }
+
+    if (MinX <= MaxX && MinY <= MaxY) {
+
+        --MinX;
+        --MinY;
+        ++MaxX;
+        ++MaxY;
+
+        Width = MaxX - MinX + 1;
+        Height = MaxY - MinY + 1;
+
+        Result.Height = Height;
+        Result.Width = Width;
+        Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
+        Result.Memory = malloc(Height * Result.Pitch);
+        Result.Free = Result.Memory;
+
+        uint8* DestRow = (uint8*)Result.Memory + (Height - 1) * Result.Pitch;
+        for (int32 Y = MinY; Y <= MaxY; ++Y) {
+            uint32* Dest = (uint32*)DestRow;
+            for (int32 X = MinX; X <= MaxX; ++X) {
+                COLORREF Pixel = GetPixel(DeviceContext, X, Y);
+                uint8 Gray = (uint8)(Pixel & 0xFF);
+                uint8 Alpha = 0xFF;
+                *Dest++ = (Alpha << 24) | (Gray << 16) | (Gray << 8) | (Gray << 0);
+            }
+            DestRow -= Result.Pitch;
+        }
+    }
+
+#else
     entire_file TTFFile = ReadEntireFile(FontFile);
     if (TTFFile.ContentsSize != 0) {
         stbtt_fontinfo Font;
@@ -256,14 +354,16 @@ loaded_bitmap LoadGlyphBitmap(char* FontFile, uint32 Codepoint) {
         for (int32 Y = 0; Y < Height; ++Y) {
             uint32* Dest = (uint32*)DestRow;
             for (int32 X = 0; X < Width; ++X) {
-                uint8 Alpha = *Source++;
-                *Dest++ = (Alpha << 24) | (Alpha << 16) | (Alpha << 8) | (Alpha << 0);
+                uint8 Gray = *Source++;
+                uint8 Alpha = 0xFF;
+                *Dest++ = (Alpha << 24) | (Gray << 16) | (Gray << 8) | (Gray << 0);
             }
             DestRow -= Result.Pitch;
         }
         stbtt_FreeBitmap(MonoBitmap, 0);
         free(TTFFile.Contents);
     }
+#endif
     return Result;
 }
 
@@ -463,7 +563,7 @@ internal void WriteHHA(game_assets* Assets, char* Filename) {
             } else {
                 loaded_bitmap Bitmap;
                 if (Source->Type == AssetType_Font) {
-                    Bitmap = LoadGlyphBitmap(Source->Filename, Source->Codepoint);
+                    Bitmap = LoadGlyphBitmap(Source->Filename, Source->Fontname, Source->Codepoint);
                 } else {
                     Assert(Source->Type == AssetType_Bitmap);
                     Bitmap = LoadBMP(Source->Filename);
@@ -579,7 +679,8 @@ internal void WriteNonHero() {
 
     BeginAssetType(Assets, Asset_Font);
     for (uint32 Character = 'A'; Character <= 'Z'; ++Character) {
-        AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", Character);
+        // AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", "Arial", Character);
+        AddCharacterAsset(Assets, "C:/Windows/Fonts/cour.ttf", "Courier New", Character);
         AddTag(Assets, Tag_UnicodeCodepoint, (real32)Character);
     }
     EndAssetType(Assets);
