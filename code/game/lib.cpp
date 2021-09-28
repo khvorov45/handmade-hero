@@ -220,6 +220,8 @@ MakeEmptyBitmap(memory_arena* Arena, int32 Width, int32 Height, bool32 ClearToZe
     Result.Width = Width;
     Result.Height = Height;
     Result.Pitch = Width * BITMAP_BYTES_PER_PIXEL;
+    Result.AlignPercentage = V2(0.5f, 0.5f);
+    Result.WidthOverHeight = SafeRatio1((real32)Result.Width, (real32)Result.Height);
 
     int32 TotalBitmapSize = Width * Height * BITMAP_BYTES_PER_PIXEL;
     Result.Memory = PushSize(Arena, TotalBitmapSize, 16);
@@ -1389,7 +1391,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Saturation(RenderGroup, 1.0f);
 #endif
 
-#if 0
+#if 1
     RenderGroup->GlobalAlpha = 1.0f;
     RenderGroup->Transform.OffsetP = V3(0, 0, 0);
 
@@ -1439,6 +1441,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         Cell->VelocityTimesDensity += Particle->dP * Density;
     }
 
+#if 0
     for (uint32 Y = 0; Y < PARTICLE_CELL_DIM; ++Y) {
         for (uint32 X = 0; X < PARTICLE_CELL_DIM; ++X) {
             particle_cell* Cell = &GameState->ParticleCells[Y][X];
@@ -1446,6 +1449,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             PushRect(RenderGroup, V3i(X, Y, 0) * GridScale + GridOrigin, GridScale * V2(1.0f, 1.0f), V4(Alpha, Alpha, Alpha, Alpha));
         }
     }
+#endif
 
     for (uint32 ParticleIndex = 0; ParticleIndex < ArrayCount(GameState->Particles); ++ParticleIndex) {
         particle* Particle = GameState->Particles + ParticleIndex;

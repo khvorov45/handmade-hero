@@ -8,6 +8,33 @@
 #include "file_formats.h"
 #include "game/math.cpp"
 
+#define STB_TRUETYPE_IMPLEMENTATION 1
+#include "stb_truetype.h"
+
+#if 0
+internal loaded_bitmap MakeNothingsTest(memory_arena* Arena) {
+    debug_read_file_result TTFFile = Platform.DEBUGReadEntireFile("C:/Windows/Fonts/arial.ttf");
+    stbtt_fontinfo Font;
+    stbtt_InitFont(&Font, (uint8*)TTFFile.Contents, stbtt_GetFontOffsetForIndex((uint8*)TTFFile.Contents, 0));
+    int32 Width, Height, XOffset, YOffset;
+    uint8* MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, 128.0f), 'N', &Width, &Height, &XOffset, &YOffset);
+    loaded_bitmap Result = MakeEmptyBitmap(Arena, Width, Height, false);
+
+    uint8* Source = MonoBitmap;
+    uint8* DestRow = (uint8*)Result.Memory + (Height - 1) * Result.Pitch;
+    for (int32 Y = 0; Y < Height; ++Y) {
+        uint32* Dest = (uint32*)DestRow;
+        for (int32 X = 0; X < Width; ++X) {
+            uint8 Alpha = *Source++;
+            *Dest++ = (Alpha << 24) | (Alpha << 16) | (Alpha << 8) | (Alpha << 0);
+        }
+        DestRow -= Result.Pitch;
+    }
+    stbtt_FreeBitmap(MonoBitmap, 0);
+    return Result;
+}
+#endif
+
 enum asset_type {
     AssetType_Sound,
     AssetType_Bitmap
