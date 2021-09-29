@@ -42,6 +42,7 @@ struct asset_memory_header {
     asset_memory_header* Prev;
     uint32 AssetIndex;
     uint32 TotalSize;
+    uint32 GenerationID;
     union {
         loaded_bitmap Bitmap;
         loaded_sound Sound;
@@ -52,10 +53,7 @@ enum asset_state {
     AssetState_Unloaded,
     AssetState_Queued,
     AssetState_Loaded,
-
-    AssetState_StateMask = 0xFFF,
-
-    AssetState_Lock = 0x10000,
+    AssetState_Operating,
 };
 
 struct asset_memory_size {
@@ -178,11 +176,6 @@ internal bool32 IsValid(sound_id ID) {
 
 internal bool32 IsValid(bitmap_id ID) {
     bool32 Result = ID.Value != 0;
-    return Result;
-}
-
-internal bool32 IsLocked(asset* Asset) {
-    bool32 Result = (Asset->State & AssetState_Lock) != 0;
     return Result;
 }
 
@@ -474,11 +467,6 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     return Assets;
 }
 
-internal uint32 GetState(asset* Asset) {
-    uint32 Result = Asset->State & AssetState_StateMask;
-    return Result;
-}
-
 internal void InsertAssetheaderAtFront(game_assets* Assets, asset_memory_header* Header) {
     Header->Prev = &Assets->LoadedAssetSentinel;
     Header->Next = Assets->LoadedAssetSentinel.Next;
@@ -511,35 +499,47 @@ internal asset_memory_size GetSizeOfAsset(game_assets* Assets, bool32 IsSound, u
 }
 
 internal void MoveHeaderToFront(game_assets* Assets, asset* Asset) {
-    if (!IsLocked(Asset)) {
-        asset_memory_header* Header = Asset->Header;
-        RemoveAssetHeaderFromList(Header);
-        InsertAssetheaderAtFront(Assets, Header);
-    }
+    asset_memory_header* Header = Asset->Header;
+    RemoveAssetHeaderFromList(Header);
+    InsertAssetheaderAtFront(Assets, Header);
 }
 
-internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID, bool32 MustBeLocked) {
-    Assert(ID.Value <= Assets->AssetCount);
-    asset* Asset = Assets->Assets + ID.Value;
-    loaded_bitmap* Result = 0;
-    if (GetState(Asset) >= AssetState_Loaded) {
-        Assert(!MustBeLocked || IsLocked(Asset));
-        CompletePreviousReadsBeforeFutureReads;
-        Result = &Asset->Header->Bitmap;
-        MoveHeaderToFront(Assets, Asset);
+internal asset_memory_header* GetAsset(game_assets* Assets, uint32 ID) {
+    Assert(ID <= Assets->AssetCount);
+    asset* Asset = Assets->Assets + ID;
+    asset_memory_header* Result = 0;
+    for (;;) {
+        uint32 State = Asset->State;
+        if (State == AssetState_Loaded) {
+            if (AtomicCompareExchangeUint32((volatile uint32*)&Asset->State, AssetState_Operating, State) == State) {
+                Result = Asset->Header;
+                MoveHeaderToFront(Assets, Asset);
+#if 0
+                if (Asset->Header->GenerationID < GenerationID) {
+                    Asset->Header->GenerationID = GenerationID;
+                }
+#endif
+                CompletePreviousWritesBeforeFutureWrites;
+                Asset->State = State;
+
+                break;
+            }
+        } else if (State != AssetState_Operating) {
+            break;
+        }
     }
     return Result;
 }
 
+internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
+    asset_memory_header* Header = GetAsset(Assets, ID.Value);
+    loaded_bitmap* Result = Header ? &Header->Bitmap : 0;
+    return Result;
+}
+
 internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
-    Assert(ID.Value <= Assets->AssetCount);
-    asset* Asset = Assets->Assets + ID.Value;
-    loaded_sound* Result = 0;
-    if (GetState(Asset) >= AssetState_Loaded) {
-        CompletePreviousReadsBeforeFutureReads;
-        Result = &Asset->Header->Sound;
-        MoveHeaderToFront(Assets, Asset);
-    }
+    asset_memory_header* Header = GetAsset(Assets, ID.Value);
+    loaded_sound* Result = Header ? &Header->Sound : 0;
     return Result;
 }
 
@@ -854,10 +854,9 @@ internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
                 Header = Header->Prev) {
 
                 asset* Asset = Assets->Assets + Header->AssetIndex;
-                if (GetState(Asset) >= AssetState_Loaded) {
+                if (Asset->State >= AssetState_Loaded) {
 
-                    Assert(GetState(Asset) == AssetState_Loaded);
-                    Assert(!IsLocked(Asset));
+                    Assert(Asset->State == AssetState_Loaded);
 
                     RemoveAssetHeaderFromList(Header);
 

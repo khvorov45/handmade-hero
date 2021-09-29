@@ -71,11 +71,10 @@ struct render_group {
     uint32 PushBufferSize;
     uint8* PushBufferBase;
     uint32 MissingResourceCount;
-    bool32 AssetsShouldBeLocked;
 };
 
 internal render_group*
-AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize, bool32 AssetsShouldBeLocked) {
+AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize) {
     render_group* Result = PushStruct(Arena, render_group);
     Result->Assets = Assets;
     if (MaxPushBufferSize == 0) {
@@ -88,7 +87,6 @@ AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBuff
     Result->Transform.OffsetP = V3(0, 0, 0);
     Result->Transform.Scale = 1.0f;
     Result->MissingResourceCount = 0;
-    Result->AssetsShouldBeLocked = AssetsShouldBeLocked;
     return Result;
 }
 
@@ -187,16 +185,16 @@ internal inline void PushBitmap(
     }
 }
 
-internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Locked);
+internal void LoadBitmap(game_assets* Assets, bitmap_id ID);
 internal inline void PushBitmap(
     render_group* Group, bitmap_id ID, real32 Height,
     v3 Offset, v4 Color = V4(1, 1, 1, 1)
 ) {
-    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID, Group->AssetsShouldBeLocked);
+    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID);
     if (Bitmap) {
         PushBitmap(Group, Bitmap, Height, Offset, Color);
     } else {
-        LoadBitmap(Group->Assets, ID, Group->AssetsShouldBeLocked);
+        LoadBitmap(Group->Assets, ID);
         ++Group->MissingResourceCount;
     }
 }
@@ -268,7 +266,7 @@ internal void CoordinateSystem(
             Entry->Middle = Middle;
             Entry->Bottom = Bottom;
         }
-}
+    }
 #endif
 }
 
@@ -601,7 +599,7 @@ internal void DrawRectangleSlowly(
                         Texel.rgb = V3(0.0f, 0.0f, 0.0f);
                     }
 #endif
-            }
+                }
 #endif
                 Texel = Hadamard(Texel, Color);
                 Texel.r = Clamp01(Texel.r);
@@ -626,11 +624,11 @@ internal void DrawRectangleSlowly(
                     (RoundReal32ToUint32(Blended255.g) << 8) |
                     (RoundReal32ToUint32(Blended255.b));
 
-        }
+            }
             Pixel++;
-    }
+        }
         Row += Buffer->Pitch;
-}
+    }
     END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
@@ -1302,13 +1300,13 @@ internal void RenderGroupToOutput(
                 v2 Point = Entry->Points[PIndex];
                 v2 PPoint = Entry->Origin + Point.x * Entry->XAxis + Point.y * Entry->YAxis;
                 DrawRectangle(OutputTarget, PPoint - Dim, PPoint + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
-        }
+            }
 #endif
             BaseAddress += sizeof(*Entry);
         } break;
             InvalidDefaultCase;
+        }
     }
-}
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
