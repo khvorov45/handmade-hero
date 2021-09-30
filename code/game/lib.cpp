@@ -1509,6 +1509,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 #endif
 
+    PushBitmap(RenderGroup, GetFirstBitmapFrom(TranState->Assets, Asset_Font), 6.0f, V3(7.0f, 0.0f, 0.0f), V4(1, 1, 1, 1));
+
     TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, DrawBuffer);
     FinishRenderGroup(RenderGroup);
 
