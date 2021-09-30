@@ -392,51 +392,56 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
 
 internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
     asset* Asset = Assets->Assets + ID.Value;
-    if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
-        task_with_memory* Task = 0;
-        if (!Immediate) {
-            Task = BeginTaskWithMemory(Assets->TranState);
-        }
-        if (Immediate || Task) {
+    if (ID.Value) {
+        if (AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+            task_with_memory* Task = 0;
+            if (!Immediate) {
+                Task = BeginTaskWithMemory(Assets->TranState);
+            }
+            if (Immediate || Task) {
 
-            hha_asset* HHAAsset = &Asset->HHA;
-            hha_bitmap* Info = &HHAAsset->Bitmap;
+                hha_asset* HHAAsset = &Asset->HHA;
+                hha_bitmap* Info = &HHAAsset->Bitmap;
 
-            asset_memory_size Size = {};
-            uint32 Width = Info->Dim[0];
-            uint32 Height = Info->Dim[1];
-            Size.Section = Width * 4;
-            Size.Data = Size.Section * Height;
-            Size.Total = Size.Data + sizeof(asset_memory_header);
+                asset_memory_size Size = {};
+                uint32 Width = Info->Dim[0];
+                uint32 Height = Info->Dim[1];
+                Size.Section = Width * 4;
+                Size.Data = Size.Section * Height;
+                Size.Total = Size.Data + sizeof(asset_memory_header);
 
-            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total, ID.Value);
+                Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total, ID.Value);
 
-            loaded_bitmap* Bitmap = &Asset->Header->Bitmap;
+                loaded_bitmap* Bitmap = &Asset->Header->Bitmap;
 
-            Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
-            Bitmap->Width = Info->Dim[0];
-            Bitmap->Height = Info->Dim[1];
-            Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
-            Bitmap->Pitch = Size.Section;
-            Bitmap->Memory = Asset->Header + 1;
+                Bitmap->AlignPercentage = V2(Info->AlignPercentage[0], Info->AlignPercentage[1]);
+                Bitmap->Width = Info->Dim[0];
+                Bitmap->Height = Info->Dim[1];
+                Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
+                Bitmap->Pitch = Size.Section;
+                Bitmap->Memory = Asset->Header + 1;
 
-            load_asset_work Work;
-            Work.Task = Task;
-            Work.Asset = Assets->Assets + ID.Value;
-            Work.Handle = GetFileHandleFor(Assets, Asset->FileIndex);
-            Work.Offset = HHAAsset->DataOffset;
-            Work.Size = Size.Data;
-            Work.Destination = Bitmap->Memory;
-            Work.FinalState = AssetState_Loaded;
-            if (Task) {
-                load_asset_work* TaskWork = PushStruct(&Task->Arena, load_asset_work);
-                *TaskWork = Work;
-                Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, TaskWork);
+                load_asset_work Work;
+                Work.Task = Task;
+                Work.Asset = Assets->Assets + ID.Value;
+                Work.Handle = GetFileHandleFor(Assets, Asset->FileIndex);
+                Work.Offset = HHAAsset->DataOffset;
+                Work.Size = Size.Data;
+                Work.Destination = Bitmap->Memory;
+                Work.FinalState = AssetState_Loaded;
+                if (Task) {
+                    load_asset_work* TaskWork = PushStruct(&Task->Arena, load_asset_work);
+                    *TaskWork = Work;
+                    Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, TaskWork);
+                } else {
+                    LoadAssetWorkDirectly(&Work);
+                }
             } else {
-                LoadAssetWorkDirectly(&Work);
+                Asset->State = AssetState_Unloaded;
             }
         } else {
-            Asset->State = AssetState_Unloaded;
+            asset_state volatile* State = (asset_state volatile*)&Asset->State;
+            while (Asset->State == AssetState_Queued) {}
         }
     }
 }
@@ -495,15 +500,86 @@ internal void PrefetchBitmap(game_assets* Assets, bitmap_id ID) {
 }
 
 struct fill_ground_chunk_work {
-    render_group* RenderGroup;
-    loaded_bitmap* Buffer;
+    game_state* GameState;
+    transient_state* TranState;
+    ground_buffer* GroundBuffer;
+    world_position ChunkP;
     task_with_memory* Task;
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork) {
     fill_ground_chunk_work* Work = (fill_ground_chunk_work*)Data;
-    RenderGroupToOutput(Work->RenderGroup, Work->Buffer);
-    FinishRenderGroup(Work->RenderGroup);
+
+    loaded_bitmap* Buffer = &Work->GroundBuffer->Bitmap;
+    Buffer->AlignPercentage = V2(0.5f, 0.5f);
+    Buffer->WidthOverHeight = 1.0f;
+
+    real32 Width = Work->GameState->World->ChunkDimInMeters.x;
+    real32 Height = Work->GameState->World->ChunkDimInMeters.y;
+    Assert(Width == Height);
+    v2 HalfDim = 0.5f * V2(Width, Height);
+
+    render_group* RenderGroup = AllocateRenderGroup(Work->TranState->Assets, &Work->Task->Arena, 0, true);
+    Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)(Buffer->Width - 2) / Width);
+    Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
+
+    for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
+        for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
+
+            int32 ChunkX = Work->ChunkP.ChunkX + ChunkOffsetX;
+            int32 ChunkY = Work->ChunkP.ChunkY + ChunkOffsetY;
+            int32 ChunkZ = Work->ChunkP.ChunkZ;
+
+            random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
+
+#if 0
+            v4 Color = V4(1.0f, 0.0f, 0.0f, 1.0f);
+            if (ChunkX % 2 == ChunkY % 2) {
+                Color = V4(0.0f, 0.0f, 1.0f, 1.0f);
+            }
+#else
+            v4 Color = V4(1, 1, 1, 1);
+#endif
+
+            v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
+
+            for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
+
+                bitmap_id Stamp = GetRandomBitmapFrom(Work->TranState->Assets, RandomChoice(&Series, 2) ? Asset_Grass : Asset_Stone, &Series);;
+
+                v2 Offset =
+                    Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
+                v2 P = Center + Offset;
+                PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
+            }
+        }
+    }
+
+    for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
+        for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
+
+            int32 ChunkX = Work->ChunkP.ChunkX + ChunkOffsetX;
+            int32 ChunkY = Work->ChunkP.ChunkY + ChunkOffsetY;
+            int32 ChunkZ = Work->ChunkP.ChunkZ;
+
+            random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
+
+            v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
+
+            for (uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
+                bitmap_id Stamp = GetRandomBitmapFrom(Work->TranState->Assets, Asset_Tuft, &Series);
+
+                v2 Offset =
+                    Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
+                v2 P = Center + Offset;
+                PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0));
+            }
+        }
+    }
+
+    Assert(AllResourcesPresent(RenderGroup));
+    RenderGroupToOutput(RenderGroup, Buffer);
+    FinishRenderGroup(RenderGroup);
     EndTaskWithMemory(Work->Task);
 }
 
@@ -514,79 +590,11 @@ internal void FillGroundChunk(
     task_with_memory* Task = BeginTaskWithMemory(TranState);
     if (Task) {
         fill_ground_chunk_work* Work = PushStruct(&Task->Arena, fill_ground_chunk_work);
-
-        loaded_bitmap* Buffer = &GroundBuffer->Bitmap;
-        Buffer->AlignPercentage = V2(0.5f, 0.5f);
-        Buffer->WidthOverHeight = 1.0f;
-
-        real32 Width = GameState->World->ChunkDimInMeters.x;
-        real32 Height = GameState->World->ChunkDimInMeters.y;
-        Assert(Width == Height);
-        v2 HalfDim = 0.5f * V2(Width, Height);
-
-        render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0, true);
-        Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)(Buffer->Width - 2) / Width);
-        Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
-
-        Work->Buffer = Buffer;
-        Work->RenderGroup = RenderGroup;
+        Work->ChunkP = *ChunkP;
+        Work->GameState = GameState;
+        Work->TranState = TranState;
+        Work->GroundBuffer = GroundBuffer;
         Work->Task = Task;
-
-        for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
-            for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
-
-                int32 ChunkX = ChunkP->ChunkX + ChunkOffsetX;
-                int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
-                int32 ChunkZ = ChunkP->ChunkZ;
-
-                random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
-
-#if 0
-                v4 Color = V4(1.0f, 0.0f, 0.0f, 1.0f);
-                if (ChunkX % 2 == ChunkY % 2) {
-                    Color = V4(0.0f, 0.0f, 1.0f, 1.0f);
-                }
-#else
-                v4 Color = V4(1, 1, 1, 1);
-#endif
-
-                v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
-
-                for (uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
-
-                    bitmap_id Stamp = GetRandomBitmapFrom(TranState->Assets, RandomChoice(&Series, 2) ? Asset_Grass : Asset_Stone, &Series);;
-
-                    v2 Offset =
-                        Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
-                    v2 P = Center + Offset;
-                    PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0), Color);
-                }
-            }
-        }
-
-        for (int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ChunkOffsetY++) {
-            for (int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ChunkOffsetX++) {
-
-                int32 ChunkX = ChunkP->ChunkX + ChunkOffsetX;
-                int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
-                int32 ChunkZ = ChunkP->ChunkZ;
-
-                random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
-
-                v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
-
-                for (uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
-                    bitmap_id Stamp = GetRandomBitmapFrom(TranState->Assets, Asset_Tuft, &Series);
-
-                    v2 Offset =
-                        Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
-                    v2 P = Center + Offset;
-                    PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0));
-                }
-            }
-        }
-
-        Assert(AllResourcesPresent(RenderGroup));
         GroundBuffer->P = *ChunkP;
         Platform.AddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
     }
