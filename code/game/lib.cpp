@@ -503,6 +503,7 @@ struct fill_ground_chunk_work {
 internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork) {
     fill_ground_chunk_work* Work = (fill_ground_chunk_work*)Data;
     RenderGroupToOutput(Work->RenderGroup, Work->Buffer);
+    FinishRenderGroup(Work->RenderGroup);
     EndTaskWithMemory(Work->Task);
 }
 
@@ -585,12 +586,9 @@ internal void FillGroundChunk(
             }
         }
 
-        if (AllResourcesPresent(RenderGroup)) {
-            GroundBuffer->P = *ChunkP;
-            Platform.AddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
-        } else {
-            EndTaskWithMemory(Task);
-        }
+        Assert(AllResourcesPresent(RenderGroup));
+        GroundBuffer->P = *ChunkP;
+        Platform.AddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
     }
 }
 
@@ -1504,6 +1502,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #endif
 
     TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, DrawBuffer);
+    FinishRenderGroup(RenderGroup);
 
     EndSim(SimRegion, GameState);
 

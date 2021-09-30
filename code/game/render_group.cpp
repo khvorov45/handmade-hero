@@ -65,6 +65,7 @@ struct render_transform {
 struct render_group {
     game_assets* Assets;
     real32 GlobalAlpha;
+    uint32 GenerationID;
     v2 MonitorHalfDimInMeters;
     render_transform Transform;
     uint32 MaxPushBufferSize;
@@ -85,11 +86,19 @@ AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBuff
     Result->PushBufferSize = 0;
     Result->MaxPushBufferSize = MaxPushBufferSize;
     Result->GlobalAlpha = 1.0f;
+    Result->GenerationID = BeginGeneration(Assets);
     Result->Transform.OffsetP = V3(0, 0, 0);
     Result->Transform.Scale = 1.0f;
     Result->MissingResourceCount = 0;
     Result->RendersInBackground = RendersInBackground;
     return Result;
+}
+
+internal void
+FinishRenderGroup(render_group* Group) {
+    if (Group) {
+        EndGeneration(Group->Assets, Group->GenerationID);
+    }
 }
 
 internal inline void Perspective(
@@ -192,10 +201,10 @@ internal inline void PushBitmap(
     render_group* Group, bitmap_id ID, real32 Height,
     v3 Offset, v4 Color = V4(1, 1, 1, 1)
 ) {
-    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID);
+    loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID, Group->GenerationID);
     if (Group->RendersInBackground && !Bitmap) {
         LoadBitmap(Group->Assets, ID, true);
-        Bitmap = GetBitmap(Group->Assets, ID);
+        Bitmap = GetBitmap(Group->Assets, ID, Group->GenerationID);
     }
     if (Bitmap) {
         PushBitmap(Group, Bitmap, Height, Offset, Color);

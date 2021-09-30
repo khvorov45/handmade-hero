@@ -53,7 +53,6 @@ enum asset_state {
     AssetState_Unloaded,
     AssetState_Queued,
     AssetState_Loaded,
-    AssetState_Operating,
 };
 
 struct asset_memory_size {
@@ -93,6 +92,8 @@ struct asset_memory_block {
 };
 
 struct game_assets {
+    uint32 NextGenerationID;
+
     struct transient_state* TranState;
 
     asset_memory_block MemorySentinel;
@@ -113,6 +114,9 @@ struct game_assets {
     asset_type AssetTypes[Asset_Count];
 
     uint32 OperationLock;
+
+    uint32 InFlightGenerationCount;
+    uint32 InFlightGenerations[16];
 };
 
 internal bool32 IsValid(sound_id ID) {
@@ -140,6 +144,9 @@ internal asset_memory_block* InsertBlock(asset_memory_block* Prev, memory_index 
 internal game_assets*
 AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
     game_assets* Assets = PushStruct(Arena, game_assets);
+
+    Assets->NextGenerationID = 0;
+    Assets->InFlightGenerationCount = 0;
 
     Assets->MemorySentinel.Flags = 0;
     Assets->MemorySentinel.Size = 0;
@@ -308,7 +315,7 @@ internal asset_memory_size GetSizeOfAsset(game_assets* Assets, bool32 IsSound, u
     return Result;
 }
 
-internal asset_memory_header* GetAsset(game_assets* Assets, uint32 ID) {
+internal asset_memory_header* GetAsset(game_assets* Assets, uint32 ID, uint32 GenerationID) {
 
     Assert(ID <= Assets->AssetCount);
     asset* Asset = Assets->Assets + ID;
@@ -324,28 +331,26 @@ internal asset_memory_header* GetAsset(game_assets* Assets, uint32 ID) {
         RemoveAssetHeaderFromList(Result);
         InsertAssetheaderAtFront(Assets, Result);
 
-#if 0
         if (Asset->Header->GenerationID < GenerationID) {
             Asset->Header->GenerationID = GenerationID;
         }
-#endif
 
         CompletePreviousWritesBeforeFutureWrites;
-        }
+    }
 
     EndAssetLock(Assets);
 
     return Result;
-    }
+}
 
-internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
-    asset_memory_header* Header = GetAsset(Assets, ID.Value);
+internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID, uint32 GenerationID) {
+    asset_memory_header* Header = GetAsset(Assets, ID.Value, GenerationID);
     loaded_bitmap* Result = Header ? &Header->Bitmap : 0;
     return Result;
 }
 
-internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID) {
-    asset_memory_header* Header = GetAsset(Assets, ID.Value);
+internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID, uint32 GenerationID) {
+    asset_memory_header* Header = GetAsset(Assets, ID.Value, GenerationID);
     loaded_sound* Result = Header ? &Header->Sound : 0;
     return Result;
 }
@@ -459,158 +464,6 @@ internal sound_id GetNextSoundInChain(game_assets* Assets, sound_id SoundID) {
     return Result;
 }
 
-#if 0
-
-#pragma pack(push, 1)
-struct WAVE_header {
-    uint32 RIFFID;
-    uint32 Size; // NOTE(sen) Includes the WAVEID below
-    uint32 WAVEID;
-};
-#define RIFF_CODE(a,b,c,d) (((uint32)(a) << 0) | ((uint32)(b) << 8) | ((uint32)(c) << 16) | ((uint32)(d) << 24))
-enum WAVE_codes {
-    WAVE_ChunkID_fmt = RIFF_CODE('f', 'm', 't', ' '),
-    WAVE_ChunkID_data = RIFF_CODE('d', 'a', 't', 'a'),
-    WAVE_ChunkID_RIFF = RIFF_CODE('R', 'I', 'F', 'F'),
-    WAVE_ChunkID_WAVE = RIFF_CODE('W', 'A', 'V', 'E')
-};
-struct WAVE_chunk {
-    uint32 ID;
-    uint32 Size;
-};
-struct WAVE_fmt {
-    uint16 wFormatTag;
-    uint16 nChannels;
-    uint32 nSamplesPerSec;
-    uint32 nAvgBytesPerSec;
-    uint16 nBlockAlign;
-    uint16 wBitsPerSample;
-    uint16 cbSize;
-    uint16 wValidBitsPerSample;
-    uint32 dwChannelMask;
-    uint8 SubFormat[16];
-};
-#pragma pack(pop)
-
-struct riff_iterator {
-    uint8* At;
-    uint8* Stop;
-};
-
-internal riff_iterator ParseChunk(void* At, void* Stop) {
-    riff_iterator Iter;
-    Iter.At = (uint8*)At;
-    Iter.Stop = (uint8*)Stop;
-    return Iter;
-}
-
-internal bool32 IsValid(riff_iterator Iter) {
-    bool32 Result = Iter.At < Iter.Stop;
-    return Result;
-}
-
-internal riff_iterator NextChunk(riff_iterator Iter) {
-    WAVE_chunk* Chunk = (WAVE_chunk*)Iter.At;
-    uint32 Size = (Chunk->Size + 1) & ~1;
-    Iter.At += sizeof(WAVE_chunk) + Size;
-    return Iter;
-}
-
-internal void* GetChunkData(riff_iterator Iter) {
-    void* Result = Iter.At + sizeof(WAVE_chunk);
-    return Result;
-}
-
-internal uint32 GetChunkDataSize(riff_iterator Iter) {
-    WAVE_chunk* Chunk = (WAVE_chunk*)Iter.At;
-    uint32 Result = Chunk->Size;
-    return Result;
-}
-
-internal uint32 GetType(riff_iterator Iter) {
-    WAVE_chunk* Chunk = (WAVE_chunk*)Iter.At;
-    uint32 Result = Chunk->ID;
-    return Result;
-}
-
-internal loaded_sound
-DEBUGLoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCount) {
-    loaded_sound Result = {};
-    debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(Filename);
-    if (ReadResult.Size != 0) {
-        WAVE_header* Header = (WAVE_header*)ReadResult.Contents;
-        Assert(Header->RIFFID == WAVE_ChunkID_RIFF);
-        Assert(Header->WAVEID == WAVE_ChunkID_WAVE);
-        uint32 ChannelCount = 0;
-        uint32 SampleDataSize = 0;
-        int16* SampleData = 0;
-        for (riff_iterator Iter = ParseChunk(Header + 1, (uint8*)(Header + 1) + Header->Size - 4);
-            IsValid(Iter);
-            Iter = NextChunk(Iter)) {
-            switch (GetType(Iter)) {
-            case WAVE_ChunkID_fmt: {
-                WAVE_fmt* fmt = (WAVE_fmt*)GetChunkData(Iter);
-                Assert(fmt->wFormatTag == 1); // PCM
-                Assert(fmt->nSamplesPerSec == 48000);
-                Assert(fmt->wBitsPerSample == 16);
-                Assert(fmt->nBlockAlign == fmt->nChannels * sizeof(int16));
-                ChannelCount = fmt->nChannels;
-            } break;
-            case WAVE_ChunkID_data: {
-                SampleData = (int16*)GetChunkData(Iter);
-                SampleDataSize = GetChunkDataSize(Iter);
-            } break;
-            }
-        }
-        Assert(ChannelCount && SampleData && SampleDataSize);
-        Result.ChannelCount = ChannelCount;
-        uint32 SampleCount = SampleDataSize / (ChannelCount * sizeof(int16));
-        if (ChannelCount == 1) {
-            Result.Samples[0] = SampleData;
-            Result.Samples[1] = 0;
-        } else if (ChannelCount == 2) {
-            Result.Samples[0] = SampleData;
-            Result.Samples[1] = SampleData + SampleCount;
-#if 0
-            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
-                SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
-                SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-            }
-#endif
-            for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
-                uint16 Source = SampleData[2 * SampleIndex];
-                SampleData[2 * SampleIndex] = SampleData[SampleIndex];
-                SampleData[SampleIndex] = Source;
-            }
-        } else {
-            Assert(!"Invalid channel count");
-        }
-
-        Result.ChannelCount = 1;
-
-        bool32 AtEnd = true;
-        if (SectionSampleCount) {
-            Assert(SectionFirstSampleIndex + SectionSampleCount <= SampleCount);
-            AtEnd = (SectionFirstSampleIndex + SectionSampleCount) == SampleCount;
-            SampleCount = SectionSampleCount;
-            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
-                Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
-            }
-        }
-        if (AtEnd) {
-            uint32 SampleCountAlign8 = SampleCount + 8; // Align8(SampleCount);
-            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
-                for (uint32 SampleIndex = SampleCount; SampleIndex < SampleCountAlign8; ++SampleIndex) {
-                    Result.Samples[ChannelIndex][SampleIndex] = 0;
-                }
-            }
-        }
-        Result.SampleCount = SampleCount;
-    }
-    return Result;
-}
-#endif
-
 asset_memory_block* FindBlockForSize(game_assets* Assets, memory_index Size) {
     asset_memory_block* Result = 0;
     for (asset_memory_block* Block = Assets->MemorySentinel.Next; Block != &Assets->MemorySentinel; Block = Block->Next) {
@@ -633,6 +486,17 @@ internal bool32 MergeIfPossible(game_assets* Assets, asset_memory_block* First, 
                 First->Size += sizeof(asset_memory_block) + Second->Size;
                 Result = true;
             }
+        }
+    }
+    return Result;
+}
+
+internal bool32 GenerationHasCompleted(game_assets* Assets, uint32 CheckID) {
+    bool32 Result = true;
+    for (uint32 Index = 0; Index < ArrayCount(Assets->InFlightGenerations); ++Index) {
+        if (Assets->InFlightGenerations[Index] == CheckID) {
+            Result = false;
+            break;
         }
     }
     return Result;
@@ -664,7 +528,7 @@ internal asset_memory_header* AcquireAssetMemory(game_assets* Assets, uint32 Siz
                 Header = Header->Prev) {
 
                 asset* Asset = Assets->Assets + Header->AssetIndex;
-                if (Asset->State >= AssetState_Loaded) {
+                if (Asset->State >= AssetState_Loaded && GenerationHasCompleted(Assets, Asset->Header->GenerationID)) {
 
                     Assert(Asset->State == AssetState_Loaded);
 
@@ -694,6 +558,28 @@ internal asset_memory_header* AcquireAssetMemory(game_assets* Assets, uint32 Siz
     EndAssetLock(Assets);
 
     return Result;
+}
+
+internal uint32
+BeginGeneration(game_assets* Assets) {
+    BeginAssetLock(Assets);
+    Assert(Assets->InFlightGenerationCount < ArrayCount(Assets->InFlightGenerations));
+    uint32 Result = Assets->NextGenerationID++;
+    Assets->InFlightGenerations[Assets->InFlightGenerationCount++] = Result;
+    EndAssetLock(Assets);
+    return Result;
+}
+
+internal void
+EndGeneration(game_assets* Assets, uint32 GenerationID) {
+    BeginAssetLock(Assets);
+    for (uint32 Index = 0; Index < ArrayCount(Assets->InFlightGenerations); ++Index) {
+        if (Assets->InFlightGenerations[Index] == GenerationID) {
+            Assets->InFlightGenerations[Index] = Assets->InFlightGenerations[--Assets->InFlightGenerationCount];
+            break;
+        }
+    }
+    EndAssetLock(Assets);
 }
 
 #endif
