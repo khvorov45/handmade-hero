@@ -439,9 +439,9 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
             } else {
                 Asset->State = AssetState_Unloaded;
             }
-        } else {
+        } else if (Immediate) {
             asset_state volatile* State = (asset_state volatile*)&Asset->State;
-            while (Asset->State == AssetState_Queued) {}
+            while (*State == AssetState_Queued) {}
         }
     }
 }
