@@ -112,62 +112,8 @@ struct game_assets {
 
     asset_type AssetTypes[Asset_Count];
 
-    // uint8* HHAContents;
+    uint32 OperationLock;
 };
-
-#if 0
-internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
-    Assert(Assets->DEBUGAssetType == 0);
-    Assets->DEBUGAssetType = Assets->AssetTypes + Type;
-    Assets->DEBUGAssetType->FirstAssetIndex = Assets->DEBUGUsedAssetCount;
-    Assets->DEBUGAssetType->OnePastLastAssetIndex = Assets->DEBUGAssetType->FirstAssetIndex;
-}
-
-internal bitmap_id
-AddBitmapAsset(game_assets* Assets, char* Filename, v2 AlignPercentage = V2(0.5f, 0.5f)) {
-    Assert(Assets->DEBUGAssetType != 0);
-    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
-    bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    hha_asset* Asset = Assets->Assets + Result.Value;
-    Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
-    Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->Bitmap.Filename = PushString(&Assets->Arena, Filename);;
-    Asset->Bitmap.AlignPercentage = AlignPercentage;
-    Assets->DEBUGAsset = Asset;
-    return Result;
-}
-
-internal sound_id
-AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, uint32 SampleCount = 0) {
-    Assert(Assets->DEBUGAssetType != 0);
-    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < Assets->AssetCount);
-    sound_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    hha_asset* Asset = Assets->Assets + Result.Value;
-    Asset->FirstTagIndex = Assets->DEBUGUsedTagCount;
-    Asset->OnePastLastTagIndex = Asset->FirstTagIndex;
-    Asset->Sound.Filename = PushString(&Assets->Arena, Filename);
-    Asset->Sound.FirstSampleIndex = FirstSampleIndex;
-    Asset->Sound.SampleCount = SampleCount;
-    Asset->Sound.NextIDToPlay.Value = 0;
-    Assets->DEBUGAsset = Asset;
-    return Result;
-}
-
-internal void AddTag(game_assets* Assets, hha_tag_id TagID, real32 Value) {
-    Assert(Assets->DEBUGAsset);
-    ++Assets->DEBUGAsset->OnePastLastTagIndex;
-    hha_tag* Tag = Assets->Tags + Assets->DEBUGUsedTagCount++;
-    Tag->ID = TagID;
-    Tag->Value = Value;
-}
-
-internal void EndAssetType(game_assets* Assets) {
-    Assert(Assets->DEBUGAssetType != 0);
-    Assets->DEBUGUsedAssetCount = Assets->DEBUGAssetType->OnePastLastAssetIndex;
-    Assets->DEBUGAssetType = 0;
-    Assets->DEBUGAsset = 0;
-}
-#endif
 
 internal bool32 IsValid(sound_id ID) {
     bool32 Result = ID.Value != 0;
@@ -212,7 +158,6 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     }
     Assets->TagRange[Tag_FacingDirection] = 2.0f * Pi32;
 
-#if 1
     Assets->TagCount = 1;
     Assets->AssetCount = 1;
     {
@@ -315,156 +260,21 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     }
     Assert(AssetCount == Assets->AssetCount);
 
-#else
-
-    debug_read_file_result ReadResult = Platform.DEBUGReadEntireFile("test.hha");
-    if (ReadResult.Size != 0) {
-        hha_header* Header = (hha_header*)ReadResult.Contents;
-        Assert(Header->MagicValue == HHA_MAGIC_VALUE);
-        Assert(Header->Version == HHA_VERSION);
-
-        Assets->AssetCount = Header->AssetCount;
-        Assets->Assets = (hha_asset*)((uint8*)ReadResult.Contents + Header->Assets);
-        Assets->Assets = PushArray(Arena, Assets->AssetCount, asset_slot);
-
-        Assets->TagCount = Header->TagCount;
-        Assets->Tags = (hha_tag*)((uint8*)ReadResult.Contents + Header->Tags);
-
-        hha_asset_type* HHAAssetTypes = (hha_asset_type*)((uint8*)ReadResult.Contents + Header->AssetTypes);
-
-        for (uint32 Index = 0; Index < Header->AssetTypeCount; ++Index) {
-            hha_asset_type* Source = HHAAssetTypes + Index;
-            if (Source->TypeID < Asset_Count) {
-                asset_type* Dest = Assets->AssetTypes + Source->TypeID;
-                Assert(Dest->FirstAssetIndex == 0);
-                Assert(Dest->OnePastLastAssetIndex == 0);
-                Dest->FirstAssetIndex = Source->FirstAssetIndex;
-                Dest->OnePastLastAssetIndex = Source->OnePastLastAssetIndex;
-            }
-        }
-
-        Assets->HHAContents = (uint8*)ReadResult.Contents;
-    }
-#endif
-
-#if 0
-    Assets->DEBUGUsedAssetCount = 1;
-
-    BeginAssetType(Assets, Asset_Shadow);
-    AddBitmapAsset(Assets, "test/test_hero_shadow.bmp", V2(0.5f, 0.15668f));
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Tree);
-    AddBitmapAsset(Assets, "test2/tree00.bmp", V2(0.494f, 0.295f));
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Sword);
-    AddBitmapAsset(Assets, "test2/rock03.bmp", V2(0.5f, 0.656f));
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Grass);
-    AddBitmapAsset(Assets, "test2/grass00.bmp");
-    AddBitmapAsset(Assets, "test2/grass01.bmp");
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Tuft);
-    AddBitmapAsset(Assets, "test2/tuft00.bmp");
-    AddBitmapAsset(Assets, "test2/tuft01.bmp");
-    AddBitmapAsset(Assets, "test2/tuft02.bmp");
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Stone);
-    AddBitmapAsset(Assets, "test2/ground00.bmp");
-    AddBitmapAsset(Assets, "test2/ground01.bmp");
-    AddBitmapAsset(Assets, "test2/ground02.bmp");
-    AddBitmapAsset(Assets, "test2/ground03.bmp");
-    EndAssetType(Assets);
-
-    real32 AngleRight = 0.0f;
-    real32 AngleBack = 0.5f * Pi32;
-    real32 AngleLeft = Pi32;
-    real32 AngleFront = 1.5f * Pi32;
-
-    v2 HeroAlign = V2(0.5f, 0.1567);
-
-    BeginAssetType(Assets, Asset_Head);
-    AddBitmapAsset(Assets, "test/test_hero_right_head.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleRight);
-    AddBitmapAsset(Assets, "test/test_hero_back_head.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleBack);
-    AddBitmapAsset(Assets, "test/test_hero_left_head.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleLeft);
-    AddBitmapAsset(Assets, "test/test_hero_front_head.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleFront);
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Cape);
-    AddBitmapAsset(Assets, "test/test_hero_right_cape.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleRight);
-    AddBitmapAsset(Assets, "test/test_hero_back_cape.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleBack);
-    AddBitmapAsset(Assets, "test/test_hero_left_cape.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleLeft);
-    AddBitmapAsset(Assets, "test/test_hero_front_cape.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleFront);
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Torso);
-    AddBitmapAsset(Assets, "test/test_hero_right_torso.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleRight);
-    AddBitmapAsset(Assets, "test/test_hero_back_torso.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleBack);
-    AddBitmapAsset(Assets, "test/test_hero_left_torso.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleLeft);
-    AddBitmapAsset(Assets, "test/test_hero_front_torso.bmp", HeroAlign);
-    AddTag(Assets, Tag_FacingDirection, AngleFront);
-    EndAssetType(Assets);
-
-    // Sounds
-
-    BeginAssetType(Assets, Asset_Bloop);
-    AddSoundAsset(Assets, "test3/bloop_00.wav");
-    AddSoundAsset(Assets, "test3/bloop_01.wav");
-    AddSoundAsset(Assets, "test3/bloop_02.wav");
-    AddSoundAsset(Assets, "test3/bloop_03.wav");
-    AddSoundAsset(Assets, "test3/bloop_04.wav");
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Crack);
-    AddSoundAsset(Assets, "test3/crack_00.wav");
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Drop);
-    AddSoundAsset(Assets, "test3/drop_00.wav");
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Glide);
-    AddSoundAsset(Assets, "test3/glide_00.wav");
-    EndAssetType(Assets);
-
-    uint32 OneMusicChunk = 10 * 48000;
-    uint32 TotalMusicSampleCount = 7468095;
-    BeginAssetType(Assets, Asset_Music);
-    sound_id LastMusic = { 0 };
-    for (uint32 FirstSampleIndex = 0; FirstSampleIndex < TotalMusicSampleCount; FirstSampleIndex += OneMusicChunk) {
-        uint32 SampleCount = TotalMusicSampleCount - FirstSampleIndex;
-        if (SampleCount > OneMusicChunk) {
-            SampleCount = OneMusicChunk;
-        }
-        sound_id ThisMusic = AddSoundAsset(Assets, "test3/music_test.wav", FirstSampleIndex, SampleCount);
-        if (IsValid(LastMusic)) {
-            Assets->Assets[LastMusic.Value].Sound.NextIDToPlay = ThisMusic;
-        }
-        LastMusic = ThisMusic;
-    }
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_Puhp);
-    AddSoundAsset(Assets, "test3/puhp_00.wav");
-    AddSoundAsset(Assets, "test3/puhp_01.wav");
-    EndAssetType(Assets);
-#endif
     return Assets;
+}
+
+internal void
+BeginAssetLock(game_assets* Assets) {
+    for (;;) {
+        if (AtomicCompareExchangeUint32((volatile uint32*)&Assets->OperationLock, 1, 0) == 0) {
+            break;
+        }
+    }
+}
+
+internal void EndAssetLock(game_assets* Assets) {
+    CompletePreviousWritesBeforeFutureWrites;
+    Assets->OperationLock = 0;
 }
 
 internal void InsertAssetheaderAtFront(game_assets* Assets, asset_memory_header* Header) {
@@ -498,38 +308,35 @@ internal asset_memory_size GetSizeOfAsset(game_assets* Assets, bool32 IsSound, u
     return Result;
 }
 
-internal void MoveHeaderToFront(game_assets* Assets, asset* Asset) {
-    asset_memory_header* Header = Asset->Header;
-    RemoveAssetHeaderFromList(Header);
-    InsertAssetheaderAtFront(Assets, Header);
-}
-
 internal asset_memory_header* GetAsset(game_assets* Assets, uint32 ID) {
+
     Assert(ID <= Assets->AssetCount);
     asset* Asset = Assets->Assets + ID;
-    asset_memory_header* Result = 0;
-    for (;;) {
-        uint32 State = Asset->State;
-        if (State == AssetState_Loaded) {
-            if (AtomicCompareExchangeUint32((volatile uint32*)&Asset->State, AssetState_Operating, State) == State) {
-                Result = Asset->Header;
-                MoveHeaderToFront(Assets, Asset);
-#if 0
-                if (Asset->Header->GenerationID < GenerationID) {
-                    Asset->Header->GenerationID = GenerationID;
-                }
-#endif
-                CompletePreviousWritesBeforeFutureWrites;
-                Asset->State = State;
 
-                break;
-            }
-        } else if (State != AssetState_Operating) {
-            break;
+    asset_memory_header* Result = 0;
+
+    BeginAssetLock(Assets);
+
+    if (Asset->State == AssetState_Loaded) {
+
+        Result = Asset->Header;
+
+        RemoveAssetHeaderFromList(Result);
+        InsertAssetheaderAtFront(Assets, Result);
+
+#if 0
+        if (Asset->Header->GenerationID < GenerationID) {
+            Asset->Header->GenerationID = GenerationID;
         }
-    }
+#endif
+
+        CompletePreviousWritesBeforeFutureWrites;
+        }
+
+    EndAssetLock(Assets);
+
     return Result;
-}
+    }
 
 internal inline loaded_bitmap* GetBitmap(game_assets* Assets, bitmap_id ID) {
     asset_memory_header* Header = GetAsset(Assets, ID.Value);
@@ -831,14 +638,17 @@ internal bool32 MergeIfPossible(game_assets* Assets, asset_memory_block* First, 
     return Result;
 }
 
-internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
-    void* Result = 0;
+internal asset_memory_header* AcquireAssetMemory(game_assets* Assets, uint32 Size, uint32 AssetIndex) {
+    asset_memory_header* Result = 0;
+
+    BeginAssetLock(Assets);
+
     asset_memory_block* Block = FindBlockForSize(Assets, Size);
     for (;;) {
         if (Block && Size <= Block->Size) {
             Block->Flags |= AssetMemory_Used;
 
-            Result = (uint8*)(Block + 1);
+            Result = (asset_memory_header*)(Block + 1);
 
             memory_index RemainingSize = Block->Size - Size;
             memory_index BlockSplitThreshold = 4096;
@@ -874,14 +684,16 @@ internal void* AcquireAssetMemory(game_assets* Assets, memory_index Size) {
             }
         }
     }
-    return Result;
-}
 
-internal void AddAssetHeaderToList(game_assets* Assets, uint32 AssetIndex, asset_memory_size Size) {
-    asset_memory_header* Header = Assets->Assets[AssetIndex].Header;
-    Header->AssetIndex = AssetIndex;
-    Header->TotalSize = Size.Total;
-    InsertAssetheaderAtFront(Assets, Header);
+    if (Result) {
+        Result->AssetIndex = AssetIndex;
+        Result->TotalSize = Size;
+        InsertAssetheaderAtFront(Assets, Result);
+    }
+
+    EndAssetLock(Assets);
+
+    return Result;
 }
 
 #endif

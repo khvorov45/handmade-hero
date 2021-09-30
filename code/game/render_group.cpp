@@ -71,10 +71,11 @@ struct render_group {
     uint32 PushBufferSize;
     uint8* PushBufferBase;
     uint32 MissingResourceCount;
+    bool32 RendersInBackground;
 };
 
 internal render_group*
-AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize) {
+AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBufferSize, bool32 RendersInBackground) {
     render_group* Result = PushStruct(Arena, render_group);
     Result->Assets = Assets;
     if (MaxPushBufferSize == 0) {
@@ -87,6 +88,7 @@ AllocateRenderGroup(game_assets* Assets, memory_arena* Arena, uint32 MaxPushBuff
     Result->Transform.OffsetP = V3(0, 0, 0);
     Result->Transform.Scale = 1.0f;
     Result->MissingResourceCount = 0;
+    Result->RendersInBackground = RendersInBackground;
     return Result;
 }
 
@@ -185,16 +187,21 @@ internal inline void PushBitmap(
     }
 }
 
-internal void LoadBitmap(game_assets* Assets, bitmap_id ID);
+internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Immediate);
 internal inline void PushBitmap(
     render_group* Group, bitmap_id ID, real32 Height,
     v3 Offset, v4 Color = V4(1, 1, 1, 1)
 ) {
     loaded_bitmap* Bitmap = GetBitmap(Group->Assets, ID);
+    if (Group->RendersInBackground && !Bitmap) {
+        LoadBitmap(Group->Assets, ID, true);
+        Bitmap = GetBitmap(Group->Assets, ID);
+    }
     if (Bitmap) {
         PushBitmap(Group, Bitmap, Height, Offset, Color);
     } else {
-        LoadBitmap(Group->Assets, ID);
+        Assert(!Group->RendersInBackground);
+        LoadBitmap(Group->Assets, ID, false);
         ++Group->MissingResourceCount;
     }
 }

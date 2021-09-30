@@ -367,19 +367,19 @@ struct load_asset_work {
     uint32 FinalState;
 };
 
-internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
-    load_asset_work* Work = (load_asset_work*)Data;
-
+internal void
+LoadAssetWorkDirectly(load_asset_work* Work) {
     Platform.ReadDataFromFile(Work->Handle, Work->Offset, Work->Size, Work->Destination);
-
     CompletePreviousWritesBeforeFutureWrites;
-
     if (!PlatformNoFileErrors(Work->Handle)) {
         ZeroSize(Work->Size, Work->Destination);
     }
-
     Work->Asset->State = Work->FinalState;
+}
 
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
+    load_asset_work* Work = (load_asset_work*)Data;
+    LoadAssetWorkDirectly(Work);
     EndTaskWithMemory(Work->Task);
 }
 
@@ -390,11 +390,14 @@ GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
     return Handle;
 }
 
-internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
+internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
     asset* Asset = Assets->Assets + ID.Value;
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
-        task_with_memory* Task = BeginTaskWithMemory(Assets->TranState);
-        if (Task) {
+        task_with_memory* Task = 0;
+        if (!Immediate) {
+            Task = BeginTaskWithMemory(Assets->TranState);
+        }
+        if (Immediate || Task) {
 
             hha_asset* HHAAsset = &Asset->HHA;
             hha_bitmap* Info = &HHAAsset->Bitmap;
@@ -406,7 +409,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Size.Data = Size.Section * Height;
             Size.Total = Size.Data + sizeof(asset_memory_header);
 
-            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total);
+            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total, ID.Value);
 
             loaded_bitmap* Bitmap = &Asset->Header->Bitmap;
 
@@ -414,27 +417,24 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID) {
             Bitmap->Width = Info->Dim[0];
             Bitmap->Height = Info->Dim[1];
             Bitmap->WidthOverHeight = (real32)Bitmap->Width / (real32)Bitmap->Height;
-
             Bitmap->Pitch = Size.Section;
             Bitmap->Memory = Asset->Header + 1;
 
-            load_asset_work* Work = PushStruct(&Task->Arena, load_asset_work);
-            Work->Task = Task;
-            Work->Asset = Assets->Assets + ID.Value;
-            Work->Handle = GetFileHandleFor(Assets, Asset->FileIndex);
-            Work->Offset = HHAAsset->DataOffset;
-            Work->Size = Size.Data;
-            Work->Destination = Bitmap->Memory;
-            Work->FinalState = AssetState_Loaded;
-
-            AddAssetHeaderToList(Assets, ID.Value, Size);
-
-            //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Bitmap->Memory);
-#if 1
-            Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
-#else
-            LoadAssetWork(Assets->TranState->LowPriorityQueue, Work);
-#endif
+            load_asset_work Work;
+            Work.Task = Task;
+            Work.Asset = Assets->Assets + ID.Value;
+            Work.Handle = GetFileHandleFor(Assets, Asset->FileIndex);
+            Work.Offset = HHAAsset->DataOffset;
+            Work.Size = Size.Data;
+            Work.Destination = Bitmap->Memory;
+            Work.FinalState = AssetState_Loaded;
+            if (Task) {
+                load_asset_work* TaskWork = PushStruct(&Task->Arena, load_asset_work);
+                *TaskWork = Work;
+                Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, TaskWork);
+            } else {
+                LoadAssetWorkDirectly(&Work);
+            }
         } else {
             Asset->State = AssetState_Unloaded;
         }
@@ -454,7 +454,7 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Size.Data = Info->ChannelCount * Size.Section;
             Size.Total = Size.Data + sizeof(asset_memory_header);
 
-            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total);
+            Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, Size.Total, ID.Value);
 
             loaded_sound* Sound = &Asset->Header->Sound;
             Sound->SampleCount = Info->SampleCount;
@@ -475,10 +475,6 @@ internal void LoadSound(game_assets* Assets, sound_id ID) {
             Work->Size = Size.Data;
             Work->Destination = Memory;
             Work->FinalState = AssetState_Loaded;
-
-            AddAssetHeaderToList(Assets, ID.Value, Size);
-
-            //Copy(MemorySize, Assets->HHAContents + HHAAsset->DataOffset, Memory);
 #if 1
             Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
 #else
@@ -495,7 +491,7 @@ internal void PrefetchSound(game_assets* Assets, sound_id ID) {
 }
 
 internal void PrefetchBitmap(game_assets* Assets, bitmap_id ID) {
-    LoadBitmap(Assets, ID);
+    LoadBitmap(Assets, ID, false);
 }
 
 struct fill_ground_chunk_work {
@@ -527,7 +523,7 @@ internal void FillGroundChunk(
         Assert(Width == Height);
         v2 HalfDim = 0.5f * V2(Width, Height);
 
-        render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0);
+        render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0, true);
         Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (real32)(Buffer->Width - 2) / Width);
         Clear(RenderGroup, V4(1.0f, 0.5f, 0.0f, 1.0f));
 
@@ -968,7 +964,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     DrawBuffer->Width = Buffer->Width;
     DrawBuffer->Memory = Buffer->Memory;
 
-    render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4));
+    render_group* RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4), false);
 
     real32 WidthOfMonitor = 0.635f;
     real32 MetersToPixels = (real32)(DrawBuffer->Width) * WidthOfMonitor; // NOTE(sen) Should be a division;
