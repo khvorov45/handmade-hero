@@ -837,7 +837,7 @@ internal void DrawRectangleQuickly(
             __m128i OriginalDest = _mm_load_si128((__m128i*)Pixel);
             __m128i WriteMask = _mm_castps_si128(_mm_and_ps(
                 _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x)),
-                _mm_and_ps(_mm_cmpge_ps(U, Zero_4x), _mm_cmple_ps(U, One_4x))
+                _mm_and_ps(_mm_cmpge_ps(V, Zero_4x), _mm_cmple_ps(V, One_4x))
             ));
             WriteMask = _mm_and_si128(WriteMask, ClipMask);
 
@@ -1043,7 +1043,7 @@ internal void DrawRectangleQuickly(
             Pixel += 4;
             ClipMask = _mm_set1_epi32(0xFFFFFFFF);
 
-            if (XI + 8 > MaxX) {
+            if (XI + 8 >= MaxX) {
                 ClipMask = EndClipMask;
             }
 

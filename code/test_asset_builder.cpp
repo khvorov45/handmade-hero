@@ -249,13 +249,15 @@ LoadBMP(char* Filename) {
     return Result;
 }
 
-loaded_bitmap LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint) {
+internal loaded_bitmap
+LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint, hha_asset* Asset) {
     loaded_bitmap Result = {};
 #if USE_FONTS_FROM_WINDOWS
     int32 MaxWidth = 1024;
     int32 MaxHeight = 1024;
     local_persist VOID* Bits = 0;
     local_persist HDC DeviceContext = 0;
+    local_persist TEXTMETRIC TextMetric;
     if (DeviceContext == 0) {
 
         AddFontResourceExA(FontFile, FR_PRIVATE, 0);
@@ -290,7 +292,6 @@ loaded_bitmap LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint) 
 
         SetBkColor(DeviceContext, RGB(0, 0, 0));
 
-        TEXTMETRIC TextMetric;
         GetTextMetrics(DeviceContext, &TextMetric);
     }
 
@@ -341,20 +342,53 @@ loaded_bitmap LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint) 
         memset(Result.Memory, 0, Result.Height * Result.Pitch);
         Result.Free = Result.Memory;
 
+#if 0
+        {
+            uint8* DestRow = (uint8*)Result.Memory; //+ (Height - 1) * Result.Pitch;
+            for (int32 Y = 0; Y < Result.Height; ++Y) {
+                uint32* Dest = (uint32*)DestRow;
+                for (int32 X = 0; X < Result.Width; ++X) {
+                    uint8 Gray = 0;
+                    uint8 Alpha = 0xff;
+                    *Dest++ = (Alpha << 24) | (Gray << 16) | (Gray << 8) | (Gray << 0);
+                }
+                DestRow += Result.Pitch;
+            }
+        }
+#endif
+
         uint8* DestRow = (uint8*)Result.Memory + Result.Pitch + sizeof(uint32); //+ (Height - 1) * Result.Pitch;
         uint8* SourceRow = (uint8*)Bits + MinY * MaxWidth * sizeof(uint32) + MinX * sizeof(uint32);
         for (int32 Y = MinY; Y <= MaxY; ++Y) {
             uint32* Dest = (uint32*)DestRow;
             uint32* Source = (uint32*)SourceRow;
             for (int32 X = MinX; X <= MaxX; ++X) {
-                //COLORREF Pixel = GetPixel(DeviceContext, X, Y);
-                uint8 Gray = (uint8)(*Source++ & 0xFF);
-                uint8 Alpha = Gray;
-                *Dest++ = (Alpha << 24) | (Gray << 16) | (Gray << 8) | (Gray << 0);
+                uint8 Alpha = (uint8)(*Source++ & 0xFF);
+                v4 Texel = V4(
+                    (real32)(0xFF),
+                    (real32)(0xFF),
+                    (real32)(0xFF),
+                    (real32)(Alpha)
+                );
+
+                Texel = SRGB255ToLinear1(Texel);
+                Texel.rgb *= Texel.a;
+                Texel = Linear1ToSRGB255(Texel);
+
+                *Dest++ = (RoundReal32ToUint32(Texel.a) << 24) |
+                    (RoundReal32ToUint32(Texel.r) << 16) |
+                    (RoundReal32ToUint32(Texel.g) << 8) |
+                    (RoundReal32ToUint32(Texel.b));
             }
             DestRow += Result.Pitch;
             SourceRow += MaxWidth * sizeof(uint32);
         }
+
+        Asset->Bitmap.AlignPercentage[0] = 1.0f / ((real32)Result.Width);
+        int32 YStartActual = MaxHeight - TextMetric.tmHeight; // NOTE(sen) This would include the empty part of the character bitmap
+        Assert(YStartActual <= MinY);
+        int32 TrimmedDescent = TextMetric.tmDescent - (MinY - YStartActual);
+        Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
     }
 
 #else
@@ -585,13 +619,14 @@ internal void WriteHHA(game_assets* Assets, char* Filename) {
             } else {
                 loaded_bitmap Bitmap;
                 if (Source->Type == AssetType_Font) {
-                    Bitmap = LoadGlyphBitmap(Source->Filename, Source->Fontname, Source->Codepoint);
+                    Bitmap = LoadGlyphBitmap(Source->Filename, Source->Fontname, Source->Codepoint, Dest);
                 } else {
                     Assert(Source->Type == AssetType_Bitmap);
                     Bitmap = LoadBMP(Source->Filename);
                 }
                 Dest->Bitmap.Dim[0] = Bitmap.Width;
                 Dest->Bitmap.Dim[1] = Bitmap.Height;
+
                 Assert(Bitmap.Width * 4 == Bitmap.Pitch);
                 fwrite(Bitmap.Memory, Bitmap.Height * Bitmap.Width * BITMAP_BYTES_PER_PIXEL, 1, Out);
                 free(Bitmap.Free);

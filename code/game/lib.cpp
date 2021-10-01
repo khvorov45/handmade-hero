@@ -615,7 +615,7 @@ global_variable real32 FontScale;
 
 internal void
 DEBUGReset(uint32 Width, uint32 Height) {
-    FontScale = 20.0f;
+    FontScale = 1.0f;
     Orthographic(DEBUGRenderGroup, Width, Height, 1.0f);
     AtY = (real32)Height * 0.5f - FontScale * 0.5f;
     LeftEdge = -(real32)Width * 0.5f + FontScale * 0.5f;
@@ -628,15 +628,20 @@ internal void DEBUGTextLine(char* String) {
         WeightVector.E[Tag_UnicodeCodepoint] = 1.0f;
 
         real32 AtX = LeftEdge;
+        real32 CharScale = FontScale;
         for (char* At = String; *At; ++At) {
+            real32 CharDim = CharScale * 10.0f;
             if (*At != ' ') {
                 MatchVector.E[Tag_UnicodeCodepoint] = *At;
                 bitmap_id BitmapID = GetBestMatchBitmapFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
-                PushBitmap(DEBUGRenderGroup, BitmapID, FontScale, V3(AtX, AtY, 0), V4(1, 1, 1, 1));
+                hha_bitmap* Info = GetBitmapInfo(DEBUGRenderGroup->Assets, BitmapID);
+                CharDim = CharScale * (real32)Info->Dim[0];
+                PushBitmap(DEBUGRenderGroup, BitmapID, CharScale * (real32)Info->Dim[1], V3(AtX, AtY, 0), V4(1, 1, 1, 1));
             }
-            AtX += FontScale;
+            AtX += CharDim + 2.0f;
+            CharScale = FontScale;
         }
-        AtY -= 1.2f * FontScale;
+        AtY -= 1.2f * 80.0f * FontScale;
     }
 }
 
@@ -1461,7 +1466,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Saturation(RenderGroup, 1.0f);
 #endif
 
-#if 1
+#if 0
     RenderGroup->GlobalAlpha = 1.0f;
     RenderGroup->Transform.OffsetP = V3(0, 0, 0);
 

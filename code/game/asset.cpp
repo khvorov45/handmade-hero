@@ -361,6 +361,12 @@ internal inline hha_sound* GetSoundInfo(game_assets* Assets, sound_id ID) {
     return Result;
 }
 
+internal inline hha_bitmap* GetBitmapInfo(game_assets* Assets, bitmap_id ID) {
+    Assert(ID.Value <= Assets->AssetCount);
+    hha_bitmap* Result = &Assets->Assets[ID.Value].HHA.Bitmap;
+    return Result;
+}
+
 internal uint32 GetBestMatchAssetFrom(
     game_assets* Assets, asset_type_id TypeID,
     asset_vector* MatchVector, asset_vector* WeightVector
