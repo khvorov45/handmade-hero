@@ -700,7 +700,7 @@ internal void WriteNonHero() {
     EndAssetType(Assets);
 
     BeginAssetType(Assets, Asset_Font);
-    for (uint32 Character = 'A'; Character <= 'Z'; ++Character) {
+    for (uint32 Character = '!'; Character <= '~'; ++Character) {
         // AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", "Arial", Character);
         AddCharacterAsset(Assets, "C:/Windows/Fonts/cour.ttf", "Courier New", Character);
         AddTag(Assets, Tag_UnicodeCodepoint, (real32)Character);
