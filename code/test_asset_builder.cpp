@@ -20,16 +20,46 @@ enum asset_type {
     AssetType_Sound,
     AssetType_Bitmap,
     AssetType_Font,
+    AssetType_FontGlyph,
+};
+
+struct loaded_font {
+    HFONT Win32Handle;
+    TEXTMETRIC TextMetric;
+    uint32 CodepointCount;
+    real32 LineAdvance;
+
+    bitmap_id* BitmapIDs;
+    real32* HorizontalAdvance;
+};
+
+struct asset_source_font {
+    loaded_font* Font;
+};
+
+struct asset_source_font_glyph {
+    loaded_font* Font;
+    uint32 Codepoint;
+};
+
+struct asset_source_sound {
+    char* Filename;
+    uint32 FirstSampleIndex;
+};
+
+struct asset_source_bitmap {
+    char* Filename;
+    uint32 FirstSampleIndex;
 };
 
 struct asset_source {
     asset_type Type;
-    char* Filename;
     union {
-        uint32 FirstSampleIndex;
-        uint32 Codepoint;
+        asset_source_bitmap Bitmap;
+        asset_source_sound Sound;
+        asset_source_font Font;
+        asset_source_font_glyph Glyph;
     };
-    char* Fontname;
 };
 
 #define VERY_LARGE_NUMBER 4096
@@ -57,61 +87,78 @@ internal void BeginAssetType(game_assets* Assets, asset_type_id Type) {
     Assets->DEBUGAssetType->OnePastLastAssetIndex = Assets->DEBUGAssetType->FirstAssetIndex;
 }
 
-internal bitmap_id
-AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f) {
+struct added_asset {
+    uint32 ID;
+    hha_asset* HHA;
+    asset_source* Source;
+};
+
+internal added_asset AddAsset(game_assets* Assets) {
     Assert(Assets->DEBUGAssetType != 0);
     Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
-    bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset_source* Source = Assets->AssetSources + Result.Value;
-    hha_asset* HHA = Assets->Assets + Result.Value;
+    uint32 Index = Assets->DEBUGAssetType->OnePastLastAssetIndex++;
+    hha_asset* HHA = Assets->Assets + Index;
     HHA->FirstTagIndex = Assets->TagCount;
     HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
-    HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
-    HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
-    Source->Type = AssetType_Bitmap;
-    Source->Filename = Filename;
-    Assets->AssetIndex = Result.Value;
+
+    Assets->AssetIndex = Index;
+
+    asset_source* Source = Assets->AssetSources + Index;
+
+    added_asset Result = {};
+    Result.ID = Index;
+    Result.HHA = HHA;
+    Result.Source = Source;
+    return Result;
+}
+
+internal bitmap_id
+AddBitmapAsset(game_assets* Assets, char* Filename, real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f) {
+    added_asset Asset = AddAsset(Assets);
+    Asset.HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
+    Asset.HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
+    Asset.Source->Type = AssetType_Bitmap;
+    Asset.Source->Bitmap.Filename = Filename;
+    bitmap_id Result = { Asset.ID };
+    return Result;
+}
+
+internal font_id
+AddFontAsset(game_assets* Assets, loaded_font* Font) {
+    added_asset Asset = AddAsset(Assets);
+    Asset.HHA->Font.CodepointCount = Font->CodepointCount;
+    Asset.HHA->Font.LineAdvance = Font->LineAdvance;
+    Asset.Source->Type = AssetType_Font;
+    Asset.Source->Font.Font = Font;
+    font_id Result = { Asset.ID };
     return Result;
 }
 
 bitmap_id
 AddCharacterAsset(
-    game_assets* Assets, char* FontFile, char* Fontname,
+    game_assets* Assets, loaded_font* Font,
     uint32 Codepoint,
     real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f
 ) {
-    Assert(Assets->DEBUGAssetType != 0);
-    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
-    bitmap_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset_source* Source = Assets->AssetSources + Result.Value;
-    hha_asset* HHA = Assets->Assets + Result.Value;
-    HHA->FirstTagIndex = Assets->TagCount;
-    HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
-    HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
-    HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
-    Source->Type = AssetType_Font;
-    Source->Filename = FontFile;
-    Source->Codepoint = Codepoint;
-    Source->Fontname = Fontname;
-    Assets->AssetIndex = Result.Value;
+    added_asset Asset = AddAsset(Assets);
+    Asset.HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
+    Asset.HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
+    Asset.Source->Type = AssetType_FontGlyph;
+    Asset.Source->Glyph.Font = Font;
+    Asset.Source->Glyph.Codepoint = Codepoint;
+    bitmap_id Result = { Asset.ID };
     return Result;
 }
 
 internal sound_id
 AddSoundAsset(game_assets* Assets, char* Filename, uint32 FirstSampleIndex = 0, uint32 SampleCount = 0) {
-    Assert(Assets->DEBUGAssetType != 0);
-    Assert(Assets->DEBUGAssetType->OnePastLastAssetIndex < ArrayCount(Assets->Assets));
-    sound_id Result = { Assets->DEBUGAssetType->OnePastLastAssetIndex++ };
-    asset_source* Source = Assets->AssetSources + Result.Value;
-    hha_asset* HHA = Assets->Assets + Result.Value;
-    HHA->FirstTagIndex = Assets->TagCount;
-    HHA->OnePastLastTagIndex = HHA->FirstTagIndex;
-    HHA->Sound.SampleCount = SampleCount;
-    HHA->Sound.Chain = HHASoundChain_None;
-    Source->Type = AssetType_Sound;
-    Source->Filename = Filename;
-    Source->FirstSampleIndex = FirstSampleIndex;
-    Assets->AssetIndex = Result.Value;
+    added_asset Asset = AddAsset(Assets);
+    Asset.HHA->Sound.SampleCount = SampleCount;
+    Asset.HHA->Sound.Chain = HHASoundChain_None;
+    Asset.Source->Type = AssetType_Sound;
+    Asset.Source->Sound.Filename = Filename;
+    Asset.Source->Sound.FirstSampleIndex = FirstSampleIndex;
+    sound_id Result = { Asset.ID };
     return Result;
 }
 
@@ -249,74 +296,85 @@ LoadBMP(char* Filename) {
     return Result;
 }
 
+#define MAX_FONT_WIDTH 1024
+#define MAX_FONT_HEIGHT 1024
+
+global_variable VOID* GlobalFontBits;
+global_variable HDC GlobalFontDeviceContext;
+
+internal void
+InitlializeFontDC() {
+    GlobalFontDeviceContext = CreateCompatibleDC(GetDC(0));
+
+    BITMAPINFO Info = {};
+    Info.bmiHeader.biSize = sizeof(Info.bmiHeader);
+    Info.bmiHeader.biWidth = MAX_FONT_WIDTH;
+    Info.bmiHeader.biHeight = MAX_FONT_HEIGHT;
+    Info.bmiHeader.biPlanes = 1;
+    Info.bmiHeader.biBitCount = 32;
+    Info.bmiHeader.biCompression = BI_RGB;
+    Info.bmiHeader.biSizeImage = 0;
+    Info.bmiHeader.biXPelsPerMeter = 0;
+    Info.bmiHeader.biYPelsPerMeter = 0;
+    Info.bmiHeader.biClrUsed = 0;
+    Info.bmiHeader.biClrImportant = 0;
+    HBITMAP Bitmap = CreateDIBSection(GlobalFontDeviceContext, &Info, DIB_RGB_COLORS, &GlobalFontBits, 0, 0);
+    SelectObject(GlobalFontDeviceContext, Bitmap);
+
+    SetBkColor(GlobalFontDeviceContext, RGB(0, 0, 0));
+}
+
+internal loaded_font LoadFont(char* FontFile, char* FontName, uint32 CodepointCount) {
+    loaded_font Result = {};
+    AddFontResourceExA(FontFile, FR_PRIVATE, 0);
+    int32 Height = 128;
+    Result.Win32Handle = CreateFontA(
+        Height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+        FontName
+    );
+    SelectObject(GlobalFontDeviceContext, Result.Win32Handle);
+    GetTextMetrics(GlobalFontDeviceContext, &Result.TextMetric);
+    Result.LineAdvance = (real32)(Result.TextMetric.tmHeight + Result.TextMetric.tmExternalLeading);
+    Result.CodepointCount = CodepointCount;
+    Result.BitmapIDs = (bitmap_id*)malloc(sizeof(bitmap_id) * CodepointCount);
+    Result.HorizontalAdvance = (real32*)malloc(sizeof(real32) * CodepointCount * CodepointCount);
+    return Result;
+}
+
+internal void FreeFont(loaded_font* Font) {
+    DeleteObject(Font->Win32Handle);
+}
+
 internal loaded_bitmap
-LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint, hha_asset* Asset) {
+LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
     loaded_bitmap Result = {};
+
 #if USE_FONTS_FROM_WINDOWS
-    int32 MaxWidth = 1024;
-    int32 MaxHeight = 1024;
-    local_persist VOID* Bits = 0;
-    local_persist HDC DeviceContext = 0;
-    local_persist TEXTMETRIC TextMetric;
-    if (DeviceContext == 0) {
 
-        AddFontResourceExA(FontFile, FR_PRIVATE, 0);
-        int32 Height = 128;
-        HFONT Font = CreateFontA(
-            Height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-            ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-            FontName
-        );
-
-        DeviceContext = CreateCompatibleDC(GetDC(0));
-
-        BITMAPINFO Info = {};
-
-        Info.bmiHeader.biSize = sizeof(Info.bmiHeader);
-        Info.bmiHeader.biWidth = MaxWidth;
-        Info.bmiHeader.biHeight = MaxHeight;
-        Info.bmiHeader.biPlanes = 1;
-        Info.bmiHeader.biBitCount = 32;
-        Info.bmiHeader.biCompression = BI_RGB;
-        Info.bmiHeader.biSizeImage = 0;
-        Info.bmiHeader.biXPelsPerMeter = 0;
-        Info.bmiHeader.biYPelsPerMeter = 0;
-        Info.bmiHeader.biClrUsed = 0;
-        Info.bmiHeader.biClrImportant = 0;
-        HBITMAP Bitmap = CreateDIBSection(DeviceContext, &Info, DIB_RGB_COLORS, &Bits, 0, 0);
-
-        SelectObject(DeviceContext, Bitmap);
-
-        SelectObject(DeviceContext, Font);
-
-        SetBkColor(DeviceContext, RGB(0, 0, 0));
-
-        GetTextMetrics(DeviceContext, &TextMetric);
-    }
-
-    memset(Bits, 0, MaxWidth * MaxHeight * sizeof(uint32));
+    memset(GlobalFontBits, 0, MAX_FONT_WIDTH * MAX_FONT_HEIGHT * sizeof(uint32));
 
     wchar_t CheesePoint = (wchar_t)Codepoint;
 
     SIZE Size;
-    GetTextExtentPoint32W(DeviceContext, &CheesePoint, 1, &Size);
+    GetTextExtentPoint32W(GlobalFontDeviceContext, &CheesePoint, 1, &Size);
 
     int32 Width = Size.cx;
     int32 Height = Size.cy;
 
-    SetTextColor(DeviceContext, RGB(255, 255, 255));
-    TextOutW(DeviceContext, 0, 0, &CheesePoint, 1);
+    SetTextColor(GlobalFontDeviceContext, RGB(255, 255, 255));
+    TextOutW(GlobalFontDeviceContext, 0, 0, &CheesePoint, 1);
 
     int32 MinX = 10000;
     int32 MinY = 10000;
     int32 MaxX = -10000;
     int32 MaxY = -10000;
 
-    uint32* Row = (uint32*)Bits;
-    for (int32 Y = 0; Y < MaxHeight; ++Y) {
+    uint32* Row = (uint32*)GlobalFontBits;
+    for (int32 Y = 0; Y < MAX_FONT_HEIGHT; ++Y) {
         uint32* Pixel = Row;
-        for (int32 X = 0; X < MaxWidth; ++X) {
+        for (int32 X = 0; X < MAX_FONT_WIDTH; ++X) {
             //COLORREF RefPixel = GetPixel(DeviceContext, X, Y);
             //Assert(RefPixel == *Pixel);
             if (*Pixel != 0) {
@@ -327,7 +385,7 @@ LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint, hha_asset* Ass
             }
             ++Pixel;
         }
-        Row += MaxWidth;
+        Row += MAX_FONT_WIDTH;
     }
 
     if (MinX <= MaxX && MinY <= MaxY) {
@@ -358,7 +416,7 @@ LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint, hha_asset* Ass
 #endif
 
         uint8* DestRow = (uint8*)Result.Memory + Result.Pitch + sizeof(uint32); //+ (Height - 1) * Result.Pitch;
-        uint8* SourceRow = (uint8*)Bits + MinY * MaxWidth * sizeof(uint32) + MinX * sizeof(uint32);
+        uint8* SourceRow = (uint8*)GlobalFontBits + MinY * MAX_FONT_WIDTH * sizeof(uint32) + MinX * sizeof(uint32);
         for (int32 Y = MinY; Y <= MaxY; ++Y) {
             uint32* Dest = (uint32*)DestRow;
             uint32* Source = (uint32*)SourceRow;
@@ -381,14 +439,18 @@ LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint, hha_asset* Ass
                     (RoundReal32ToUint32(Texel.b));
             }
             DestRow += Result.Pitch;
-            SourceRow += MaxWidth * sizeof(uint32);
+            SourceRow += MAX_FONT_WIDTH * sizeof(uint32);
         }
 
         Asset->Bitmap.AlignPercentage[0] = 1.0f / ((real32)Result.Width);
-        int32 YStartActual = MaxHeight - TextMetric.tmHeight; // NOTE(sen) This would include the empty part of the character bitmap
+        int32 YStartActual = MAX_FONT_HEIGHT - Font->TextMetric.tmHeight; // NOTE(sen) This would include the empty part of the character bitmap
         Assert(YStartActual <= MinY);
-        int32 TrimmedDescent = TextMetric.tmDescent - (MinY - YStartActual);
+        int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
         Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
+
+        for (uint32 OtherCodepointIndex = 0; OtherCodepointIndex < Font->CodepointCount; ++OtherCodepointIndex) {
+            Font->HorizontalAdvance[Codepoint * Font->CodepointCount + OtherCodepointIndex] = (real32)Result.Width;
+        }
     }
 
 #else
@@ -609,20 +671,25 @@ internal void WriteHHA(game_assets* Assets, char* Filename) {
             Dest->DataOffset = ftell(Out);
 
             if (Source->Type == AssetType_Sound) {
-                loaded_sound WAV = LoadWAV(Source->Filename, Source->FirstSampleIndex, Dest->Sound.SampleCount);
+                loaded_sound WAV = LoadWAV(Source->Sound.Filename, Source->Sound.FirstSampleIndex, Dest->Sound.SampleCount);
                 Dest->Sound.SampleCount = WAV.SampleCount; // For the cases where it's zero
                 Dest->Sound.ChannelCount = WAV.ChannelCount;
                 for (uint32 ChannelIndex = 0; ChannelIndex < WAV.ChannelCount; ++ChannelIndex) {
                     fwrite(WAV.Samples[ChannelIndex], WAV.SampleCount * sizeof(int16), 1, Out);
                 }
                 free(WAV.Free);
+            } else if (Source->Type == AssetType_Font) {
+                uint32 CodepointsSize = sizeof(bitmap_id) * Source->Font.Font->CodepointCount;
+                uint32 HorizontalAdvanceSize = sizeof(real32) * Source->Font.Font->CodepointCount * Source->Font.Font->CodepointCount;
+                fwrite(Source->Font.Font->BitmapIDs, CodepointsSize, 1, Out);
+                fwrite(Source->Font.Font->HorizontalAdvance, HorizontalAdvanceSize, 1, Out);
             } else {
                 loaded_bitmap Bitmap;
-                if (Source->Type == AssetType_Font) {
-                    Bitmap = LoadGlyphBitmap(Source->Filename, Source->Fontname, Source->Codepoint, Dest);
+                if (Source->Type == AssetType_FontGlyph) {
+                    Bitmap = LoadGlyphBitmap(Source->Glyph.Font, Source->Glyph.Codepoint, Dest);
                 } else {
                     Assert(Source->Type == AssetType_Bitmap);
-                    Bitmap = LoadBMP(Source->Filename);
+                    Bitmap = LoadBMP(Source->Bitmap.Filename);
                 }
                 Dest->Bitmap.Dim[0] = Bitmap.Width;
                 Dest->Bitmap.Dim[1] = Bitmap.Height;
@@ -734,11 +801,15 @@ internal void WriteNonHero() {
     AddBitmapAsset(Assets, "test2/ground03.bmp");
     EndAssetType(Assets);
 
+    loaded_font DebugFont = LoadFont("C:/Windows/Fonts/arial.ttf", "Arial", '~' + 1);
+
     BeginAssetType(Assets, Asset_Font);
+    AddFontAsset(Assets, &DebugFont);
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_FontGlyph);
     for (uint32 Character = '!'; Character <= '~'; ++Character) {
-        AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", "Arial", Character);
-        //AddCharacterAsset(Assets, "C:/Windows/Fonts/cour.ttf", "Courier New", Character);
-        AddTag(Assets, Tag_UnicodeCodepoint, (real32)Character);
+        DebugFont.BitmapIDs[Character] = AddCharacterAsset(Assets, &DebugFont, Character);
     }
     EndAssetType(Assets);
 
@@ -794,6 +865,7 @@ internal void WriteSounds() {
 }
 
 int main(int ArgCount, char** Args) {
+    InitlializeFontDC();
     WriteHero();
     WriteNonHero();
     WriteSounds();

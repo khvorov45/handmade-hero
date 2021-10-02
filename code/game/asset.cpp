@@ -40,6 +40,7 @@ struct loaded_sound {
 struct loaded_font {
     bitmap_id* CodePoints;
     real32* HorizontalAdvance;
+    uint32 BitmapIDOffset;
 };
 
 struct asset_memory_header {
@@ -84,6 +85,7 @@ struct asset_file {
     hha_header Header;
     hha_asset_type* AssetTypeArray;
     uint32 TagBase;
+    int32 FontBitmapIDOffset;
 };
 
 enum asset_memory_block_flags {
@@ -181,6 +183,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
 
             asset_file* File = Assets->Files + FileIndex;
 
+            File->FontBitmapIDOffset = 0;
             File->TagBase = Assets->TagCount;
 
             ZeroStruct(File->Header);
@@ -234,14 +237,26 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
     ZeroStruct(*(Assets->Assets + AssetCount));
     ++AssetCount;
     for (uint32 DestTypeID = 0; DestTypeID < Asset_Count; ++DestTypeID) {
+
         asset_type* DestType = Assets->AssetTypes + DestTypeID;
         DestType->FirstAssetIndex = AssetCount;
+
         for (uint32 FileIndex = 0; FileIndex < Assets->FileCount; ++FileIndex) {
+
             asset_file* File = Assets->Files + FileIndex;
+
             if (PlatformNoFileErrors(&File->Handle)) {
+
                 for (uint32 SourceIndex = 0; SourceIndex < File->Header.AssetTypeCount; ++SourceIndex) {
+
                     hha_asset_type* SourceType = File->AssetTypeArray + SourceIndex;
+
                     if (SourceType->TypeID == DestTypeID) {
+
+                        if (SourceType->TypeID == Asset_FontGlyph) {
+                            File->FontBitmapIDOffset = AssetCount - SourceType->FirstAssetIndex;
+                        }
+
                         uint32 AssetCountForType = SourceType->OnePastLastAssetIndex - SourceType->FirstAssetIndex;
                         temporary_memory TempMem = BeginTemporaryMemory(Arena);
                         hha_asset* HHAAssetArray = PushArray(TempMem.Arena, AssetCountForType, hha_asset);
@@ -251,6 +266,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
                             sizeof(hha_asset) * AssetCountForType,
                             HHAAssetArray
                         );
+
                         for (uint32 AssetIndex = 0; AssetIndex < AssetCountForType; ++AssetIndex) {
                             hha_asset* HHAAsset = HHAAssetArray + AssetIndex;
                             Assert(AssetCount < Assets->AssetCount);
@@ -264,6 +280,7 @@ AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* Tran
                                 Asset->HHA.OnePastLastTagIndex += File->TagBase - 1;
                             }
                         }
+
                         EndTemporaryMemory(TempMem);
                     }
                 }
@@ -632,6 +649,7 @@ internal real32 GetHorizontalAdvanceForPair(hha_font* Info, loaded_font* Font, u
 internal bitmap_id GetBitmapForGlyph(hha_font* Info, loaded_font* Font, uint32 Codepoint) {
     uint32 ClampedCodepoint = GetClampedCodepoint(Info, Codepoint);
     bitmap_id Result = Font->CodePoints[ClampedCodepoint];
+    Result.Value += Font->BitmapIDOffset;
     return Result;
 }
 

@@ -383,10 +383,16 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork) {
     EndTaskWithMemory(Work->Task);
 }
 
+internal inline asset_file*
+GetFile(game_assets* Assets, uint32 FileIndex) {
+    Assert(FileIndex < Assets->FileCount);
+    asset_file* Result = Assets->Files + FileIndex;
+    return Result;
+}
+
 internal inline platform_file_handle*
 GetFileHandleFor(game_assets* Assets, uint32 FileIndex) {
-    Assert(FileIndex < Assets->FileCount);
-    platform_file_handle* Handle = &Assets->Files[FileIndex].Handle;
+    platform_file_handle* Handle = &GetFile(Assets, FileIndex)->Handle;
     return Handle;
 }
 
@@ -467,6 +473,7 @@ internal void LoadFont(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
                 Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, SizeTotal, ID.Value);
 
                 loaded_font* Font = &Asset->Header->Font;
+                Font->BitmapIDOffset = GetFile(Assets, Asset->FileIndex)->FontBitmapIDOffset;
                 Font->CodePoints = (bitmap_id*)(Asset->Header + 1);
                 Font->HorizontalAdvance = (real32*)((uint8*)Font->CodePoints + CodepointsSize);
 
