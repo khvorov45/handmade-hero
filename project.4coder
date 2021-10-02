@@ -1,0 +1,43 @@
+version(1);
+
+project_name = "handmade-hero";
+
+patterns = {
+    "*.cpp",
+    "*.h",
+    "*.hpp",
+    "*.4coder",
+    "*.bat",
+    "*.sh",
+};
+
+blacklist_patterns = {
+    ".*",
+};
+
+load_paths = {
+    {
+        .os = "win",
+        .paths = {
+            {".", .relative = true, .recursive = true, },
+        }
+    },
+};
+
+command_list = {
+    {
+        .name = "build",
+        .out = "*compilation*",
+        .footer_panel = true,
+        .save_dirty_files = true,
+        .cursor_at_end = false,
+        .cmd = {
+            {
+                ".\\misc\\build-task.bat",
+                .os = "win",
+            }
+        }
+    },
+};
+
+fkey_command[1] = "build";
