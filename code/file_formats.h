@@ -18,6 +18,7 @@ enum asset_type_id {
     Asset_Torso,
 
     Asset_Font,
+    Asset_FontGlyph,
 
     // Sounds
     Asset_Bloop,
@@ -50,6 +51,10 @@ struct sound_id {
 };
 
 struct bitmap_id {
+    uint32 Value;
+};
+
+struct font_id {
     uint32 Value;
 };
 
@@ -92,6 +97,11 @@ struct hha_sound {
     uint32 Chain;
 };
 
+struct hha_font {
+    uint32 CodepointCount;
+    real32 LineAdvance;
+};
+
 struct hha_asset {
     uint64 DataOffset;
     uint32 FirstTagIndex;
@@ -99,6 +109,7 @@ struct hha_asset {
     union {
         hha_bitmap Bitmap;
         hha_sound Sound;
+        hha_font Font;
     };
 };
 

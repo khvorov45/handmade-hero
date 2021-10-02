@@ -446,6 +446,55 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
     }
 }
 
+internal void LoadFont(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
+    asset* Asset = Assets->Assets + ID.Value;
+    if (ID.Value) {
+        if (AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
+            task_with_memory* Task = 0;
+            if (!Immediate) {
+                Task = BeginTaskWithMemory(Assets->TranState);
+            }
+            if (Immediate || Task) {
+
+                hha_asset* HHAAsset = &Asset->HHA;
+                hha_font* Info = &HHAAsset->Font;
+
+                uint32 CodepointsSize = sizeof(bitmap_id) * Info->CodepointCount;
+                uint32 HorizontalAdvanceSize = sizeof(real32) * Info->CodepointCount * Info->CodepointCount;
+                uint32 SizeData = CodepointsSize + HorizontalAdvanceSize;
+                uint32 SizeTotal = SizeData + sizeof(asset_memory_header);
+
+                Asset->Header = (asset_memory_header*)AcquireAssetMemory(Assets, SizeTotal, ID.Value);
+
+                loaded_font* Font = &Asset->Header->Font;
+                Font->CodePoints = (bitmap_id*)(Asset->Header + 1);
+                Font->HorizontalAdvance = (real32*)((uint8*)Font->CodePoints + CodepointsSize);
+
+                load_asset_work Work;
+                Work.Task = Task;
+                Work.Asset = Assets->Assets + ID.Value;
+                Work.Handle = GetFileHandleFor(Assets, Asset->FileIndex);
+                Work.Offset = HHAAsset->DataOffset;
+                Work.Size = SizeData;
+                Work.Destination = Font->CodePoints;
+                Work.FinalState = AssetState_Loaded;
+                if (Task) {
+                    load_asset_work* TaskWork = PushStruct(&Task->Arena, load_asset_work);
+                    *TaskWork = Work;
+                    Platform.AddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, TaskWork);
+                } else {
+                    LoadAssetWorkDirectly(&Work);
+                }
+            } else {
+                Asset->State = AssetState_Unloaded;
+            }
+        } else if (Immediate) {
+            asset_state volatile* State = (asset_state volatile*)&Asset->State;
+            while (*State == AssetState_Queued) {}
+        }
+    }
+}
+
 internal void LoadSound(game_assets* Assets, sound_id ID) {
     asset* Asset = Assets->Assets + ID.Value;
     if (ID.Value && AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
@@ -625,23 +674,28 @@ internal void DEBUGTextLine(char* String) {
     if (DEBUGRenderGroup) {
         asset_vector MatchVector = {};
         asset_vector WeightVector = {};
-        WeightVector.E[Tag_UnicodeCodepoint] = 1.0f;
 
-        real32 AtX = LeftEdge;
-        real32 CharScale = FontScale;
-        for (char* At = String; *At; ++At) {
-            real32 CharDim = CharScale * 10.0f;
-            if (*At != ' ') {
-                MatchVector.E[Tag_UnicodeCodepoint] = *At;
-                bitmap_id BitmapID = GetBestMatchBitmapFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
-                hha_bitmap* Info = GetBitmapInfo(DEBUGRenderGroup->Assets, BitmapID);
-                CharDim = CharScale * (real32)Info->Dim[0];
-                PushBitmap(DEBUGRenderGroup, BitmapID, CharScale * (real32)Info->Dim[1], V3(AtX, AtY, 0), V4(1, 1, 1, 1));
+        font_id FontID = GetBestMatchFontFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
+        loaded_font* Font = GetFont(DEBUGRenderGroup->Assets, FontID, DEBUGRenderGroup->GenerationID);
+
+        if (Font) {
+            hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, FontID);
+            uint32 PrevCodepoint = 0;
+            real32 AtX = LeftEdge;
+            real32 CharScale = FontScale;
+            for (char* At = String; *At; ++At) {
+                uint32 Codepoint = *At;
+                real32 AdvanceX = CharScale * GetHorizontalAdvanceForPair(FontInfo, Font, PrevCodepoint, Codepoint);
+                AtX += AdvanceX;
+                if (Codepoint != ' ') {
+                    bitmap_id BitmapID = GetBitmapForGlyph(FontInfo, Font, Codepoint);
+                    hha_bitmap* BitmapInfo = GetBitmapInfo(DEBUGRenderGroup->Assets, BitmapID);
+                    PushBitmap(DEBUGRenderGroup, BitmapID, CharScale * (real32)BitmapInfo->Dim[1], V3(AtX, AtY, 0), V4(1, 1, 1, 1));
+                }
+                PrevCodepoint = Codepoint;
             }
-            AtX += CharDim + 2.0f;
-            CharScale = FontScale;
+            AtY -= GetLineAdvanceFor(FontInfo) * FontScale;
         }
-        AtY -= 1.2f * 80.0f * FontScale;
     }
 }
 
@@ -1586,7 +1640,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 #endif
 
-    // PushBitmap(RenderGroup, GetFirstBitmapFrom(TranState->Assets, Asset_Font), 6.0f, V3(7.0f, 0.0f, 0.0f), V4(1, 1, 1, 1));
+#if 0
+    local_persist bool32 temp = true;
+    local_persist bitmap_id TempBitmap;
+    if (temp) {
+        TempBitmap = GetRandomBitmapFrom(TranState->Assets, Asset_Font, &GameState->EffectsEntropy);
+        temp = false;
+    }
+    PushBitmap(DEBUGRenderGroup, TempBitmap, 60.0f, V3(7.0f, 0.0f, 0.0f), V4(1, 1, 1, 1));
+#endif
 
     TiledRenderGroupToOutput(TranState->HighPriorityQueue, RenderGroup, DrawBuffer);
     EndRender(RenderGroup);

@@ -37,6 +37,11 @@ struct loaded_sound {
     uint32 ChannelCount;
 };
 
+struct loaded_font {
+    bitmap_id* CodePoints;
+    real32* HorizontalAdvance;
+};
+
 struct asset_memory_header {
     asset_memory_header* Next;
     asset_memory_header* Prev;
@@ -46,6 +51,7 @@ struct asset_memory_header {
     union {
         loaded_bitmap Bitmap;
         loaded_sound Sound;
+        loaded_font Font;
     };
 };
 
@@ -355,6 +361,12 @@ internal inline loaded_sound* GetSound(game_assets* Assets, sound_id ID, uint32 
     return Result;
 }
 
+internal inline loaded_font* GetFont(game_assets* Assets, font_id ID, uint32 GenerationID) {
+    asset_memory_header* Header = GetAsset(Assets, ID.Value, GenerationID);
+    loaded_font* Result = Header ? &Header->Font : 0;
+    return Result;
+}
+
 internal inline hha_sound* GetSoundInfo(game_assets* Assets, sound_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
     hha_sound* Result = &Assets->Assets[ID.Value].HHA.Sound;
@@ -364,6 +376,12 @@ internal inline hha_sound* GetSoundInfo(game_assets* Assets, sound_id ID) {
 internal inline hha_bitmap* GetBitmapInfo(game_assets* Assets, bitmap_id ID) {
     Assert(ID.Value <= Assets->AssetCount);
     hha_bitmap* Result = &Assets->Assets[ID.Value].HHA.Bitmap;
+    return Result;
+}
+
+internal inline hha_font* GetFontInfo(game_assets* Assets, font_id ID) {
+    Assert(ID.Value <= Assets->AssetCount);
+    hha_font* Result = &Assets->Assets[ID.Value].HHA.Font;
     return Result;
 }
 
@@ -412,6 +430,14 @@ internal sound_id GetBestMatchSoundFrom(
     asset_vector* MatchVector, asset_vector* WeightVector
 ) {
     sound_id Result = { GetBestMatchAssetFrom(Assets, TypeID, MatchVector, WeightVector) };
+    return Result;
+}
+
+internal font_id GetBestMatchFontFrom(
+    game_assets* Assets, asset_type_id TypeID,
+    asset_vector* MatchVector, asset_vector* WeightVector
+) {
+    font_id Result = { GetBestMatchAssetFrom(Assets, TypeID, MatchVector, WeightVector) };
     return Result;
 }
 
@@ -586,6 +612,32 @@ EndGeneration(game_assets* Assets, uint32 GenerationID) {
         }
     }
     EndAssetLock(Assets);
+}
+
+internal uint32 GetClampedCodepoint(hha_font* Info, uint32 Codepoint) {
+    uint32 Result = 0;
+    if (Codepoint < Info->CodepointCount) {
+        Result = Codepoint;
+    }
+    return Result;
+}
+
+internal real32 GetHorizontalAdvanceForPair(hha_font* Info, loaded_font* Font, uint32 PrevCodepoint, uint32 Codepoint) {
+    uint32 PrevClamped = GetClampedCodepoint(Info, PrevCodepoint);
+    uint32 CodepointClamped = GetClampedCodepoint(Info, Codepoint);
+    real32 Result = Font->HorizontalAdvance[PrevClamped * Info->CodepointCount + CodepointClamped];
+    return Result;
+}
+
+internal bitmap_id GetBitmapForGlyph(hha_font* Info, loaded_font* Font, uint32 Codepoint) {
+    uint32 ClampedCodepoint = GetClampedCodepoint(Info, Codepoint);
+    bitmap_id Result = Font->CodePoints[ClampedCodepoint];
+    return Result;
+}
+
+internal real32 GetLineAdvanceFor(hha_font* Info) {
+    real32 Result = Info->LineAdvance;
+    return Result;
 }
 
 #endif

@@ -295,7 +295,7 @@ LoadGlyphBitmap(char* FontFile, char* FontName, uint32 Codepoint, hha_asset* Ass
         GetTextMetrics(DeviceContext, &TextMetric);
     }
 
-    //memset(Bits, 0xFF, MaxWidth * MaxHeight * sizeof(uint32));
+    memset(Bits, 0, MaxWidth * MaxHeight * sizeof(uint32));
 
     wchar_t CheesePoint = (wchar_t)Codepoint;
 
@@ -736,8 +736,8 @@ internal void WriteNonHero() {
 
     BeginAssetType(Assets, Asset_Font);
     for (uint32 Character = '!'; Character <= '~'; ++Character) {
-        // AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", "Arial", Character);
-        AddCharacterAsset(Assets, "C:/Windows/Fonts/cour.ttf", "Courier New", Character);
+        AddCharacterAsset(Assets, "C:/Windows/Fonts/arial.ttf", "Arial", Character);
+        //AddCharacterAsset(Assets, "C:/Windows/Fonts/cour.ttf", "Courier New", Character);
         AddTag(Assets, Tag_UnicodeCodepoint, (real32)Character);
     }
     EndAssetType(Assets);
