@@ -231,6 +231,18 @@ internal inline void PushBitmap(
     }
 }
 
+internal void LoadFont(game_assets* Assets, font_id ID, bool32 Immediate);
+internal inline loaded_font*
+PushFont(render_group* Group, font_id ID) {
+    loaded_font* Font = GetFont(Group->Assets, ID, Group->GenerationID);
+    if (!Font) {
+        Assert(!Group->RendersInBackground);
+        LoadFont(Group->Assets, ID, false);
+        ++Group->MissingResourceCount;
+    }
+    return Font;
+}
+
 internal inline void PushRect(
     render_group* Group,
     v3 Offset, v2 Dim,

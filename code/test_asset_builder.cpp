@@ -137,12 +137,11 @@ AddFontAsset(game_assets* Assets, loaded_font* Font) {
 bitmap_id
 AddCharacterAsset(
     game_assets* Assets, loaded_font* Font,
-    uint32 Codepoint,
-    real32 AlignPercentageX = 0.5f, real32 AlignPercentageY = 0.5f
+    uint32 Codepoint
 ) {
     added_asset Asset = AddAsset(Assets);
-    Asset.HHA->Bitmap.AlignPercentage[0] = AlignPercentageX;
-    Asset.HHA->Bitmap.AlignPercentage[1] = AlignPercentageY;
+    Asset.HHA->Bitmap.AlignPercentage[0] = 0.0f;
+    Asset.HHA->Bitmap.AlignPercentage[1] = 0.0f;
     Asset.Source->Type = AssetType_FontGlyph;
     Asset.Source->Glyph.Font = Font;
     Asset.Source->Glyph.Codepoint = Codepoint;
@@ -325,22 +324,29 @@ InitlializeFontDC() {
 }
 
 internal loaded_font LoadFont(char* FontFile, char* FontName, uint32 CodepointCount) {
-    loaded_font Result = {};
+    loaded_font Font = {};
     AddFontResourceExA(FontFile, FR_PRIVATE, 0);
     int32 Height = 128;
-    Result.Win32Handle = CreateFontA(
+    Font.Win32Handle = CreateFontA(
         Height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
         FontName
     );
-    SelectObject(GlobalFontDeviceContext, Result.Win32Handle);
-    GetTextMetrics(GlobalFontDeviceContext, &Result.TextMetric);
-    Result.LineAdvance = (real32)(Result.TextMetric.tmHeight + Result.TextMetric.tmExternalLeading);
-    Result.CodepointCount = CodepointCount;
-    Result.BitmapIDs = (bitmap_id*)malloc(sizeof(bitmap_id) * CodepointCount);
-    Result.HorizontalAdvance = (real32*)malloc(sizeof(real32) * CodepointCount * CodepointCount);
-    return Result;
+    SelectObject(GlobalFontDeviceContext, Font.Win32Handle);
+    GetTextMetrics(GlobalFontDeviceContext, &Font.TextMetric);
+    Font.LineAdvance = (real32)(Font.TextMetric.tmHeight + Font.TextMetric.tmExternalLeading);
+    Font.CodepointCount = CodepointCount;
+    Font.BitmapIDs = (bitmap_id*)malloc(sizeof(bitmap_id) * CodepointCount);
+    Font.HorizontalAdvance = (real32*)malloc(sizeof(real32) * CodepointCount * CodepointCount);
+
+    for (uint32 CodepointIndex = 0; CodepointIndex < Font.CodepointCount; ++CodepointIndex) {
+        for (uint32 OtherCodepointIndex = 0; OtherCodepointIndex < Font.CodepointCount; ++OtherCodepointIndex) {
+            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = (real32)Font.TextMetric.tmMaxCharWidth;
+        }
+    }
+
+    return Font;
 }
 
 internal void FreeFont(loaded_font* Font) {
@@ -447,10 +453,6 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
         Assert(YStartActual <= MinY);
         int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
         Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
-
-        for (uint32 OtherCodepointIndex = 0; OtherCodepointIndex < Font->CodepointCount; ++OtherCodepointIndex) {
-            Font->HorizontalAdvance[Codepoint * Font->CodepointCount + OtherCodepointIndex] = (real32)Result.Width;
-        }
     }
 
 #else
@@ -801,18 +803,6 @@ internal void WriteNonHero() {
     AddBitmapAsset(Assets, "test2/ground03.bmp");
     EndAssetType(Assets);
 
-    loaded_font DebugFont = LoadFont("C:/Windows/Fonts/arial.ttf", "Arial", '~' + 1);
-
-    BeginAssetType(Assets, Asset_Font);
-    AddFontAsset(Assets, &DebugFont);
-    EndAssetType(Assets);
-
-    BeginAssetType(Assets, Asset_FontGlyph);
-    for (uint32 Character = '!'; Character <= '~'; ++Character) {
-        DebugFont.BitmapIDs[Character] = AddCharacterAsset(Assets, &DebugFont, Character);
-    }
-    EndAssetType(Assets);
-
     WriteHHA(Assets, "test2.hha");
 }
 
@@ -864,9 +854,30 @@ internal void WriteSounds() {
     WriteHHA(Assets, "test3.hha");
 }
 
+internal void WriteFonts() {
+    game_assets Assets_;
+    game_assets* Assets = &Assets_;
+    Initialize(Assets);
+
+    loaded_font DebugFont = LoadFont("C:/Windows/Fonts/arial.ttf", "Arial", '~' + 1);
+
+    BeginAssetType(Assets, Asset_Font);
+    AddFontAsset(Assets, &DebugFont);
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_FontGlyph);
+    for (uint32 Character = '!'; Character <= '~'; ++Character) {
+        DebugFont.BitmapIDs[Character] = AddCharacterAsset(Assets, &DebugFont, Character);
+    }
+    EndAssetType(Assets);
+
+    WriteHHA(Assets, "testfonts.hha");
+}
+
 int main(int ArgCount, char** Args) {
     InitlializeFontDC();
     WriteHero();
     WriteNonHero();
     WriteSounds();
+    WriteFonts();
 }

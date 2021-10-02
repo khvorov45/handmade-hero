@@ -452,7 +452,7 @@ internal void LoadBitmap(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
     }
 }
 
-internal void LoadFont(game_assets* Assets, bitmap_id ID, bool32 Immediate) {
+internal void LoadFont(game_assets* Assets, font_id ID, bool32 Immediate) {
     asset* Asset = Assets->Assets + ID.Value;
     if (ID.Value) {
         if (AtomicCompareExchangeUint32((uint32*)&Asset->State, AssetState_Queued, AssetState_Unloaded) == AssetState_Unloaded) {
@@ -683,7 +683,7 @@ internal void DEBUGTextLine(char* String) {
         asset_vector WeightVector = {};
 
         font_id FontID = GetBestMatchFontFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
-        loaded_font* Font = GetFont(DEBUGRenderGroup->Assets, FontID, DEBUGRenderGroup->GenerationID);
+        loaded_font* Font = PushFont(DEBUGRenderGroup, FontID);
 
         if (Font) {
             hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, FontID);
