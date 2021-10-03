@@ -340,12 +340,32 @@ internal loaded_font LoadFont(char* FontFile, char* FontName, uint32 CodepointCo
     Font.BitmapIDs = (bitmap_id*)malloc(sizeof(bitmap_id) * CodepointCount);
     Font.HorizontalAdvance = (real32*)malloc(sizeof(real32) * CodepointCount * CodepointCount);
 
+    ABC* Widths = (ABC*)malloc(sizeof(ABC) * CodepointCount);
+    GetCharABCWidthsW(GlobalFontDeviceContext, 0, CodepointCount - 1, Widths);
+
     for (uint32 CodepointIndex = 0; CodepointIndex < Font.CodepointCount; ++CodepointIndex) {
+        ABC* Width = Widths + CodepointIndex;
+        real32 TotalWidth = (real32)(Width->abcB + Width->abcA + Width->abcC);
         for (uint32 OtherCodepointIndex = 0; OtherCodepointIndex < Font.CodepointCount; ++OtherCodepointIndex) {
-            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = (real32)Font.TextMetric.tmMaxCharWidth;
+            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = (real32)(TotalWidth);
         }
     }
 
+    free(Widths);
+
+
+    DWORD KerningPairCount = GetKerningPairsW(GlobalFontDeviceContext, 0, 0);
+    KERNINGPAIR* KerningPairs = (KERNINGPAIR*)malloc(sizeof(KERNINGPAIR) * KerningPairCount);
+    GetKerningPairsW(GlobalFontDeviceContext, KerningPairCount, KerningPairs);
+
+    for (uint32 KerningPairIndex = 0; KerningPairIndex < KerningPairCount; ++KerningPairIndex) {
+        KERNINGPAIR* Pair = KerningPairs + KerningPairIndex;
+        if (Pair->wFirst < Font.CodepointCount && Pair->wSecond < Font.CodepointCount) {
+            Font.HorizontalAdvance[Pair->wFirst * Font.CodepointCount + Pair->wSecond] += Pair->iKernAmount;
+        }
+    }
+
+    free(KerningPairs);
     return Font;
 }
 
@@ -358,8 +378,12 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
     loaded_bitmap Result = {};
 
 #if USE_FONTS_FROM_WINDOWS
-
     memset(GlobalFontBits, 0, MAX_FONT_WIDTH * MAX_FONT_HEIGHT * sizeof(uint32));
+
+    SelectObject(GlobalFontDeviceContext, Font->Win32Handle);
+
+    ABC ThisABC;
+    GetCharABCWidthsW(GlobalFontDeviceContext, Codepoint, Codepoint, &ThisABC);
 
     wchar_t CheesePoint = (wchar_t)Codepoint;
 
@@ -370,6 +394,7 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
     int32 Height = Size.cy;
 
     SetTextColor(GlobalFontDeviceContext, RGB(255, 255, 255));
+
     TextOutW(GlobalFontDeviceContext, 0, 0, &CheesePoint, 1);
 
     int32 MinX = 10000;
@@ -448,12 +473,12 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
             SourceRow += MAX_FONT_WIDTH * sizeof(uint32);
         }
 
-        Asset->Bitmap.AlignPercentage[0] = 1.0f / ((real32)Result.Width);
+        Asset->Bitmap.AlignPercentage[0] = (1.0f - MinX) / ((real32)Result.Width);
         int32 YStartActual = MAX_FONT_HEIGHT - Font->TextMetric.tmHeight; // NOTE(sen) This would include the empty part of the character bitmap
         Assert(YStartActual <= MinY);
         int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
         Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
-    }
+        }
 
 #else
     entire_file TTFFile = ReadEntireFile(FontFile);
@@ -485,7 +510,7 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
     }
 #endif
     return Result;
-}
+    }
 
 struct loaded_sound {
     uint32 SampleCount;
@@ -616,7 +641,7 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-        } else {
+            } else {
             Assert(!"Invalid channel count");
         }
 
@@ -640,9 +665,9 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             }
         }
         Result.SampleCount = SampleCount;
-    }
+        }
     return Result;
-}
+    }
 
 internal void WriteHHA(game_assets* Assets, char* Filename) {
     FILE* Out = fopen(Filename, "wb");
