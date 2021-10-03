@@ -395,7 +395,8 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
 
     SetTextColor(GlobalFontDeviceContext, RGB(255, 255, 255));
 
-    TextOutW(GlobalFontDeviceContext, 0, 0, &CheesePoint, 1);
+    int32 PrestepX = 128;
+    TextOutW(GlobalFontDeviceContext, PrestepX, 0, &CheesePoint, 1);
 
     int32 MinX = 10000;
     int32 MinY = 10000;
@@ -473,12 +474,12 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
             SourceRow += MAX_FONT_WIDTH * sizeof(uint32);
         }
 
-        Asset->Bitmap.AlignPercentage[0] = (1.0f - MinX) / ((real32)Result.Width);
+        Asset->Bitmap.AlignPercentage[0] = (1.0f - (MinX - PrestepX)) / ((real32)Result.Width);
         int32 YStartActual = MAX_FONT_HEIGHT - Font->TextMetric.tmHeight; // NOTE(sen) This would include the empty part of the character bitmap
         Assert(YStartActual <= MinY);
         int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
         Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
-        }
+    }
 
 #else
     entire_file TTFFile = ReadEntireFile(FontFile);
@@ -510,7 +511,7 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
     }
 #endif
     return Result;
-    }
+}
 
 struct loaded_sound {
     uint32 SampleCount;
@@ -641,7 +642,7 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-            } else {
+        } else {
             Assert(!"Invalid channel count");
         }
 
@@ -665,9 +666,9 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             }
         }
         Result.SampleCount = SampleCount;
-        }
-    return Result;
     }
+    return Result;
+}
 
 internal void WriteHHA(game_assets* Assets, char* Filename) {
     FILE* Out = fopen(Filename, "wb");
