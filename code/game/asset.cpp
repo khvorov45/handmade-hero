@@ -654,7 +654,12 @@ internal bitmap_id GetBitmapForGlyph(hha_font* Info, loaded_font* Font, uint32 C
 }
 
 internal real32 GetLineAdvanceFor(hha_font* Info) {
-    real32 Result = Info->LineAdvance;
+    real32 Result = Info->AscenderHeight + Info->DescenderHeight + Info->ExternalLeading;
+    return Result;
+}
+
+internal real32 GetAscenderHeightFor(hha_font* Info) {
+    real32 Result = Info->AscenderHeight;
     return Result;
 }
 

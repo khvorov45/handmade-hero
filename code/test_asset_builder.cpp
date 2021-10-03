@@ -27,7 +27,6 @@ struct loaded_font {
     HFONT Win32Handle;
     TEXTMETRIC TextMetric;
     uint32 CodepointCount;
-    real32 LineAdvance;
 
     bitmap_id* BitmapIDs;
     real32* HorizontalAdvance;
@@ -127,7 +126,9 @@ internal font_id
 AddFontAsset(game_assets* Assets, loaded_font* Font) {
     added_asset Asset = AddAsset(Assets);
     Asset.HHA->Font.CodepointCount = Font->CodepointCount;
-    Asset.HHA->Font.LineAdvance = Font->LineAdvance;
+    Asset.HHA->Font.ExternalLeading = (real32)Font->TextMetric.tmExternalLeading;
+    Asset.HHA->Font.AscenderHeight = (real32)Font->TextMetric.tmAscent;
+    Asset.HHA->Font.DescenderHeight = (real32)Font->TextMetric.tmDescent;
     Asset.Source->Type = AssetType_Font;
     Asset.Source->Font.Font = Font;
     font_id Result = { Asset.ID };
@@ -335,7 +336,6 @@ internal loaded_font LoadFont(char* FontFile, char* FontName, uint32 CodepointCo
     );
     SelectObject(GlobalFontDeviceContext, Font.Win32Handle);
     GetTextMetrics(GlobalFontDeviceContext, &Font.TextMetric);
-    Font.LineAdvance = (real32)(Font.TextMetric.tmHeight + Font.TextMetric.tmExternalLeading);
     Font.CodepointCount = CodepointCount;
     Font.BitmapIDs = (bitmap_id*)malloc(sizeof(bitmap_id) * CodepointCount);
     Font.HorizontalAdvance = (real32*)malloc(sizeof(real32) * CodepointCount * CodepointCount);
@@ -344,15 +344,17 @@ internal loaded_font LoadFont(char* FontFile, char* FontName, uint32 CodepointCo
     GetCharABCWidthsW(GlobalFontDeviceContext, 0, CodepointCount - 1, Widths);
 
     for (uint32 CodepointIndex = 0; CodepointIndex < Font.CodepointCount; ++CodepointIndex) {
-        ABC* Width = Widths + CodepointIndex;
-        real32 TotalWidth = (real32)(Width->abcB + Width->abcA + Width->abcC);
+        real32 TotalWidth = 0.0f;
+        if (CodepointIndex != 0) {
+            ABC* Width = Widths + CodepointIndex;
+            TotalWidth = (real32)(Width->abcB + Width->abcA + Width->abcC);
+        }
         for (uint32 OtherCodepointIndex = 0; OtherCodepointIndex < Font.CodepointCount; ++OtherCodepointIndex) {
-            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = (real32)(TotalWidth);
+            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = TotalWidth;
         }
     }
 
     free(Widths);
-
 
     DWORD KerningPairCount = GetKerningPairsW(GlobalFontDeviceContext, 0, 0);
     KERNINGPAIR* KerningPairs = (KERNINGPAIR*)malloc(sizeof(KERNINGPAIR) * KerningPairCount);

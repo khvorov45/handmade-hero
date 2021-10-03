@@ -668,25 +668,25 @@ global_variable render_group* DEBUGRenderGroup;
 global_variable real32 LeftEdge;
 global_variable real32 AtY;
 global_variable real32 FontScale;
+global_variable font_id DEBUGFontID;
 
 internal void
 DEBUGReset(uint32 Width, uint32 Height) {
     FontScale = 1.0f;
     Orthographic(DEBUGRenderGroup, Width, Height, 1.0f);
-    AtY = (real32)Height * 0.5f - FontScale * 0.5f;
-    LeftEdge = -(real32)Width * 0.5f + FontScale * 0.5f;
+    asset_vector MatchVector = {};
+    asset_vector WeightVector = {};
+    DEBUGFontID = GetBestMatchFontFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
+    hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
+    AtY = (real32)Height * 0.5f - FontScale * GetAscenderHeightFor(FontInfo);
+    LeftEdge = -(real32)Width * 0.5f;
 }
 
 internal void DEBUGTextLine(char* String) {
     if (DEBUGRenderGroup) {
-        asset_vector MatchVector = {};
-        asset_vector WeightVector = {};
-
-        font_id FontID = GetBestMatchFontFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
-        loaded_font* Font = PushFont(DEBUGRenderGroup, FontID);
-
+        loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
         if (Font) {
-            hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, FontID);
+            hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
             uint32 PrevCodepoint = 0;
             real32 AtX = LeftEdge;
             real32 CharScale = FontScale;
