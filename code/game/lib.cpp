@@ -465,8 +465,8 @@ internal void LoadFont(game_assets* Assets, font_id ID, bool32 Immediate) {
                 hha_asset* HHAAsset = &Asset->HHA;
                 hha_font* Info = &HHAAsset->Font;
 
-                uint32 CodepointsSize = sizeof(bitmap_id) * Info->CodepointCount;
-                uint32 HorizontalAdvanceSize = sizeof(real32) * Info->CodepointCount * Info->CodepointCount;
+                uint32 CodepointsSize = sizeof(bitmap_id) * Info->GlyphCount;
+                uint32 HorizontalAdvanceSize = sizeof(real32) * Info->GlyphCount * Info->GlyphCount;
                 uint32 SizeData = CodepointsSize + HorizontalAdvanceSize;
                 uint32 SizeTotal = SizeData + sizeof(asset_memory_header);
 

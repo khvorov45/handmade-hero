@@ -633,7 +633,7 @@ EndGeneration(game_assets* Assets, uint32 GenerationID) {
 
 internal uint32 GetClampedCodepoint(hha_font* Info, uint32 Codepoint) {
     uint32 Result = 0;
-    if (Codepoint < Info->CodepointCount) {
+    if (Codepoint < Info->GlyphCount) {
         Result = Codepoint;
     }
     return Result;
@@ -642,7 +642,7 @@ internal uint32 GetClampedCodepoint(hha_font* Info, uint32 Codepoint) {
 internal real32 GetHorizontalAdvanceForPair(hha_font* Info, loaded_font* Font, uint32 PrevCodepoint, uint32 Codepoint) {
     uint32 PrevClamped = GetClampedCodepoint(Info, PrevCodepoint);
     uint32 CodepointClamped = GetClampedCodepoint(Info, Codepoint);
-    real32 Result = Font->HorizontalAdvance[PrevClamped * Info->CodepointCount + CodepointClamped];
+    real32 Result = Font->HorizontalAdvance[PrevClamped * Info->GlyphCount + CodepointClamped];
     return Result;
 }
 
