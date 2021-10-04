@@ -347,10 +347,15 @@ internal loaded_font LoadFont(char* FontFile, char* FontName, uint32 CodepointCo
         real32 TotalWidth = 0.0f;
         if (CodepointIndex != 0) {
             ABC* Width = Widths + CodepointIndex;
-            TotalWidth = (real32)(Width->abcB + Width->abcA + Width->abcC);
+            TotalWidth = (real32)(Width->abcB + Width->abcC);
         }
         for (uint32 OtherCodepointIndex = 0; OtherCodepointIndex < Font.CodepointCount; ++OtherCodepointIndex) {
-            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = TotalWidth;
+            real32 KernChange = 0.0f;
+            if (OtherCodepointIndex != 0 && CodepointIndex != 0) {
+                ABC* OtherWidth = Widths + OtherCodepointIndex;
+                KernChange = (real32)(OtherWidth->abcA);
+            }
+            Font.HorizontalAdvance[CodepointIndex * Font.CodepointCount + OtherCodepointIndex] = TotalWidth + KernChange;
         }
     }
 
@@ -476,7 +481,7 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
             SourceRow += MAX_FONT_WIDTH * sizeof(uint32);
         }
 
-        Asset->Bitmap.AlignPercentage[0] = (1.0f - (MinX - PrestepX)) / ((real32)Result.Width);
+        Asset->Bitmap.AlignPercentage[0] = (1.0f) / ((real32)Result.Width);
         int32 YStartActual = MAX_FONT_HEIGHT - Font->TextMetric.tmHeight; // NOTE(sen) This would include the empty part of the character bitmap
         Assert(YStartActual <= MinY);
         int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
