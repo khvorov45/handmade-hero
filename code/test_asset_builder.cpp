@@ -446,10 +446,10 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
         Row += MAX_FONT_WIDTH;
     }
 
-    if (MinX <= MaxX && MinY <= MaxY) {
+    int32 Width = MaxX - MinX + 1;
+    int32 Height = MaxY - MinY + 1;
 
-        int32 Width = MaxX - MinX + 1;
-        int32 Height = MaxY - MinY + 1;
+    if (MinX <= MaxX && MinY <= MaxY) {
 
         Result.Height = Height + 2;
         Result.Width = Width + 2;
@@ -505,17 +505,22 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
         Assert(YStartActual <= MinY);
         int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
         Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
-            }
+    }
 
     // NOTE(sen) We can't assume any other glyph's been loaded yet
     uint32 GlyphIndex = Font->GlyphIndexFromCodepoint[Codepoint];
     real32 ThisFilledAndPost = 0.0f;
     real32 ThisPre = 0.0f;
     if (GlyphIndex != 0) {
-        ABC ThisABC;
-        GetCharABCWidthsW(GlobalFontDeviceContext, Codepoint, Codepoint, &ThisABC);
-        ThisFilledAndPost = (real32)(ThisABC.abcB + ThisABC.abcC);
-        ThisPre = (real32)(ThisABC.abcA);
+        // NOTE(sen) ABC widths don't seem to make sense for chinese characters and this is where they start
+        if (Codepoint < 0x3105) {
+            ABC ThisABC;
+            GetCharABCWidthsW(GlobalFontDeviceContext, Codepoint, Codepoint, &ThisABC);
+            ThisFilledAndPost = (real32)(ThisABC.abcB + ThisABC.abcC);
+            ThisPre = (real32)(ThisABC.abcA);
+        } else if (Width > 0) {
+            ThisFilledAndPost = (real32)(Width) * 1.1f;
+        }
     }
     for (uint32 OtherGlyphIndex = 1; OtherGlyphIndex < Font->MaxGlyphCount; ++OtherGlyphIndex) {
         // NOTE(sen) Horizontal advance with this character's filled region and
@@ -553,7 +558,7 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
         }
         stbtt_FreeBitmap(MonoBitmap, 0);
         free(TTFFile.Contents);
-    }
+}
 #endif
     return Result;
 }
@@ -680,13 +685,13 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
                 SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
                 SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-            }
+        }
 #endif
             for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
                 uint16 Source = SampleData[2 * SampleIndex];
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
-        }
+            }
     } else {
             Assert(!"Invalid channel count");
         }
@@ -713,7 +718,7 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
         Result.SampleCount = SampleCount;
 }
     return Result;
-    }
+}
 
 internal void WriteHHA(game_assets* Assets, char* Filename) {
     FILE* Out = fopen(Filename, "wb");
@@ -946,7 +951,7 @@ internal void WriteFonts() {
     for (uint32 Character = ' '; Character <= '~'; ++Character) {
         AddCharacterAsset(Assets, &DebugFont, Character);
     }
-#if 0
+#if 1
     AddCharacterAsset(Assets, &DebugFont, 0x5c0f);
     AddCharacterAsset(Assets, &DebugFont, 0x8033);
     AddCharacterAsset(Assets, &DebugFont, 0x6728);

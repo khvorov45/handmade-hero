@@ -734,6 +734,35 @@ internal void DEBUGTextLine(char* String) {
     }
 }
 
+internal void DEBUGOwl() {
+    if (DEBUGRenderGroup) {
+        loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
+        if (Font) {
+            hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
+            uint32 PrevCodepoint = 0;
+            real32 AtX = LeftEdge;
+            real32 CharScale = FontScale;
+            uint32 OwlCodepoints[4] = {
+                0x5c0f,
+                0x8033,
+                0x6728,
+                0x514e,
+            };
+            for (uint32 CodepointIndex = 0; CodepointIndex < ArrayCount(OwlCodepoints); ++CodepointIndex) {
+                uint32 Codepoint = OwlCodepoints[CodepointIndex];
+                real32 AdvanceX = CharScale * GetHorizontalAdvanceForPair(FontInfo, Font, PrevCodepoint, Codepoint);
+                AtX += AdvanceX;
+                bitmap_id BitmapID = GetBitmapForGlyph(FontInfo, Font, Codepoint);
+                hha_bitmap* BitmapInfo = GetBitmapInfo(DEBUGRenderGroup->Assets, BitmapID);
+                PushBitmap(DEBUGRenderGroup, BitmapID, CharScale * (real32)BitmapInfo->Dim[1], V3(AtX, AtY, 0), V4(1, 1, 1, 1));
+                PrevCodepoint = Codepoint;
+            }
+            AtY -= GetLineAdvanceFor(FontInfo) * FontScale;
+        }
+    }
+}
+
+
 internal void OverlayCycleCounters(game_memory* Memory) {
 #if HANDMADE_INTERNAL
     char* NameTable[] = {
@@ -743,7 +772,7 @@ internal void OverlayCycleCounters(game_memory* Memory) {
         "ProcessPixel",
         "DrawRectangleQuickly",
     };
-
+    DEBUGOwl();
     DEBUGTextLine("DEBUG CYCLE COUNTS:");
     for (int32 CounterIndex = 0; CounterIndex < ArrayCount(Memory->Counters); CounterIndex++) {
         debug_cycle_counter* Counter = Memory->Counters + CounterIndex;
