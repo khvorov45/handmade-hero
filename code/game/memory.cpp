@@ -80,6 +80,7 @@ internal inline void SubArena(memory_arena* Result, memory_arena* Arena, memory_
 }
 
 #define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance))
+#define ZeroArray(Count, Pointer) ZeroSize(Count * sizeof(Pointer[0]), Pointer)
 
 inline void ZeroSize(memory_index Size, void* Ptr) {
     uint8* Byte = (uint8*)Ptr;

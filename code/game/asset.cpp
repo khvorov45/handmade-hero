@@ -38,9 +38,10 @@ struct loaded_sound {
 };
 
 struct loaded_font {
-    bitmap_id* CodePoints;
+    hha_font_glyph* Glyphs;
     real32* HorizontalAdvance;
     uint32 BitmapIDOffset;
+    uint16* UnicodeMap;
 };
 
 struct asset_memory_header {
@@ -631,24 +632,25 @@ EndGeneration(game_assets* Assets, uint32 GenerationID) {
     EndAssetLock(Assets);
 }
 
-internal uint32 GetClampedCodepoint(hha_font* Info, uint32 Codepoint) {
+internal uint32 GetGlyphFromCodepoint(hha_font* Info, loaded_font* Font, uint32 Codepoint) {
     uint32 Result = 0;
-    if (Codepoint < Info->CodepointCount) {
-        Result = Codepoint;
+    if (Codepoint < Info->OnePastHighestCodepoint) {
+        Result = Font->UnicodeMap[Codepoint];
+        Assert(Result < Info->GlyphCount);
     }
     return Result;
 }
 
 internal real32 GetHorizontalAdvanceForPair(hha_font* Info, loaded_font* Font, uint32 PrevCodepoint, uint32 Codepoint) {
-    uint32 PrevClamped = GetClampedCodepoint(Info, PrevCodepoint);
-    uint32 CodepointClamped = GetClampedCodepoint(Info, Codepoint);
-    real32 Result = Font->HorizontalAdvance[PrevClamped * Info->CodepointCount + CodepointClamped];
+    uint32 PrevGlyph = GetGlyphFromCodepoint(Info, Font, PrevCodepoint);
+    uint32 CodepointGlyph = GetGlyphFromCodepoint(Info, Font, Codepoint);
+    real32 Result = Font->HorizontalAdvance[PrevGlyph * Info->GlyphCount + CodepointGlyph];
     return Result;
 }
 
 internal bitmap_id GetBitmapForGlyph(hha_font* Info, loaded_font* Font, uint32 Codepoint) {
-    uint32 ClampedCodepoint = GetClampedCodepoint(Info, Codepoint);
-    bitmap_id Result = Font->CodePoints[ClampedCodepoint];
+    uint32 Glyph = GetGlyphFromCodepoint(Info, Font, Codepoint);
+    bitmap_id Result = Font->Glyphs[Glyph].Bitmap;
     Result.Value += Font->BitmapIDOffset;
     return Result;
 }
