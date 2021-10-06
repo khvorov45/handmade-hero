@@ -1107,6 +1107,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     WindowClass.hInstance = Instance;
     WindowClass.lpszClassName = "HandmadeHeroWindowClass";
     WindowClass.hCursor = LoadCursor(0, IDC_ARROW);
+    // NOTE(sen) So I don't get flashbanged on window creation as the default
+    // background before any painting is white
+    WindowClass.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
 
     RegisterClassA(&WindowClass);
 
@@ -1132,7 +1135,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     ReleaseDC(Window, RefreshDC);
     if (Win32RefreshRate > 1) {
         MonitorRefreshHz = Win32RefreshRate;
-    }
+}
 #endif
 
     real32 GameRefreshHz = 30;
