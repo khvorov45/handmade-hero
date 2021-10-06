@@ -1742,3 +1742,5 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
         &GameState->AudioState, SoundBuffer, TranState->Assets, &TranState->TranArena
     );
 }
+
+debug_record DebugRecordArray[__COUNTER__];

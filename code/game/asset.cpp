@@ -9,6 +9,7 @@
 #include "memory.cpp"
 #include "random.cpp"
 #include "../file_formats.h"
+#include "debug.cpp"
 
 struct asset_bitmap_info {
     v2 AlignPercentage;
@@ -152,6 +153,8 @@ internal asset_memory_block* InsertBlock(asset_memory_block* Prev, memory_index 
 
 internal game_assets*
 AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
+    TIMED_BLOCK;
+
     game_assets* Assets = PushStruct(Arena, game_assets);
 
     Assets->NextGenerationID = 0;

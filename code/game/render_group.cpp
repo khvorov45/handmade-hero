@@ -2,6 +2,7 @@
 #include "bmp.cpp"
 #include "asset.cpp"
 #include "../intrinsics.h"
+#include "debug.cpp"
 
 struct render_basis {
     v3 P;
@@ -1254,7 +1255,8 @@ internal void RenderGroupToOutput(
     render_group* RenderGroup, loaded_bitmap* OutputTarget,
     rectangle2i ClipRect, bool32 Even
 ) {
-    BEGIN_TIMED_BLOCK(RenderGroupToOutput);
+    //BEGIN_TIMED_BLOCK(RenderGroupToOutput);
+    TIMED_BLOCK;
 
     real32 NullPixelsToMeters = 1.0f;
 
@@ -1351,7 +1353,7 @@ internal void RenderGroupToOutput(
             InvalidDefaultCase;
         }
     }
-    END_TIMED_BLOCK(RenderGroupToOutput);
+    //END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
 struct tile_render_work {
