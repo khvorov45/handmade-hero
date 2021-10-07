@@ -466,7 +466,8 @@ internal void DrawRectangleSlowly(
     environment_map* Top, environment_map* Middle, environment_map* Bottom,
     real32 PixelsToMeters
 ) {
-    BEGIN_TIMED_BLOCK(DrawRectangleSlowly);
+    // BEGIN_TIMED_BLOCK(DrawRectangleSlowly);
+    TIMED_BLOCK();
 
     Color.rgb *= Color.a;
 
@@ -535,7 +536,7 @@ internal void DrawRectangleSlowly(
     real32 InvYAxisLengthSq = 1 / LengthSq(YAxis);
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
-    BEGIN_TIMED_BLOCK(ProcessPixel);
+    TIMED_BLOCK((XMax - XMin + 1) * (YMax - YMin + 1));
     for (int32 Y = YMin; Y <= YMax; ++Y) {
         uint32* Pixel = (uint32*)Row;
         for (int32 X = XMin; X <= XMax; ++X) {
@@ -674,8 +675,8 @@ internal void DrawRectangleSlowly(
         }
         Row += Buffer->Pitch;
     }
-    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
-    END_TIMED_BLOCK(DrawRectangleSlowly);
+    //END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
+    //END_TIMED_BLOCK(DrawRectangleSlowly);
 }
 
 #if 1
@@ -692,7 +693,7 @@ internal void DrawRectangleQuickly(
     real32 PixelsToMeters,
     rectangle2i ClipRect, bool32 Even
 ) {
-    BEGIN_TIMED_BLOCK(DrawRectangleQuickly);
+    TIMED_BLOCK();
 
     Color.rgb *= Color.a;
 
@@ -818,7 +819,7 @@ internal void DrawRectangleQuickly(
     int32 MaxX = FillRect.MaxX;
     int32 MinX = FillRect.MinX;
 
-    BEGIN_TIMED_BLOCK(ProcessPixel);
+    TIMED_BLOCK(GetClampedRectArea(FillRect) / 2);
     for (int32 Y = MinY; Y < MaxY; Y += 2) {
 
         uint32* Pixel = (uint32*)Row;
@@ -1064,8 +1065,8 @@ internal void DrawRectangleQuickly(
         }
         Row += RowAdvance;
     }
-    END_TIMED_BLOCK_COUNTED(ProcessPixel, GetClampedRectArea(FillRect) / 2);
-    END_TIMED_BLOCK(DrawRectangleQuickly);
+    //END_TIMED_BLOCK_COUNTED(ProcessPixel, GetClampedRectArea(FillRect) / 2);
+    //END_TIMED_BLOCK(DrawRectangleQuickly);
 }
 
 internal void DrawBitmap(
@@ -1256,7 +1257,7 @@ internal void RenderGroupToOutput(
     rectangle2i ClipRect, bool32 Even
 ) {
     //BEGIN_TIMED_BLOCK(RenderGroupToOutput);
-    TIMED_BLOCK;
+    TIMED_BLOCK();
 
     real32 NullPixelsToMeters = 1.0f;
 

@@ -762,43 +762,14 @@ internal void DEBUGOwl() {
     }
 }
 
-
-internal void OverlayCycleCounters(game_memory* Memory) {
-#if HANDMADE_INTERNAL
-    char* NameTable[] = {
-        "GameUpdateAndRender",
-        "RenderGroupToOutput",
-        "DrawRectangleSlowly",
-        "ProcessPixel",
-        "DrawRectangleQuickly",
-    };
-    DEBUGOwl();
-    DEBUGTextLine("DEBUG CYCLE COUNTS:");
-    for (int32 CounterIndex = 0; CounterIndex < ArrayCount(Memory->Counters); CounterIndex++) {
-        debug_cycle_counter* Counter = Memory->Counters + CounterIndex;
-        if (Counter->HitCount) {
-#if 0
-            char TextBuffer[256];
-            _snprintf_s(
-                TextBuffer, sizeof(TextBuffer),
-                "    %d: %I64ucy %uh %I64ucy/h\n",
-                CounterIndex, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount
-            );
-            OutputDebugStringA(TextBuffer);
-#else
-            DEBUGTextLine(NameTable[CounterIndex]);
-#endif
-        }
-    }
-#endif
-}
+internal void OverlayCycleCounters();
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Platform = Memory->PlatformAPI;
 #if HANDMADE_INTERNAL
-    DebugGlobalMemory = Memory;
+    //  DebugGlobalMemory = Memory;
 #endif
-    BEGIN_TIMED_BLOCK(GameUpdateAndRender);
+    TIMED_BLOCK();
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     Assert(
         &Input->Controllers[0].Terminator - &Input->Controllers[0].MoveUp ==
@@ -1725,9 +1696,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     CheckArena(&GameState->WorldArena);
     CheckArena(&TranState->TranArena);
 
-    END_TIMED_BLOCK(GameUpdateAndRender);
+    //END_TIMED_BLOCK(GameUpdateAndRender);
 
-    OverlayCycleCounters(Memory);
+    OverlayCycleCounters();
 
     if (DEBUGRenderGroup) {
         TiledRenderGroupToOutput(TranState->HighPriorityQueue, DEBUGRenderGroup, DrawBuffer);
@@ -1744,3 +1715,26 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 }
 
 debug_record DebugRecordArray[__COUNTER__];
+
+internal void OverlayCycleCounters() {
+#if HANDMADE_INTERNAL
+    //DEBUGOwl();
+    DEBUGTextLine("DEBUG CYCLE COUNTS:");
+    for (int32 CounterIndex = 0; CounterIndex < ArrayCount(DebugRecords_Main); CounterIndex++) {
+        debug_record* Record = DebugRecords_Main + CounterIndex;
+        if (Record->HitCount) {
+#if 0
+            char TextBuffer[256];
+            _snprintf_s(
+                TextBuffer, sizeof(TextBuffer),
+                "    %d: %I64ucy %uh %I64ucy/h\n",
+                CounterIndex, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount
+            );
+            OutputDebugStringA(TextBuffer);
+#else
+            DEBUGTextLine(Record->FunctionName);
+#endif
+        }
+    }
+#endif
+}
