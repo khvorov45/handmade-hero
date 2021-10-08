@@ -592,6 +592,8 @@ struct fill_ground_chunk_work {
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork) {
+    TIMED_BLOCK();
+
     fill_ground_chunk_work* Work = (fill_ground_chunk_work*)Data;
 
     loaded_bitmap* Buffer = &Work->GroundBuffer->Bitmap;
@@ -1720,28 +1722,28 @@ debug_record DebugRecordArray[__COUNTER__];
 
 #include "stdio.h"
 
-internal void OverlayCycleCounters() {
-#if HANDMADE_INTERNAL
-    //DEBUGOwl();
+internal void
+OutputDebugRecords(uint32 CounterCount, debug_record* Counters) {
     DEBUGTextLine("DEBUG CYCLE COUNTS:");
-    for (int32 CounterIndex = 0; CounterIndex < ArrayCount(DebugRecords_Main); CounterIndex++) {
+    for (uint32 CounterIndex = 0; CounterIndex < CounterCount; CounterIndex++) {
         debug_record* Counter = DebugRecords_Main + CounterIndex;
         uint64 HitCount_CycleCount = AtomicExchangeU64((volatile uint64*)&Counter->HitCount_CycleCount, 0);
         uint32 HitCount = (uint32)(HitCount_CycleCount >> 32);
         uint32 CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
         if (HitCount) {
-#if 1
             char TextBuffer[256];
             _snprintf_s(
                 TextBuffer, sizeof(TextBuffer),
-                "%s: %ucy %uh %ucy/h\n",
-                Counter->FunctionName, CycleCount, HitCount, CycleCount / HitCount
+                "%s(%d): %ucy %uh %ucy/h\n",
+                Counter->FunctionName, Counter->Linenumber, CycleCount, HitCount, CycleCount / HitCount
             );
             DEBUGTextLine(TextBuffer);
-#else
-            DEBUGTextLine(Counter->FunctionName);
-#endif
         }
     }
+}
+
+internal void OverlayCycleCounters() {
+#if HANDMADE_INTERNAL
+    OutputDebugRecords(ArrayCount(DebugRecords_Main), DebugRecords_Main);
 #endif
 }

@@ -556,6 +556,8 @@ internal bool32 GenerationHasCompleted(game_assets* Assets, uint32 CheckID) {
 }
 
 internal asset_memory_header* AcquireAssetMemory(game_assets* Assets, uint32 Size, uint32 AssetIndex) {
+    TIMED_BLOCK();
+
     asset_memory_header* Result = 0;
 
     BeginAssetLock(Assets);
