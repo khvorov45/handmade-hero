@@ -14,6 +14,14 @@ internal inline uint32 AtomicCompareExchangeUint32(uint32 volatile* Value, uint3
     uint32 Result = _InterlockedCompareExchange((long*)Value, New, Expected);
     return Result;
 }
+internal inline uint32 AtomicAddU32(uint32 volatile* Value, int32 Addend) {
+    uint32 Result = _InterlockedExchangeAdd((volatile long*)Value, Addend);
+    return Result;
+}
+internal inline uint32 AtomicExchangeU32(uint32 volatile* Value, int32 Addend) {
+    uint32 Result = _InterlockedExchange((volatile long*)Value, Addend);
+    return Result;
+}
 #endif
 
 internal inline int32 RoundReal32ToInt32(real32 X) {

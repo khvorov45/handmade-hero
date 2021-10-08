@@ -9,12 +9,14 @@
 #define TIMED_BLOCK(...) TIMED_BLOCK_(__LINE__, ##__VA_ARGS__);
 
 struct debug_record {
-    uint64 CycleCount;
 
     char* Filename;
     char* FunctionName;
 
     int32 Linenumber;
+    uint32 Reserved;
+
+    uint32 CycleCount;
     uint32 HitCount;
 };
 
@@ -22,16 +24,18 @@ debug_record DebugRecordArray[];
 
 struct timed_block {
     debug_record* Record;
+    uint64 StartCycles;
     timed_block(int32 Counter, char* Filename, int32 Linenumber, char* FunctionName, int32 HitCount = 1) {
         Record = DebugRecordArray + Counter;
+        StartCycles = __rdtsc();
         Record->Filename = Filename;
         Record->Linenumber = Linenumber;
         Record->FunctionName = FunctionName;
-        Record->CycleCount -= __rdtsc();
-        Record->HitCount += HitCount;
+        AtomicAddU32((volatile uint32*)&Record->HitCount, HitCount);
     }
     ~timed_block() {
-        Record->CycleCount += __rdtsc();
+        uint32 DeltaTime = (uint32)(__rdtsc() - StartCycles);
+        AtomicAddU32((volatile uint32*)&Record->CycleCount, DeltaTime);
     }
 };
 

@@ -1731,12 +1731,12 @@ internal void OverlayCycleCounters() {
             char TextBuffer[256];
             _snprintf_s(
                 TextBuffer, sizeof(TextBuffer),
-                "%s: %I64ucy %uh %I64ucy/h\n",
+                "%s: %ucy %uh %ucy/h\n",
                 Counter->FunctionName, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount
             );
             DEBUGTextLine(TextBuffer);
-            Counter->HitCount = 0;
-            Counter->CycleCount = 0;
+            AtomicExchangeU32((volatile uint32*)&Counter->HitCount, 0);
+            AtomicExchangeU32((volatile uint32*)&Counter->CycleCount, 0);
 #else
             DEBUGTextLine(Counter->FunctionName);
 #endif
