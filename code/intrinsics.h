@@ -18,8 +18,16 @@ internal inline uint32 AtomicAddU32(uint32 volatile* Value, int32 Addend) {
     uint32 Result = _InterlockedExchangeAdd((volatile long*)Value, Addend);
     return Result;
 }
-internal inline uint32 AtomicExchangeU32(uint32 volatile* Value, int32 Addend) {
-    uint32 Result = _InterlockedExchange((volatile long*)Value, Addend);
+internal inline uint64 AtomicAddU64(uint64 volatile* Value, int64 Addend) {
+    uint64 Result = _InterlockedExchangeAdd64((volatile long long*)Value, Addend);
+    return Result;
+}
+internal inline uint32 AtomicExchangeU32(uint32 volatile* Value, int32 New) {
+    uint32 Result = _InterlockedExchange((volatile long*)Value, New);
+    return Result;
+}
+internal inline uint64 AtomicExchangeU64(uint64 volatile* Value, int64 New) {
+    uint64 Result = _InterlockedExchange64((volatile long long*)Value, New);
     return Result;
 }
 #endif

@@ -16,8 +16,7 @@ struct debug_record {
     int32 Linenumber;
     uint32 Reserved;
 
-    uint32 CycleCount;
-    uint32 HitCount;
+    uint64 HitCount_CycleCount;
 };
 
 debug_record DebugRecordArray[];
@@ -25,17 +24,22 @@ debug_record DebugRecordArray[];
 struct timed_block {
     debug_record* Record;
     uint64 StartCycles;
-    timed_block(int32 Counter, char* Filename, int32 Linenumber, char* FunctionName, int32 HitCount = 1) {
-        Record = DebugRecordArray + Counter;
+    uint32 HitCount;
+
+    timed_block(int32 Counter, char* Filename, int32 Linenumber, char* FunctionName, int32 HitCountInit = 1) {
+        HitCount = HitCountInit;
+        Assert(HitCount > 0);
         StartCycles = __rdtsc();
+        Record = DebugRecordArray + Counter;
         Record->Filename = Filename;
         Record->Linenumber = Linenumber;
         Record->FunctionName = FunctionName;
-        AtomicAddU32((volatile uint32*)&Record->HitCount, HitCount);
     }
+
     ~timed_block() {
-        uint32 DeltaTime = (uint32)(__rdtsc() - StartCycles);
-        AtomicAddU32((volatile uint32*)&Record->CycleCount, DeltaTime);
+        Assert(HitCount > 0);
+        uint64 Delta = (__rdtsc() - StartCycles) | ((uint64)HitCount << 32);
+        AtomicAddU64((volatile uint64*)&Record->HitCount_CycleCount, Delta);
     }
 };
 

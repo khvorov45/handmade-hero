@@ -1726,17 +1726,18 @@ internal void OverlayCycleCounters() {
     DEBUGTextLine("DEBUG CYCLE COUNTS:");
     for (int32 CounterIndex = 0; CounterIndex < ArrayCount(DebugRecords_Main); CounterIndex++) {
         debug_record* Counter = DebugRecords_Main + CounterIndex;
-        if (Counter->HitCount) {
+        uint64 HitCount_CycleCount = AtomicExchangeU64((volatile uint64*)&Counter->HitCount_CycleCount, 0);
+        uint32 HitCount = (uint32)(HitCount_CycleCount >> 32);
+        uint32 CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
+        if (HitCount) {
 #if 1
             char TextBuffer[256];
             _snprintf_s(
                 TextBuffer, sizeof(TextBuffer),
                 "%s: %ucy %uh %ucy/h\n",
-                Counter->FunctionName, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount
+                Counter->FunctionName, CycleCount, HitCount, CycleCount / HitCount
             );
             DEBUGTextLine(TextBuffer);
-            AtomicExchangeU32((volatile uint32*)&Counter->HitCount, 0);
-            AtomicExchangeU32((volatile uint32*)&Counter->CycleCount, 0);
 #else
             DEBUGTextLine(Counter->FunctionName);
 #endif
