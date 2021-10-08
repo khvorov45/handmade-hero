@@ -1734,7 +1734,7 @@ OutputDebugRecords(uint32 CounterCount, debug_record* Counters) {
             char TextBuffer[256];
             _snprintf_s(
                 TextBuffer, sizeof(TextBuffer),
-                "%s(%d): %ucy %uh %ucy/h\n",
+                "%32s(%4d): %10ucy %10uh %10ucy/h\n",
                 Counter->FunctionName, Counter->Linenumber, CycleCount, HitCount, CycleCount / HitCount
             );
             DEBUGTextLine(TextBuffer);
