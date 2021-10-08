@@ -700,7 +700,7 @@ global_variable font_id DEBUGFontID;
 
 internal void
 DEBUGReset(uint32 Width, uint32 Height) {
-    FontScale = 1.0f;
+    FontScale = 0.5f;
     Orthographic(DEBUGRenderGroup, Width, Height, 1.0f);
     asset_vector MatchVector = {};
     MatchVector.E[Tag_FontType] = FontType_Debug;

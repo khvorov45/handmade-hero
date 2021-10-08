@@ -773,6 +773,7 @@ MoveEntity(
     game_state* GameState,
     sim_region* Region, sim_entity* Entity, real32 dt, move_spec* MoveSpec, v3 ddPlayer
 ) {
+    TIMED_BLOCK();
 
     Assert(!IsSet(Entity, EntityFlag_Nonspatial));
 

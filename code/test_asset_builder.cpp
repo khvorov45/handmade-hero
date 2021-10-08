@@ -945,8 +945,8 @@ internal void WriteFonts() {
     Initialize(Assets);
 
     loaded_font* Fonts[2] = {
-        LoadFont("C:/Windows/Fonts/arial.ttf", "Arial", 128),
-        LoadFont("C:/Windows/Fonts/consola.ttf", "Consolas", 20)
+        LoadFont("C:/Windows/Fonts/arial.ttf", "Arial", 64),
+        LoadFont("C:/Windows/Fonts/consola.ttf", "Consolas", 64)
     };
 
     uint32 FontTypes[2] = {
