@@ -1718,23 +1718,27 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 
 debug_record DebugRecordArray[__COUNTER__];
 
+#include "stdio.h"
+
 internal void OverlayCycleCounters() {
 #if HANDMADE_INTERNAL
     //DEBUGOwl();
     DEBUGTextLine("DEBUG CYCLE COUNTS:");
     for (int32 CounterIndex = 0; CounterIndex < ArrayCount(DebugRecords_Main); CounterIndex++) {
-        debug_record* Record = DebugRecords_Main + CounterIndex;
-        if (Record->HitCount) {
-#if 0
+        debug_record* Counter = DebugRecords_Main + CounterIndex;
+        if (Counter->HitCount) {
+#if 1
             char TextBuffer[256];
             _snprintf_s(
                 TextBuffer, sizeof(TextBuffer),
-                "    %d: %I64ucy %uh %I64ucy/h\n",
-                CounterIndex, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount
+                "%s: %I64ucy %uh %I64ucy/h\n",
+                Counter->FunctionName, Counter->CycleCount, Counter->HitCount, Counter->CycleCount / Counter->HitCount
             );
-            OutputDebugStringA(TextBuffer);
+            DEBUGTextLine(TextBuffer);
+            Counter->HitCount = 0;
+            Counter->CycleCount = 0;
 #else
-            DEBUGTextLine(Record->FunctionName);
+            DEBUGTextLine(Counter->FunctionName);
 #endif
         }
     }

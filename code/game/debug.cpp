@@ -9,7 +9,7 @@
 #define TIMED_BLOCK(...) TIMED_BLOCK_(__LINE__, ##__VA_ARGS__);
 
 struct debug_record {
-    uint64 Clocks;
+    uint64 CycleCount;
 
     char* Filename;
     char* FunctionName;
@@ -27,11 +27,11 @@ struct timed_block {
         Record->Filename = Filename;
         Record->Linenumber = Linenumber;
         Record->FunctionName = FunctionName;
-        Record->Clocks -= __rdtsc();
+        Record->CycleCount -= __rdtsc();
         Record->HitCount += HitCount;
     }
     ~timed_block() {
-        Record->Clocks += __rdtsc();
+        Record->CycleCount += __rdtsc();
     }
 };
 
