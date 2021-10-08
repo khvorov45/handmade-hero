@@ -344,38 +344,37 @@ InitlializeFontDC() {
     SetBkColor(GlobalFontDeviceContext, RGB(0, 0, 0));
 }
 
-internal loaded_font LoadFont(char* FontFile, char* FontName) {
-    loaded_font Font = {};
+internal loaded_font* LoadFont(char* FontFile, char* FontName, int32 Height) {
+    loaded_font* Font = (loaded_font*)malloc(sizeof(loaded_font));
 
     AddFontResourceExA(FontFile, FR_PRIVATE, 0);
-    int32 Height = 128;
-    Font.Win32Handle = CreateFontA(
+    Font->Win32Handle = CreateFontA(
         Height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
         FontName
     );
-    SelectObject(GlobalFontDeviceContext, Font.Win32Handle);
-    GetTextMetrics(GlobalFontDeviceContext, &Font.TextMetric);
+    SelectObject(GlobalFontDeviceContext, Font->Win32Handle);
+    GetTextMetrics(GlobalFontDeviceContext, &Font->TextMetric);
 
-    Font.MinCodePoint = INT_MAX;
-    Font.MaxCodePoint = 0;
-    Font.OnePastLastCodepoint = 0;
+    Font->MinCodePoint = INT_MAX;
+    Font->MaxCodePoint = 0;
+    Font->OnePastLastCodepoint = 0;
 
-    Font.MaxGlyphCount = 5000;
+    Font->MaxGlyphCount = 5000;
 
     uint32 GlyphIndexFromCodepointSize = sizeof(uint32) * ONE_PAST_MAX_FONT_CODEPOINT;
-    Font.GlyphIndexFromCodepoint = (uint32*)malloc(GlyphIndexFromCodepointSize);
-    memset(Font.GlyphIndexFromCodepoint, 0, GlyphIndexFromCodepointSize);
+    Font->GlyphIndexFromCodepoint = (uint32*)malloc(GlyphIndexFromCodepointSize);
+    memset(Font->GlyphIndexFromCodepoint, 0, GlyphIndexFromCodepointSize);
 
-    Font.Glyphs = (hha_font_glyph*)malloc(sizeof(hha_font_glyph) * Font.MaxGlyphCount);
-    uint32 HorizontalAdvanceSize = sizeof(real32) * Font.MaxGlyphCount * Font.MaxGlyphCount;
-    Font.HorizontalAdvance = (real32*)malloc(HorizontalAdvanceSize);
-    memset(Font.HorizontalAdvance, 0, HorizontalAdvanceSize);
+    Font->Glyphs = (hha_font_glyph*)malloc(sizeof(hha_font_glyph) * Font->MaxGlyphCount);
+    uint32 HorizontalAdvanceSize = sizeof(real32) * Font->MaxGlyphCount * Font->MaxGlyphCount;
+    Font->HorizontalAdvance = (real32*)malloc(HorizontalAdvanceSize);
+    memset(Font->HorizontalAdvance, 0, HorizontalAdvanceSize);
 
-    Font.GlyphCount = 1;
-    Font.Glyphs[0].Bitmap = { 0 };
-    Font.Glyphs[0].UnicodeCodepoint = 0;
+    Font->GlyphCount = 1;
+    Font->Glyphs[0].Bitmap = { 0 };
+    Font->Glyphs[0].UnicodeCodepoint = 0;
 
     return Font;
 }
@@ -505,7 +504,7 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
         Assert(YStartActual <= MinY);
         int32 TrimmedDescent = Font->TextMetric.tmDescent - (MinY - YStartActual);
         Asset->Bitmap.AlignPercentage[1] = ((TrimmedDescent + 1.0f) / (real32)Result.Height);
-    }
+        }
 
     // NOTE(sen) We can't assume any other glyph's been loaded yet
     uint32 GlyphIndex = Font->GlyphIndexFromCodepoint[Codepoint];
@@ -558,10 +557,10 @@ LoadGlyphBitmap(loaded_font* Font, uint32 Codepoint, hha_asset* Asset) {
         }
         stbtt_FreeBitmap(MonoBitmap, 0);
         free(TTFFile.Contents);
-}
+    }
 #endif
     return Result;
-}
+    }
 
 struct loaded_sound {
     uint32 SampleCount;
@@ -685,14 +684,14 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
                 SampleData[2 * SampleIndex + 0] = (int16)SampleIndex;
                 SampleData[2 * SampleIndex + 1] = (int16)SampleIndex;
-        }
+            }
 #endif
             for (uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex) {
                 uint16 Source = SampleData[2 * SampleIndex];
                 SampleData[2 * SampleIndex] = SampleData[SampleIndex];
                 SampleData[SampleIndex] = Source;
             }
-    } else {
+            } else {
             Assert(!"Invalid channel count");
         }
 
@@ -716,9 +715,9 @@ LoadWAV(char* Filename, uint32 SectionFirstSampleIndex, uint32 SectionSampleCoun
             }
         }
         Result.SampleCount = SampleCount;
-}
+        }
     return Result;
-}
+    }
 
 internal void WriteHHA(game_assets* Assets, char* Filename) {
     FILE* Out = fopen(Filename, "wb");
@@ -945,22 +944,35 @@ internal void WriteFonts() {
     game_assets* Assets = &Assets_;
     Initialize(Assets);
 
-    loaded_font DebugFont = LoadFont("C:/Windows/Fonts/arial.ttf", "Arial");
+    loaded_font* Fonts[2] = {
+        LoadFont("C:/Windows/Fonts/arial.ttf", "Arial", 128),
+        LoadFont("C:/Windows/Fonts/consola.ttf", "Consolas", 20)
+    };
+
+    uint32 FontTypes[2] = {
+        FontType_Default,
+        FontType_Debug
+    };
 
     BeginAssetType(Assets, Asset_FontGlyph);
-    for (uint32 Character = ' '; Character <= '~'; ++Character) {
-        AddCharacterAsset(Assets, &DebugFont, Character);
-    }
+    for (uint32 FontIndex = 0; FontIndex < ArrayCount(Fonts); FontIndex++) {
+        for (uint32 Character = ' '; Character <= '~'; ++Character) {
+            AddCharacterAsset(Assets, Fonts[FontIndex], Character);
+        }
 #if 1
-    AddCharacterAsset(Assets, &DebugFont, 0x5c0f);
-    AddCharacterAsset(Assets, &DebugFont, 0x8033);
-    AddCharacterAsset(Assets, &DebugFont, 0x6728);
-    AddCharacterAsset(Assets, &DebugFont, 0x514e);
+        AddCharacterAsset(Assets, Fonts[FontIndex], 0x5c0f);
+        AddCharacterAsset(Assets, Fonts[FontIndex], 0x8033);
+        AddCharacterAsset(Assets, Fonts[FontIndex], 0x6728);
+        AddCharacterAsset(Assets, Fonts[FontIndex], 0x514e);
 #endif
+    }
     EndAssetType(Assets);
 
     BeginAssetType(Assets, Asset_Font);
-    AddFontAsset(Assets, &DebugFont);
+    for (uint32 FontIndex = 0; FontIndex < ArrayCount(Fonts); FontIndex++) {
+        AddFontAsset(Assets, Fonts[FontIndex]);
+        AddTag(Assets, Tag_FontType, (real32)FontTypes[FontIndex]);
+    }
     EndAssetType(Assets);
 
     WriteHHA(Assets, "testfonts.hha");

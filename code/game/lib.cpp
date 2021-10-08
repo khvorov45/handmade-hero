@@ -703,7 +703,9 @@ DEBUGReset(uint32 Width, uint32 Height) {
     FontScale = 1.0f;
     Orthographic(DEBUGRenderGroup, Width, Height, 1.0f);
     asset_vector MatchVector = {};
+    MatchVector.E[Tag_FontType] = FontType_Debug;
     asset_vector WeightVector = {};
+    WeightVector.E[Tag_FontType] = 1.0f;
     DEBUGFontID = GetBestMatchFontFrom(DEBUGRenderGroup->Assets, Asset_Font, &MatchVector, &WeightVector);
     hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
     AtY = (real32)Height * 0.5f - FontScale * GetAscenderHeightFor(FontInfo);
