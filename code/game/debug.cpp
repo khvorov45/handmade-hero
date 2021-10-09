@@ -9,7 +9,6 @@
 #define TIMED_BLOCK(...) TIMED_BLOCK_(__LINE__, ##__VA_ARGS__);
 
 struct debug_record {
-
     char* Filename;
     char* FunctionName;
 
@@ -41,6 +40,25 @@ struct timed_block {
         uint64 Delta = (__rdtsc() - StartCycles) | ((uint64)HitCount << 32);
         AtomicAddU64((volatile uint64*)&Record->HitCount_CycleCount, Delta);
     }
+};
+
+struct debug_counter_snapshot {
+    uint32 HitCount;
+    uint32 CycleCount;
+};
+
+struct debug_counter_state {
+    char* Filename;
+    char* FunctionName;
+
+    int32 Linenumber;
+
+    debug_counter_snapshot Snapshots[120];
+};
+
+struct debug_state {
+    uint32 CounterCount;
+    debug_counter_state CounterStates[512];
 };
 
 #endif

@@ -766,7 +766,27 @@ internal void DEBUGOwl() {
     }
 }
 
-internal void OverlayCycleCounters();
+#include "stdio.h"
+
+internal void OverlayCycleCounters(game_memory* Memory) {
+    debug_state* DebugState = (debug_state*)Memory->DebugStorage;
+    if (DebugState) {
+        for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
+            debug_counter_state* Counter = DebugState->CounterStates + CounterIndex;
+            uint32 HitCount = Counter->Snapshots[0].HitCount;
+            uint32 CycleCount = Counter->Snapshots[0].CycleCount;
+            if (HitCount) {
+                char TextBuffer[256];
+                _snprintf_s(
+                    TextBuffer, sizeof(TextBuffer),
+                    "%32s(%4d): %10ucy %10uh %10ucy/h\n",
+                    Counter->FunctionName, Counter->Linenumber, CycleCount, HitCount, CycleCount / HitCount
+                );
+                DEBUGTextLine(TextBuffer);
+            }
+        }
+    }
+}
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Platform = Memory->PlatformAPI;
@@ -1702,7 +1722,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     //END_TIMED_BLOCK(GameUpdateAndRender);
 
-    OverlayCycleCounters();
+    OverlayCycleCounters(Memory);
 
     if (DEBUGRenderGroup) {
         TiledRenderGroupToOutput(TranState->HighPriorityQueue, DEBUGRenderGroup, DrawBuffer);
@@ -1718,32 +1738,28 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     );
 }
 
-debug_record DebugRecordArray[__COUNTER__];
-
-#include "stdio.h"
-
 internal void
-OutputDebugRecords(uint32 CounterCount, debug_record* Counters) {
-    DEBUGTextLine("DEBUG CYCLE COUNTS:");
+UpdateDebugRecords(debug_state* DebugState, uint32 CounterCount, debug_record* Counters) {
     for (uint32 CounterIndex = 0; CounterIndex < CounterCount; CounterIndex++) {
-        debug_record* Counter = DebugRecords_Main + CounterIndex;
-        uint64 HitCount_CycleCount = AtomicExchangeU64((volatile uint64*)&Counter->HitCount_CycleCount, 0);
-        uint32 HitCount = (uint32)(HitCount_CycleCount >> 32);
-        uint32 CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
-        if (HitCount) {
-            char TextBuffer[256];
-            _snprintf_s(
-                TextBuffer, sizeof(TextBuffer),
-                "%32s(%4d): %10ucy %10uh %10ucy/h\n",
-                Counter->FunctionName, Counter->Linenumber, CycleCount, HitCount, CycleCount / HitCount
-            );
-            DEBUGTextLine(TextBuffer);
-        }
+
+        debug_record* Source = Counters + CounterIndex;
+        debug_counter_state* Dest = DebugState->CounterStates + DebugState->CounterCount++;
+
+        uint64 HitCount_CycleCount = AtomicExchangeU64((volatile uint64*)&Source->HitCount_CycleCount, 0);
+        Dest->Filename = Source->Filename;
+        Dest->FunctionName = Source->FunctionName;
+        Dest->Linenumber = Source->Linenumber;
+        Dest->Snapshots[0].HitCount = (uint32)(HitCount_CycleCount >> 32);
+        Dest->Snapshots[0].CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
     }
 }
 
-internal void OverlayCycleCounters() {
-#if HANDMADE_INTERNAL
-    OutputDebugRecords(ArrayCount(DebugRecords_Main), DebugRecords_Main);
-#endif
+debug_record DebugRecordArray[__COUNTER__];
+
+extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
+    debug_state* DebugState = (debug_state*)Memory->DebugStorage;
+    if (DebugState) {
+        DebugState->CounterCount = 0;
+        UpdateDebugRecords(DebugState, ArrayCount(DebugRecords_Main), DebugRecords_Main);
+    }
 }

@@ -108,6 +108,9 @@ struct game_memory {
     uint64 TransientStorageSize;
     void* TransientStorage; //* Required to be cleared to 0
 
+    uint64 DebugStorageSize;
+    void* DebugStorage; //* Required to be cleared to 0
+
     platform_work_queue* HighPriorityQueue;
     platform_work_queue* LowPriorityQueue;
 
@@ -183,6 +186,18 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory* Memory, game_sound_buffer* SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
+
+struct debug_game_frame_end_info {
+    real32 ExecutableReady;
+    real32 InputProcessed;
+    real32 GameUpdated;
+    real32 AudioUpdated;
+    real32 FramerateWaitComplete;
+    real32 EndOfFrame;
+};
+
+#define DEBUG_GAME_FRAME_END(name) void name(game_memory* Memory, debug_game_frame_end_info* Info)
+typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
 
 global_variable platform_api Platform;
 
