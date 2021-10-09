@@ -1749,8 +1749,8 @@ UpdateDebugRecords(debug_state* DebugState, uint32 CounterCount, debug_record* C
         Dest->Filename = Source->Filename;
         Dest->FunctionName = Source->FunctionName;
         Dest->Linenumber = Source->Linenumber;
-        Dest->Snapshots[0].HitCount = (uint32)(HitCount_CycleCount >> 32);
-        Dest->Snapshots[0].CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
+        Dest->Snapshots[DebugState->SnapshotIndex].HitCount = (uint32)(HitCount_CycleCount >> 32);
+        Dest->Snapshots[DebugState->SnapshotIndex].CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
     }
 }
 
@@ -1761,5 +1761,9 @@ extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
     if (DebugState) {
         DebugState->CounterCount = 0;
         UpdateDebugRecords(DebugState, ArrayCount(DebugRecords_Main), DebugRecords_Main);
+        ++DebugState->SnapshotIndex;
+        if (DebugState->SnapshotIndex >= DEBUG_SNAPSHOT_COUNT) {
+            DebugState->SnapshotIndex = 0;
+        }
     }
 }
