@@ -25,6 +25,7 @@ typedef float real32;
 typedef double real64;
 
 #define Real32Maximum FLT_MAX
+#define Real64Maximum DBL_MAX
 
 #define internal static
 #define local_persist static

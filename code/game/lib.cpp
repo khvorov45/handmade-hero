@@ -768,19 +768,78 @@ internal void DEBUGOwl() {
 
 #include "stdio.h"
 
+struct debug_statistic {
+    uint32 Count;
+    real64 Min;
+    real64 Max;
+    real64 Avg;
+};
+
+internal void BeginDebugStatistic(debug_statistic* Stat) {
+    Stat->Min = Real64Maximum;
+    Stat->Max = -Real64Maximum;
+    Stat->Avg = 0;
+    Stat->Count = 0;
+}
+
+internal void AccumDebugStatistic(debug_statistic* Stat, real64 Value) {
+    Stat->Avg += Value;
+    Stat->Count++;
+    if (Value < Stat->Min) {
+        Stat->Min = Value;
+    }
+    if (Value > Stat->Max) {
+        Stat->Max = Value;
+    }
+}
+
+internal void EndDebugStatistic(debug_statistic* Stat) {
+    if (Stat->Count != 0) {
+        Stat->Avg /= (real64)Stat->Count;
+    } else {
+        Stat->Max = Stat->Min = 0;
+    }
+}
+
 internal void OverlayCycleCounters(game_memory* Memory) {
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
     if (DebugState) {
         for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
+
             debug_counter_state* Counter = DebugState->CounterStates + CounterIndex;
-            uint32 HitCount = Counter->Snapshots[0].HitCount;
-            uint32 CycleCount = Counter->Snapshots[0].CycleCount;
-            if (HitCount) {
+
+            debug_statistic HitCount;
+            debug_statistic CycleCount;
+            debug_statistic CyclesPerHit;
+
+            if (Counter->Linenumber == 696) {
+                int x = 1;
+            }
+
+            BeginDebugStatistic(&HitCount);
+            BeginDebugStatistic(&CycleCount);
+            BeginDebugStatistic(&CyclesPerHit);
+
+            for (uint32 SnapshotIndex = 0; SnapshotIndex < DEBUG_SNAPSHOT_COUNT; ++SnapshotIndex) {
+                AccumDebugStatistic(&HitCount, (real64)Counter->Snapshots[SnapshotIndex].HitCount);
+                AccumDebugStatistic(&CycleCount, (real64)Counter->Snapshots[SnapshotIndex].CycleCount);
+                real64 CPH = 0;
+                if (Counter->Snapshots[SnapshotIndex].HitCount) {
+                    CPH = (real64)Counter->Snapshots[SnapshotIndex].CycleCount / (real64)Counter->Snapshots[SnapshotIndex].HitCount;
+                }
+                AccumDebugStatistic(&CyclesPerHit, CPH);
+            }
+
+            EndDebugStatistic(&HitCount);
+            EndDebugStatistic(&CycleCount);
+            EndDebugStatistic(&CyclesPerHit);
+
+            if (HitCount.Max > 0) {
                 char TextBuffer[256];
                 _snprintf_s(
                     TextBuffer, sizeof(TextBuffer),
                     "%32s(%4d): %10ucy %10uh %10ucy/h\n",
-                    Counter->FunctionName, Counter->Linenumber, CycleCount, HitCount, CycleCount / HitCount
+                    Counter->FunctionName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
                 );
                 DEBUGTextLine(TextBuffer);
             }
