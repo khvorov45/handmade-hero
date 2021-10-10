@@ -1797,22 +1797,6 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     );
 }
 
-internal void
-UpdateDebugRecords(debug_state* DebugState, uint32 CounterCount, debug_record* Counters) {
-    for (uint32 CounterIndex = 0; CounterIndex < CounterCount; CounterIndex++) {
-
-        debug_record* Source = Counters + CounterIndex;
-        debug_counter_state* Dest = DebugState->CounterStates + DebugState->CounterCount++;
-
-        uint64 HitCount_CycleCount = AtomicExchangeU64((volatile uint64*)&Source->HitCount_CycleCount, 0);
-        Dest->Filename = Source->Filename;
-        Dest->FunctionName = Source->FunctionName;
-        Dest->Linenumber = Source->Linenumber;
-        Dest->Snapshots[DebugState->SnapshotIndex].HitCount = (uint32)(HitCount_CycleCount >> 32);
-        Dest->Snapshots[DebugState->SnapshotIndex].CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);
-    }
-}
-
 debug_record DebugRecordArray[__COUNTER__];
 
 extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
