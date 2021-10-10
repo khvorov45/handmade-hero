@@ -834,15 +834,13 @@ internal void OverlayCycleCounters(game_memory* Memory) {
             EndDebugStatistic(&CycleCount);
             EndDebugStatistic(&CyclesPerHit);
 
-            if (HitCount.Max > 0) {
-                char TextBuffer[256];
-                _snprintf_s(
-                    TextBuffer, sizeof(TextBuffer),
-                    "%32s(%4d): %10ucy %10uh %10ucy/h\n",
-                    Counter->FunctionName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
-                );
-                DEBUGTextLine(TextBuffer);
-            }
+            char TextBuffer[256];
+            _snprintf_s(
+                TextBuffer, sizeof(TextBuffer),
+                "%32s(%4d): %10ucy %10uh %10ucy/h\n",
+                Counter->FunctionName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
+            );
+            DEBUGTextLine(TextBuffer);
         }
     }
 }
@@ -1206,8 +1204,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
-    }
+            }
+            }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1261,8 +1259,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 );
 #endif
             }
+            }
         }
-    }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1787,7 +1785,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         TiledRenderGroupToOutput(TranState->HighPriorityQueue, DEBUGRenderGroup, DrawBuffer);
         EndRender(DEBUGRenderGroup);
     }
-}
+    }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
