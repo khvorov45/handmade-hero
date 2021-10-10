@@ -801,12 +801,13 @@ internal void EndDebugStatistic(debug_statistic* Stat) {
     }
 }
 
-internal void OverlayCycleCounters(game_memory* Memory) {
+internal void DEBUGOverlay(game_memory* Memory) {
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
     if (DebugState && DEBUGRenderGroup) {
-        for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
-            loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
-            if (Font) {
+        loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
+        if (Font) {
+            for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
+
                 hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
 
                 debug_counter_state* Counter = DebugState->CounterStates + CounterIndex;
@@ -860,6 +861,64 @@ internal void OverlayCycleCounters(game_memory* Memory) {
                     DEBUGTextLine(TextBuffer);
                 }
             }
+
+            real32 BarWidth = 8.0f;
+            real32 BarSpacing = 10.0f;
+            real32 ChartLeft = LeftEdge + 10.0f;
+            real32 ChartHeight = 300.0f;
+            real32 ChartWidth = BarSpacing * (real32)DEBUG_SNAPSHOT_COUNT;
+            real32 ChartMinY = AtY - ChartHeight - 10.0f;
+            real32 Scale = 1.0f / 0.03333f;
+
+            v3 Colors[] = {
+              {1, 0, 0},
+              {0, 1, 0},
+              {0, 0, 1},
+              {1, 1, 0},
+              {0, 1, 1},
+              {1, 0, 1},
+              {1, 0.5f, 0},
+              {1, 0, 0.5f},
+              {0.5f, 1, 0},
+              {0, 1, 0.5f},
+              {0.5f, 0, 1},
+              {0, 0.5f, 1.0f},
+            };
+
+            for (uint32 SnapshotIndex = 0; SnapshotIndex < DEBUG_SNAPSHOT_COUNT; ++SnapshotIndex) {
+
+                debug_game_frame_end_info* Info = DebugState->FrameEndInfos + SnapshotIndex;
+                real32 StackY = ChartMinY;
+                real32 PrevTimestampSeconds = 0.0f;
+                for (uint32 TimestampIndex = 0; TimestampIndex < Info->TimestampCount; ++TimestampIndex) {
+                    debug_frame_timestamp* Timestamp = Info->Timestamps + TimestampIndex;
+                    real32 ThisSecondsElapsed = Timestamp->Seconds - PrevTimestampSeconds;
+                    PrevTimestampSeconds = Timestamp->Seconds;
+
+                    real32 ThisProportion = Scale * ThisSecondsElapsed;
+                    real32 ThisHeight = ChartHeight * ThisProportion;
+
+                    v3 Color = Colors[TimestampIndex % ArrayCount(Colors)];
+                    PushRect(
+                        DEBUGRenderGroup,
+                        V3(ChartLeft + (real32)SnapshotIndex * BarSpacing + 0.5f * BarWidth,
+                            StackY + 0.5f * ThisHeight,
+                            0.0f),
+                        V2(BarWidth, ThisHeight),
+                        V4(Color, 1.0f)
+                    );
+                    StackY += ThisHeight;
+                }
+            }
+
+            PushRect(
+                DEBUGRenderGroup,
+                V3(ChartLeft + 0.5f * ChartWidth,
+                    ChartMinY + ChartHeight,
+                    0.0f),
+                V2(ChartWidth, 4.0f),
+                V4(1.0f, 1.0f, 1.0f, 1.0f)
+            );
         }
     }
 }
@@ -1223,8 +1282,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-            }
-            }
+        }
+    }
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1278,8 +1337,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 );
 #endif
             }
-            }
         }
+    }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1798,13 +1857,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     //END_TIMED_BLOCK(GameUpdateAndRender);
 
-    OverlayCycleCounters(Memory);
+    DEBUGOverlay(Memory);
 
     if (DEBUGRenderGroup) {
         TiledRenderGroupToOutput(TranState->HighPriorityQueue, DEBUGRenderGroup, DrawBuffer);
         EndRender(DEBUGRenderGroup);
     }
-    }
+}
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
@@ -1821,6 +1880,9 @@ extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
     if (DebugState) {
         DebugState->CounterCount = 0;
         UpdateDebugRecords(DebugState, ArrayCount(DebugRecords_Main), DebugRecords_Main);
+
+        DebugState->FrameEndInfos[DebugState->SnapshotIndex] = *Info;
+
         ++DebugState->SnapshotIndex;
         if (DebugState->SnapshotIndex >= DEBUG_SNAPSHOT_COUNT) {
             DebugState->SnapshotIndex = 0;

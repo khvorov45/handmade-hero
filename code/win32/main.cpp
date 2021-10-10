@@ -1046,6 +1046,14 @@ PLATFORM_DEALLOCATE_MEMORY(Win32DeallocateMemory) {
     }
 }
 
+internal inline void
+Win32RecordTimestamp(debug_game_frame_end_info* Info, char* Name, real32 Seconds) {
+    Assert(Info->TimestampCount < ArrayCount(Info->Timestamps));
+    debug_frame_timestamp* Timestamp = Info->Timestamps + Info->TimestampCount++;
+    Timestamp->Name = Name;
+    Timestamp->Seconds = Seconds;
+}
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowCode) {
 
     win32_state Win32State = {};
@@ -1272,7 +1280,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             NewInput->ExecutableReloaded = true;
         }
 
-        FrameEndInfo.ExecutableReady = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+        Win32RecordTimestamp(&FrameEndInfo, "ExecutableReady", Win32GetSecondsElapsed(LastCounter, Win32GetWallClock()));
 
         game_controller_input* OldKeyboardController = GetController(OldInput, 0);
         game_controller_input* NewKeyboardController = GetController(NewInput, 0);
@@ -1411,7 +1419,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             }
         }
 
-        FrameEndInfo.InputProcessed = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+        Win32RecordTimestamp(&FrameEndInfo, "InputProcessed", Win32GetSecondsElapsed(LastCounter, Win32GetWallClock()));
 
         /*if (GlobalPause) {
             continue;
@@ -1436,7 +1444,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             // HandleDebugCycleCounters(&GameMemory);
         }
 
-        FrameEndInfo.GameUpdated = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+        Win32RecordTimestamp(&FrameEndInfo, "GameUpdated", Win32GetSecondsElapsed(LastCounter, Win32GetWallClock()));
 
         //* Sound
 
@@ -1529,7 +1537,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             SoundIsValid = false;
         }
 
-        FrameEndInfo.AudioUpdated = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+        Win32RecordTimestamp(&FrameEndInfo, "AudioUpdated", Win32GetSecondsElapsed(LastCounter, Win32GetWallClock()));
 
         //* Timing
 
@@ -1553,7 +1561,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             //* MISSED FRAME
         }
 
-        FrameEndInfo.FramerateWaitComplete = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+        Win32RecordTimestamp(&FrameEndInfo, "FramerateWaitComplete", Win32GetSecondsElapsed(LastCounter, Win32GetWallClock()));
 
         //* Display
 
@@ -1577,7 +1585,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         LARGE_INTEGER EndCounter = Win32GetWallClock();
 
 #if HANDMADE_INTERNAL
-        FrameEndInfo.EndOfFrame = Win32GetSecondsElapsed(LastCounter, EndCounter);
+        Win32RecordTimestamp(&FrameEndInfo, "EndOfFrame", Win32GetSecondsElapsed(LastCounter, Win32GetWallClock()));
         uint64 EndCycleCount = __rdtsc();
         uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
         LastCycleCount = __rdtsc();

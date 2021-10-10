@@ -61,6 +61,7 @@ struct debug_state {
     uint32 SnapshotIndex;
     uint32 CounterCount;
     debug_counter_state CounterStates[512];
+    debug_game_frame_end_info FrameEndInfos[DEBUG_SNAPSHOT_COUNT];
 };
 
 internal void
