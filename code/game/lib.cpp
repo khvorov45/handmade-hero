@@ -702,7 +702,7 @@ global_variable font_id DEBUGFontID;
 
 internal void
 DEBUGReset(uint32 Width, uint32 Height) {
-    FontScale = 0.5f;
+    FontScale = 0.25f;
     Orthographic(DEBUGRenderGroup, Width, Height, 1.0f);
     asset_vector MatchVector = {};
     MatchVector.E[Tag_FontType] = FontType_Debug;
@@ -803,44 +803,63 @@ internal void EndDebugStatistic(debug_statistic* Stat) {
 
 internal void OverlayCycleCounters(game_memory* Memory) {
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
-    if (DebugState) {
+    if (DebugState && DEBUGRenderGroup) {
         for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
+            loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
+            if (Font) {
+                hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
 
-            debug_counter_state* Counter = DebugState->CounterStates + CounterIndex;
+                debug_counter_state* Counter = DebugState->CounterStates + CounterIndex;
 
-            debug_statistic HitCount;
-            debug_statistic CycleCount;
-            debug_statistic CyclesPerHit;
+                debug_statistic HitCount;
+                debug_statistic CycleCount;
+                debug_statistic CyclesPerHit;
 
-            if (Counter->Linenumber == 696) {
-                int x = 1;
-            }
-
-            BeginDebugStatistic(&HitCount);
-            BeginDebugStatistic(&CycleCount);
-            BeginDebugStatistic(&CyclesPerHit);
-
-            for (uint32 SnapshotIndex = 0; SnapshotIndex < DEBUG_SNAPSHOT_COUNT; ++SnapshotIndex) {
-                AccumDebugStatistic(&HitCount, (real64)Counter->Snapshots[SnapshotIndex].HitCount);
-                AccumDebugStatistic(&CycleCount, (real64)Counter->Snapshots[SnapshotIndex].CycleCount);
-                real64 CPH = 0;
-                if (Counter->Snapshots[SnapshotIndex].HitCount) {
-                    CPH = (real64)Counter->Snapshots[SnapshotIndex].CycleCount / (real64)Counter->Snapshots[SnapshotIndex].HitCount;
+                if (Counter->Linenumber == 696) {
+                    int x = 1;
                 }
-                AccumDebugStatistic(&CyclesPerHit, CPH);
+
+                BeginDebugStatistic(&HitCount);
+                BeginDebugStatistic(&CycleCount);
+                BeginDebugStatistic(&CyclesPerHit);
+
+                for (uint32 SnapshotIndex = 0; SnapshotIndex < DEBUG_SNAPSHOT_COUNT; ++SnapshotIndex) {
+                    AccumDebugStatistic(&HitCount, (real64)Counter->Snapshots[SnapshotIndex].HitCount);
+                    AccumDebugStatistic(&CycleCount, (real64)Counter->Snapshots[SnapshotIndex].CycleCount);
+                    real64 CPH = 0;
+                    if (Counter->Snapshots[SnapshotIndex].HitCount) {
+                        CPH = (real64)Counter->Snapshots[SnapshotIndex].CycleCount / (real64)Counter->Snapshots[SnapshotIndex].HitCount;
+                    }
+                    AccumDebugStatistic(&CyclesPerHit, CPH);
+                }
+
+                EndDebugStatistic(&HitCount);
+                EndDebugStatistic(&CycleCount);
+                EndDebugStatistic(&CyclesPerHit);
+
+                if (Counter->FunctionName) {
+                    char TextBuffer[256];
+                    _snprintf_s(
+                        TextBuffer, sizeof(TextBuffer),
+                        "%20s(%4d): %10ucy %10uh %10ucy/h\n",
+                        Counter->FunctionName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
+                    );
+
+                    if (CycleCount.Max > 0) {
+                        real32 BarWidth = 4.0f;
+                        real32 ChartLeft = 0.0f;
+                        real32 ChartMinY = AtY;
+                        real32 ChartHeight = FontInfo->AscenderHeight * FontScale;
+                        real32 Scale = 1.0f / (real32)CycleCount.Max;
+                        for (uint32 SnapshotIndex = 0; SnapshotIndex < DEBUG_SNAPSHOT_COUNT; ++SnapshotIndex) {
+                            real32 ThisProportion = Scale * (real32)Counter->Snapshots[SnapshotIndex].CycleCount;
+                            real32 ThisHeight = ChartHeight * ThisProportion;
+                            PushRect(DEBUGRenderGroup, V3(ChartLeft + (real32)SnapshotIndex * (BarWidth + 1.0f) + 0.5f * BarWidth, ChartMinY + 0.5f * ThisHeight, 0.0f), V2(BarWidth, ThisHeight), V4(ThisProportion, 1.0f, 0.0f, 1.0f));
+                        }
+                    }
+                    DEBUGTextLine(TextBuffer);
+                }
             }
-
-            EndDebugStatistic(&HitCount);
-            EndDebugStatistic(&CycleCount);
-            EndDebugStatistic(&CyclesPerHit);
-
-            char TextBuffer[256];
-            _snprintf_s(
-                TextBuffer, sizeof(TextBuffer),
-                "%32s(%4d): %10ucy %10uh %10ucy/h\n",
-                Counter->FunctionName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
-            );
-            DEBUGTextLine(TextBuffer);
         }
     }
 }
