@@ -1875,12 +1875,55 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 
 debug_record DebugRecordArray[__COUNTER__];
 
+internal void
+CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Events) {
+
+    DebugState->CounterCount = ArrayCount(DebugRecords_Main);
+    for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
+        debug_counter_state* Dest = DebugState->CounterStates + CounterIndex;
+        Dest->Snapshots[DebugState->SnapshotIndex].HitCount = 0;
+        Dest->Snapshots[DebugState->SnapshotIndex].CycleCount = 0;
+    }
+
+    debug_counter_state* CounterArray[1] = { DebugState->CounterStates };
+    debug_record* DebugRecords[1] = { DebugRecords_Main };
+    for (uint32 EventIndex = 0; EventIndex < EventCount; EventIndex++) {
+        debug_event* Event = Events + EventIndex;
+
+        debug_counter_state* Dest = CounterArray[Event->DebugRecordArrayIndex] + Event->DebugRecordIndex;
+
+        debug_record* Source = DebugRecords[Event->DebugRecordArrayIndex] + Event->DebugRecordIndex;
+
+        Dest->Filename = Source->Filename;
+        Dest->FunctionName = Source->FunctionName;
+        Dest->Linenumber = Source->Linenumber;
+
+        if (Event->Type == DebugEvent_BeginBlock) {
+            Dest->Snapshots[DebugState->SnapshotIndex].HitCount += 1;
+            Dest->Snapshots[DebugState->SnapshotIndex].CycleCount -= Event->Clock;
+        } else {
+            Assert(Event->Type == DebugEvent_EndBlock);
+            Dest->Snapshots[DebugState->SnapshotIndex].CycleCount += Event->Clock;
+            //Dest->Snapshots[DebugState->SnapshotIndex].HitCount += (Source->HitCount_CycleCount >> 32);
+        }
+    }
+}
+
 extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
+    uint64 EventArrayIndex = Global_DebugEventArrayIndex_DebugEventIndex >> 32;
+    uint64 NextArrayIndex = !EventArrayIndex;
+    uint64 ArrayIndex_EventIndex = AtomicExchangeU64(&Global_DebugEventArrayIndex_DebugEventIndex, NextArrayIndex << 32);
+    Assert((ArrayIndex_EventIndex >> 32) == EventArrayIndex);
+    uint32 EventCount = ArrayIndex_EventIndex & 0xFFFFFFFF;
+
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
     if (DebugState) {
         DebugState->CounterCount = 0;
+#if 0
         UpdateDebugRecords(DebugState, ArrayCount(DebugRecords_Main), DebugRecords_Main);
-
+#else
+        CollateDebugRecords(DebugState, EventCount, GlobalDebugEventArray[EventArrayIndex]);
+#endif
         DebugState->FrameEndInfos[DebugState->SnapshotIndex] = *Info;
 
         ++DebugState->SnapshotIndex;
