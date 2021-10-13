@@ -30,6 +30,11 @@ internal inline uint64 AtomicExchangeU64(uint64 volatile* Value, int64 New) {
     uint64 Result = _InterlockedExchange64((volatile long long*)Value, New);
     return Result;
 }
+internal inline uint32 GetThreadId() {
+    uint8* ThreadLocalStorage = (uint8*)__readgsqword(0x30);
+    uint32 ThreadID = *(uint32*)(ThreadLocalStorage + 0x48);
+    return ThreadID;
+}
 #endif
 
 internal inline int32 RoundReal32ToInt32(real32 X) {
@@ -89,7 +94,7 @@ internal inline bit_scan_result FindLeastSignificantSetBit(uint32 Value) {
             Result.Found = true;
             break;
         }
-    }
+}
 #endif
     return Result;
 }

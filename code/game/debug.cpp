@@ -44,7 +44,7 @@ internal inline void RecordDebugEvent(uint32 RecordIndex, debug_event_type Event
     Assert(EventIndex < MAX_DEBUG_EVENT_COUNT);
     debug_event* Event = GlobalDebugEventArray[ArrayIndex_EventIndex >> 32] + EventIndex;
     Event->Clock = __rdtsc();
-    Event->ThreadIndex = 0;
+    Event->ThreadIndex = (uint16)GetThreadId();
     __rdtscp((uint32*)&Event->CoreIndex);
     Event->DebugRecordIndex = (uint16)RecordIndex;
     Event->DebugRecordArrayIndex = 0;
