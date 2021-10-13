@@ -4,10 +4,6 @@
 #include "lib.hpp"
 #include "../types.h"
 
-#define TIMED_BLOCK__(Number, ...) timed_block TimedBlock##Number(__COUNTER__, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);
-#define TIMED_BLOCK_(Number, ...) TIMED_BLOCK__(Number, ##__VA_ARGS__);
-#define TIMED_BLOCK(...) TIMED_BLOCK_(__LINE__, ##__VA_ARGS__);
-
 struct debug_record {
     char* Filename;
     char* FunctionName;
@@ -18,36 +14,46 @@ struct debug_record {
     uint64 HitCount_CycleCount;
 };
 
-enum debug_event_type {
-    DebugEvent_BeginBlock,
-    DebugEvent_EndBlock,
-};
-
 struct debug_event {
     uint64 Clock;
     uint16 ThreadIndex;
     uint16 CoreIndex;
     uint16 DebugRecordIndex;
-    uint16 DebugRecordArrayIndex;
+    uint16 TranslationUnit;
     uint8 Type;
 };
 
-debug_record DebugRecordArray[];
-
+#define MAX_DEBUG_TRANSLATION_UNITS 3
 #define MAX_DEBUG_EVENT_COUNT 16*65536
-debug_event GlobalDebugEventArray[2][MAX_DEBUG_EVENT_COUNT];
-uint64 Global_DebugEventArrayIndex_DebugEventIndex;
+#define MAX_DEBUG_RECORD_COUNT 65536
+
+struct debug_table {
+    uint64 volatile EventArrayIndex_EventIndex;
+    debug_record Records[MAX_DEBUG_TRANSLATION_UNITS][MAX_DEBUG_RECORD_COUNT];
+    debug_event Events[2][MAX_DEBUG_EVENT_COUNT];
+};
+
+extern debug_table GlobalDebugTable;
+
+#define TIMED_BLOCK__(Number, ...) timed_block TimedBlock##Number(__COUNTER__, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);
+#define TIMED_BLOCK_(Number, ...) TIMED_BLOCK__(Number, ##__VA_ARGS__);
+#define TIMED_BLOCK(...) TIMED_BLOCK_(__LINE__, ##__VA_ARGS__);
+
+enum debug_event_type {
+    DebugEvent_BeginBlock,
+    DebugEvent_EndBlock,
+};
 
 internal inline void RecordDebugEvent(uint32 RecordIndex, debug_event_type EventType) {
-    uint64 ArrayIndex_EventIndex = AtomicAddU64(&Global_DebugEventArrayIndex_DebugEventIndex, 1);
+    uint64 ArrayIndex_EventIndex = AtomicAddU64(&GlobalDebugTable.EventArrayIndex_EventIndex, 1);
     uint32 EventIndex = ArrayIndex_EventIndex & 0xFFFFFFFF;
     Assert(EventIndex < MAX_DEBUG_EVENT_COUNT);
-    debug_event* Event = GlobalDebugEventArray[ArrayIndex_EventIndex >> 32] + EventIndex;
+    debug_event* Event = GlobalDebugTable.Events[ArrayIndex_EventIndex >> 32] + EventIndex;
     Event->Clock = __rdtsc();
     Event->ThreadIndex = (uint16)GetThreadId();
     __rdtscp((uint32*)&Event->CoreIndex);
     Event->DebugRecordIndex = (uint16)RecordIndex;
-    Event->DebugRecordArrayIndex = 0;
+    Event->TranslationUnit = TRANSLATION_UNIT_INDEX;
     Event->Type = (uint8)EventType;
 }
 
@@ -61,7 +67,7 @@ struct timed_block {
         Counter = CounterInit;
         HitCount = HitCountInit;
         Assert(HitCount > 0);
-        Record = DebugRecordArray + CounterInit;
+        Record = GlobalDebugTable.Records[TRANSLATION_UNIT_INDEX] + CounterInit;
         Record->Filename = Filename;
         Record->Linenumber = Linenumber;
         Record->FunctionName = FunctionName;
