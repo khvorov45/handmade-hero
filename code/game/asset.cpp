@@ -9,7 +9,6 @@
 #include "memory.cpp"
 #include "random.cpp"
 #include "../file_formats.h"
-#include "debug.cpp"
 
 struct asset_bitmap_info {
     v2 AlignPercentage;

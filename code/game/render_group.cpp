@@ -2,7 +2,6 @@
 #include "bmp.cpp"
 #include "asset.cpp"
 #include "../intrinsics.h"
-#include "debug.cpp"
 
 struct render_basis {
     v3 P;
