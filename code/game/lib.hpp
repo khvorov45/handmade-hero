@@ -221,7 +221,7 @@ struct debug_event {
     uint8 Type;
 };
 
-#define MAX_DEBUG_TRANSLATION_UNITS 3
+#define MAX_DEBUG_TRANSLATION_UNITS 2
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
 
