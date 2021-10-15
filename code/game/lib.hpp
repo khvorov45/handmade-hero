@@ -214,7 +214,7 @@ struct debug_event {
 
 struct debug_table {
     uint64 volatile EventArrayIndex_EventIndex;
-    debug_event Events[2][MAX_DEBUG_EVENT_COUNT];
+    debug_event Events[64][MAX_DEBUG_EVENT_COUNT];
 
     uint32 RecordCount[MAX_DEBUG_TRANSLATION_UNITS];
     debug_record Records[MAX_DEBUG_TRANSLATION_UNITS][MAX_DEBUG_RECORD_COUNT];

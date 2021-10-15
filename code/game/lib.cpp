@@ -1921,7 +1921,10 @@ extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
     GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = DebugRecords_Main_Count;
 
     uint64 EventArrayIndex = GlobalDebugTable->EventArrayIndex_EventIndex >> 32;
-    uint64 NextArrayIndex = !EventArrayIndex;
+    uint64 NextArrayIndex = EventArrayIndex + 1;
+    if (NextArrayIndex >= ArrayCount(GlobalDebugTable->Events)) {
+        NextArrayIndex = 0;
+    }
     uint64 ArrayIndex_EventIndex = AtomicExchangeU64(&GlobalDebugTable->EventArrayIndex_EventIndex, NextArrayIndex << 32);
     Assert((ArrayIndex_EventIndex >> 32) == EventArrayIndex);
     uint32 EventCount = ArrayIndex_EventIndex & 0xFFFFFFFF;
