@@ -225,6 +225,14 @@ extern debug_table* GlobalDebugTable;
 #define DEBUG_GAME_FRAME_END(name) debug_table* name(game_memory* Memory)
 typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
 
+#define FRAME_MARKER() \
+    {int Counter = __COUNTER__; \
+    RecordDebugEvent(Counter, DebugEvent_FrameMarker); \
+    debug_record* Record = GlobalDebugTable->Records[TRANSLATION_UNIT_INDEX] + Counter; \
+    Record->Filename = __FILE__; \
+    Record->Linenumber = __LINE__; \
+    Record->BlockName = "FrameMarker";}
+
 #define TIMED_BLOCK__(BlockName, Number, ...) timed_block TimedBlock##Number(__COUNTER__, __FILE__, __LINE__, BlockName, ##__VA_ARGS__);
 #define TIMED_BLOCK_(BlockName, Number, ...) TIMED_BLOCK__(BlockName, Number, ##__VA_ARGS__);
 #define TIMED_BLOCK(BlockName, ...) TIMED_BLOCK_(#BlockName, __LINE__, ##__VA_ARGS__);
@@ -247,6 +255,7 @@ typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
 #define END_BLOCK(Name) END_BLOCK_(Counter_##Name)
 
 enum debug_event_type {
+    DebugEvent_FrameMarker,
     DebugEvent_BeginBlock,
     DebugEvent_EndBlock,
 };

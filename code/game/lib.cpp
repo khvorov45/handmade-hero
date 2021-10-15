@@ -1907,17 +1907,11 @@ CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Eve
         Dest->BlockName = Source->BlockName;
         Dest->Linenumber = Source->Linenumber;
 
-        if (Dest->BlockName[0] == 'W' && Dest->BlockName[1] == 'i') {
-            int32 x = 1;
-        }
-
         if (Event->Type == DebugEvent_BeginBlock) {
             Dest->Snapshots[DebugState->SnapshotIndex].HitCount += 1;
             Dest->Snapshots[DebugState->SnapshotIndex].CycleCount -= Event->Clock;
-        } else {
-            Assert(Event->Type == DebugEvent_EndBlock);
+        } else if (Event->Type == DebugEvent_EndBlock) {
             Dest->Snapshots[DebugState->SnapshotIndex].CycleCount += Event->Clock;
-            //Dest->Snapshots[DebugState->SnapshotIndex].HitCount += (Source->HitCount_CycleCount >> 32);
         }
     }
 }
