@@ -187,24 +187,11 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory* Memory, game_sound_buffer* SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
-struct debug_frame_timestamp {
-    char* Name;
-    real32 Seconds;
-};
-
-struct debug_game_frame_end_info {
-    uint32 TimestampCount;
-    debug_frame_timestamp Timestamps[64];
-};
-
-#define DEBUG_GAME_FRAME_END(name) void name(game_memory* Memory, debug_game_frame_end_info* Info)
-typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
-
 global_variable platform_api Platform;
 
 struct debug_record {
     char* Filename;
-    char* FunctionName;
+    char* BlockName;
 
     int32 Linenumber;
     uint32 Reserved;
@@ -231,11 +218,31 @@ struct debug_table {
     debug_event Events[2][MAX_DEBUG_EVENT_COUNT];
 };
 
-extern debug_table GlobalDebugTable;
+extern debug_table* GlobalDebugTable;
 
-#define TIMED_BLOCK__(Number, ...) timed_block TimedBlock##Number(__COUNTER__, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);
-#define TIMED_BLOCK_(Number, ...) TIMED_BLOCK__(Number, ##__VA_ARGS__);
-#define TIMED_BLOCK(...) TIMED_BLOCK_(__LINE__, ##__VA_ARGS__);
+#define DEBUG_GAME_FRAME_END(name) debug_table* name(game_memory* Memory)
+typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
+
+#define TIMED_BLOCK__(BlockName, Number, ...) timed_block TimedBlock##Number(__COUNTER__, __FILE__, __LINE__, BlockName, ##__VA_ARGS__);
+#define TIMED_BLOCK_(BlockName, Number, ...) TIMED_BLOCK__(BlockName, Number, ##__VA_ARGS__);
+#define TIMED_BLOCK(BlockName, ...) TIMED_BLOCK_(#BlockName, __LINE__, ##__VA_ARGS__);
+#define TIMED_FUNCTION(...) TIMED_BLOCK_(__FUNCTION__, __LINE__ ##__VA_ARGS__);
+
+#define BEGIN_BLOCK_(Counter, FilenameInit, LinenumberInit, BlockNameInit) \
+        {debug_record* Record = GlobalDebugTable->Records[TRANSLATION_UNIT_INDEX] + Counter; \
+        Record->Filename = FilenameInit; \
+        Record->Linenumber = LinenumberInit; \
+        Record->BlockName = BlockNameInit; \
+        RecordDebugEvent(Counter, DebugEvent_BeginBlock);}
+
+#define BEGIN_BLOCK(Name) \
+    int Counter_##Name = __COUNTER__; \
+    BEGIN_BLOCK_(Counter_##Name, __FILE__, __LINE__, #Name)
+
+#define END_BLOCK_(Counter) \
+    RecordDebugEvent(Counter, DebugEvent_EndBlock);
+
+#define END_BLOCK(Name) END_BLOCK_(Counter_##Name)
 
 enum debug_event_type {
     DebugEvent_BeginBlock,
@@ -243,10 +250,10 @@ enum debug_event_type {
 };
 
 internal inline void RecordDebugEvent(uint32 RecordIndex, debug_event_type EventType) {
-    uint64 ArrayIndex_EventIndex = AtomicAddU64(&GlobalDebugTable.EventArrayIndex_EventIndex, 1);
+    uint64 ArrayIndex_EventIndex = AtomicAddU64(&GlobalDebugTable->EventArrayIndex_EventIndex, 1);
     uint32 EventIndex = ArrayIndex_EventIndex & 0xFFFFFFFF;
     Assert(EventIndex < MAX_DEBUG_EVENT_COUNT);
-    debug_event* Event = GlobalDebugTable.Events[ArrayIndex_EventIndex >> 32] + EventIndex;
+    debug_event* Event = GlobalDebugTable->Events[ArrayIndex_EventIndex >> 32] + EventIndex;
     Event->Clock = __rdtsc();
     Event->ThreadIndex = (uint16)GetThreadId();
     __rdtscp((uint32*)&Event->CoreIndex);
@@ -256,31 +263,15 @@ internal inline void RecordDebugEvent(uint32 RecordIndex, debug_event_type Event
 }
 
 struct timed_block {
-    debug_record* Record;
-    uint64 StartCycles;
-    uint32 HitCount;
     int32 Counter;
 
-    timed_block(int32 CounterInit, char* Filename, int32 Linenumber, char* FunctionName, int32 HitCountInit = 1) {
+    timed_block(int32 CounterInit, char* Filename, int32 Linenumber, char* BlockName, int32 HitCountInit = 1) {
         Counter = CounterInit;
-        HitCount = HitCountInit;
-        Assert(HitCount > 0);
-        Record = GlobalDebugTable.Records[TRANSLATION_UNIT_INDEX] + CounterInit;
-        Record->Filename = Filename;
-        Record->Linenumber = Linenumber;
-        Record->FunctionName = FunctionName;
-
-        StartCycles = __rdtsc();
-
-        RecordDebugEvent(Counter, DebugEvent_BeginBlock);
+        BEGIN_BLOCK_(Counter, Filename, Linenumber, BlockName);
     }
 
     ~timed_block() {
-        Assert(HitCount > 0);
-        uint64 Delta = (__rdtsc() - StartCycles) | ((uint64)HitCount << 32);
-        AtomicAddU64((volatile uint64*)&Record->HitCount_CycleCount, Delta);
-
-        RecordDebugEvent(Counter, DebugEvent_EndBlock);
+        END_BLOCK_(Counter)
     }
 };
 
@@ -292,7 +283,7 @@ struct debug_counter_snapshot {
 #define DEBUG_SNAPSHOT_COUNT 120
 struct debug_counter_state {
     char* Filename;
-    char* FunctionName;
+    char* BlockName;
 
     int32 Linenumber;
 
@@ -303,7 +294,6 @@ struct debug_state {
     uint32 SnapshotIndex;
     uint32 CounterCount;
     debug_counter_state CounterStates[512];
-    debug_game_frame_end_info FrameEndInfos[DEBUG_SNAPSHOT_COUNT];
 };
 
 internal void
@@ -315,7 +305,7 @@ UpdateDebugRecords(debug_state* DebugState, uint32 CounterCount, debug_record* C
 
         uint64 HitCount_CycleCount = AtomicExchangeU64((volatile uint64*)&Source->HitCount_CycleCount, 0);
         Dest->Filename = Source->Filename;
-        Dest->FunctionName = Source->FunctionName;
+        Dest->BlockName = Source->BlockName;
         Dest->Linenumber = Source->Linenumber;
         Dest->Snapshots[DebugState->SnapshotIndex].HitCount = (uint32)(HitCount_CycleCount >> 32);
         Dest->Snapshots[DebugState->SnapshotIndex].CycleCount = (uint32)(HitCount_CycleCount & 0xFFFFFFFF);

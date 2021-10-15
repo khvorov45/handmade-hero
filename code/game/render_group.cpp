@@ -465,8 +465,7 @@ internal void DrawRectangleSlowly(
     environment_map* Top, environment_map* Middle, environment_map* Bottom,
     real32 PixelsToMeters
 ) {
-    // BEGIN_TIMED_BLOCK(DrawRectangleSlowly);
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
 
     Color.rgb *= Color.a;
 
@@ -535,7 +534,7 @@ internal void DrawRectangleSlowly(
     real32 InvYAxisLengthSq = 1 / LengthSq(YAxis);
 
     uint8* Row = (uint8*)Buffer->Memory + YMin * Buffer->Pitch + XMin * BITMAP_BYTES_PER_PIXEL;
-    TIMED_BLOCK((XMax - XMin + 1) * (YMax - YMin + 1));
+    TIMED_BLOCK(PixelFill, (XMax - XMin + 1) * (YMax - YMin + 1));
     for (int32 Y = YMin; Y <= YMax; ++Y) {
         uint32* Pixel = (uint32*)Row;
         for (int32 X = XMin; X <= XMax; ++X) {
@@ -692,7 +691,7 @@ internal void DrawRectangleQuickly(
     real32 PixelsToMeters,
     rectangle2i ClipRect, bool32 Even
 ) {
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
 
     Color.rgb *= Color.a;
 
@@ -818,7 +817,7 @@ internal void DrawRectangleQuickly(
     int32 MaxX = FillRect.MaxX;
     int32 MinX = FillRect.MinX;
 
-    TIMED_BLOCK(GetClampedRectArea(FillRect) / 2);
+    TIMED_BLOCK(PixelFill, GetClampedRectArea(FillRect) / 2);
     for (int32 Y = MinY; Y < MaxY; Y += 2) {
 
         uint32* Pixel = (uint32*)Row;
@@ -1255,8 +1254,7 @@ internal void RenderGroupToOutput(
     render_group* RenderGroup, loaded_bitmap* OutputTarget,
     rectangle2i ClipRect, bool32 Even
 ) {
-    //BEGIN_TIMED_BLOCK(RenderGroupToOutput);
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
 
     real32 NullPixelsToMeters = 1.0f;
 

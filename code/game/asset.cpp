@@ -152,7 +152,7 @@ internal asset_memory_block* InsertBlock(asset_memory_block* Prev, memory_index 
 
 internal game_assets*
 AllocateGameAssets(memory_arena* Arena, memory_index Size, transient_state* TranState) {
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
 
     game_assets* Assets = PushStruct(Arena, game_assets);
 
@@ -555,7 +555,7 @@ internal bool32 GenerationHasCompleted(game_assets* Assets, uint32 CheckID) {
 }
 
 internal asset_memory_header* AcquireAssetMemory(game_assets* Assets, uint32 Size, uint32 AssetIndex) {
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
 
     asset_memory_header* Result = 0;
 

@@ -592,7 +592,7 @@ struct fill_ground_chunk_work {
 };
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork) {
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
 
     fill_ground_chunk_work* Work = (fill_ground_chunk_work*)Data;
 
@@ -838,12 +838,12 @@ internal void DEBUGOverlay(game_memory* Memory) {
                 EndDebugStatistic(&CycleCount);
                 EndDebugStatistic(&CyclesPerHit);
 
-                if (Counter->FunctionName) {
+                if (Counter->BlockName) {
                     char TextBuffer[256];
                     _snprintf_s(
                         TextBuffer, sizeof(TextBuffer),
                         "%20s(%4d): %10ucy %10uh %10ucy/h\n",
-                        Counter->FunctionName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
+                        Counter->BlockName, Counter->Linenumber, (uint32)CycleCount.Avg, (uint32)HitCount.Avg, (uint32)(CyclesPerHit.Avg)
                     );
 
                     if (CycleCount.Max > 0) {
@@ -885,6 +885,7 @@ internal void DEBUGOverlay(game_memory* Memory) {
               {0, 0.5f, 1.0f},
             };
 
+#if 0
             for (uint32 SnapshotIndex = 0; SnapshotIndex < DEBUG_SNAPSHOT_COUNT; ++SnapshotIndex) {
 
                 debug_game_frame_end_info* Info = DebugState->FrameEndInfos + SnapshotIndex;
@@ -910,7 +911,7 @@ internal void DEBUGOverlay(game_memory* Memory) {
                     StackY += ThisHeight;
                 }
             }
-
+#endif
             PushRect(
                 DEBUGRenderGroup,
                 V3(ChartLeft + 0.5f * ChartWidth,
@@ -928,7 +929,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if HANDMADE_INTERNAL
     //  DebugGlobalMemory = Memory;
 #endif
-    TIMED_BLOCK();
+    TIMED_FUNCTION();
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     Assert(
         &Input->Controllers[0].Terminator - &Input->Controllers[0].MoveUp ==
@@ -1875,7 +1876,8 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 
 #define DebugRecords_Main_Count __COUNTER__
 
-debug_table GlobalDebugTable;
+global_variable debug_table GlobalDebugTable_;
+debug_table* GlobalDebugTable = &GlobalDebugTable_;
 
 internal void
 CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Events) {
@@ -1893,10 +1895,10 @@ CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Eve
 
         debug_counter_state* Dest = CounterArray[Event->TranslationUnit] + Event->DebugRecordIndex;
 
-        debug_record* Source = GlobalDebugTable.Records[Event->TranslationUnit] + Event->DebugRecordIndex;
+        debug_record* Source = GlobalDebugTable->Records[Event->TranslationUnit] + Event->DebugRecordIndex;
 
         Dest->Filename = Source->Filename;
-        Dest->FunctionName = Source->FunctionName;
+        Dest->BlockName = Source->BlockName;
         Dest->Linenumber = Source->Linenumber;
 
         if (Event->Type == DebugEvent_BeginBlock) {
@@ -1911,9 +1913,9 @@ CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Eve
 }
 
 extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
-    uint64 EventArrayIndex = GlobalDebugTable.EventArrayIndex_EventIndex >> 32;
+    uint64 EventArrayIndex = GlobalDebugTable->EventArrayIndex_EventIndex >> 32;
     uint64 NextArrayIndex = !EventArrayIndex;
-    uint64 ArrayIndex_EventIndex = AtomicExchangeU64(&GlobalDebugTable.EventArrayIndex_EventIndex, NextArrayIndex << 32);
+    uint64 ArrayIndex_EventIndex = AtomicExchangeU64(&GlobalDebugTable->EventArrayIndex_EventIndex, NextArrayIndex << 32);
     Assert((ArrayIndex_EventIndex >> 32) == EventArrayIndex);
     uint32 EventCount = ArrayIndex_EventIndex & 0xFFFFFFFF;
 
@@ -1923,13 +1925,15 @@ extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
 #if 0
         UpdateDebugRecords(DebugState, ArrayCount(DebugRecords_Main), DebugRecords_Main);
 #else
-        CollateDebugRecords(DebugState, EventCount, GlobalDebugTable.Events[EventArrayIndex]);
+        CollateDebugRecords(DebugState, EventCount, GlobalDebugTable->Events[EventArrayIndex]);
 #endif
-        DebugState->FrameEndInfos[DebugState->SnapshotIndex] = *Info;
+        // DebugState->FrameEndInfos[DebugState->SnapshotIndex] = *Info;
 
         ++DebugState->SnapshotIndex;
         if (DebugState->SnapshotIndex >= DEBUG_SNAPSHOT_COUNT) {
             DebugState->SnapshotIndex = 0;
         }
     }
+
+    return GlobalDebugTable;
 }
