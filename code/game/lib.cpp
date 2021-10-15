@@ -816,10 +816,6 @@ internal void DEBUGOverlay(game_memory* Memory) {
                 debug_statistic CycleCount;
                 debug_statistic CyclesPerHit;
 
-                if (Counter->Linenumber == 696) {
-                    int x = 1;
-                }
-
                 BeginDebugStatistic(&HitCount);
                 BeginDebugStatistic(&CycleCount);
                 BeginDebugStatistic(&CyclesPerHit);
@@ -839,6 +835,7 @@ internal void DEBUGOverlay(game_memory* Memory) {
                 EndDebugStatistic(&CyclesPerHit);
 
                 if (Counter->BlockName) {
+
                     char TextBuffer[256];
                     _snprintf_s(
                         TextBuffer, sizeof(TextBuffer),
@@ -1881,15 +1878,24 @@ debug_table* GlobalDebugTable = &GlobalDebugTable_;
 
 internal void
 CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Events) {
-#define DebugRecords_Platform_Count 0
-    DebugState->CounterCount = DebugRecords_Main_Count + DebugRecords_Platform_Count;
+
+    debug_counter_state* CounterArray[MAX_DEBUG_TRANSLATION_UNITS];
+    debug_counter_state* CurrentCounter = DebugState->CounterStates;
+
+    uint32 TotalRecordCount = 0;
+    for (uint32 UnitIndex = 0; UnitIndex < MAX_DEBUG_TRANSLATION_UNITS; UnitIndex++) {
+        CounterArray[UnitIndex] = CurrentCounter;
+        TotalRecordCount += GlobalDebugTable->RecordCount[UnitIndex];
+        CurrentCounter += GlobalDebugTable->RecordCount[UnitIndex];
+    }
+    DebugState->CounterCount = TotalRecordCount;
+
     for (uint32 CounterIndex = 0; CounterIndex < DebugState->CounterCount; CounterIndex++) {
         debug_counter_state* Dest = DebugState->CounterStates + CounterIndex;
         Dest->Snapshots[DebugState->SnapshotIndex].HitCount = 0;
         Dest->Snapshots[DebugState->SnapshotIndex].CycleCount = 0;
     }
 
-    debug_counter_state* CounterArray[2] = { DebugState->CounterStates, DebugState->CounterStates + DebugRecords_Main_Count };
     for (uint32 EventIndex = 0; EventIndex < EventCount; EventIndex++) {
         debug_event* Event = Events + EventIndex;
 
@@ -1900,6 +1906,10 @@ CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Eve
         Dest->Filename = Source->Filename;
         Dest->BlockName = Source->BlockName;
         Dest->Linenumber = Source->Linenumber;
+
+        if (Dest->BlockName[0] == 'W' && Dest->BlockName[1] == 'i') {
+            int32 x = 1;
+        }
 
         if (Event->Type == DebugEvent_BeginBlock) {
             Dest->Snapshots[DebugState->SnapshotIndex].HitCount += 1;
@@ -1913,6 +1923,9 @@ CollateDebugRecords(debug_state* DebugState, uint32 EventCount, debug_event* Eve
 }
 
 extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
+
+    GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = DebugRecords_Main_Count;
+
     uint64 EventArrayIndex = GlobalDebugTable->EventArrayIndex_EventIndex >> 32;
     uint64 NextArrayIndex = !EventArrayIndex;
     uint64 ArrayIndex_EventIndex = AtomicExchangeU64(&GlobalDebugTable->EventArrayIndex_EventIndex, NextArrayIndex << 32);

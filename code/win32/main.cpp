@@ -1262,7 +1262,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     while (GlobalRunning) {
 
-        TIMED_BLOCK(Win32Loop);
+        BEGIN_BLOCK(Win32Loop);
 
         BEGIN_BLOCK(ExecutableRefresh);
         NewInput->ExecutableReloaded = false;
@@ -1594,8 +1594,10 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         uint64 EndCycleCount = __rdtsc();
         uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
         LastCycleCount = __rdtsc();
+        END_BLOCK(Win32Loop);
         if (GameCode.DEBUGGameFrameEnd) {
             GlobalDebugTable = GameCode.DEBUGGameFrameEnd(&GameMemory);
+            GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = __COUNTER__;
         }
         GlobalDebugTable_.EventArrayIndex_EventIndex = 0;
 #endif
