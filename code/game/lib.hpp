@@ -195,8 +195,6 @@ struct debug_record {
 
     int32 Linenumber;
     uint32 Reserved;
-
-    uint64 HitCount_CycleCount;
 };
 
 struct debug_event {
@@ -208,13 +206,15 @@ struct debug_event {
     uint8 Type;
 };
 
+#define MAX_DEBUG_FRAME_COUNT 64
 #define MAX_DEBUG_TRANSLATION_UNITS 2
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
 
 struct debug_table {
     uint64 volatile EventArrayIndex_EventIndex;
-    debug_event Events[64][MAX_DEBUG_EVENT_COUNT];
+    uint32 EventCount[MAX_DEBUG_FRAME_COUNT];
+    debug_event Events[MAX_DEBUG_FRAME_COUNT][MAX_DEBUG_EVENT_COUNT];
 
     uint32 RecordCount[MAX_DEBUG_TRANSLATION_UNITS];
     debug_record Records[MAX_DEBUG_TRANSLATION_UNITS][MAX_DEBUG_RECORD_COUNT];
@@ -291,20 +291,46 @@ struct debug_counter_snapshot {
     uint64 CycleCount;
 };
 
-#define DEBUG_SNAPSHOT_COUNT 120
 struct debug_counter_state {
     char* Filename;
     char* BlockName;
 
     int32 Linenumber;
+};
 
-    debug_counter_snapshot Snapshots[DEBUG_SNAPSHOT_COUNT];
+struct debug_frame_region {
+    uint32 LaneIndex;
+    real32 MinT;
+    real32 MaxT;
+};
+
+struct debug_frame {
+    uint64 BeginClock;
+    uint64 EndClock;
+    uint32 RegionCount;
+    debug_frame_region* Regions;
+};
+
+struct memory_arena {
+    memory_index Size;
+    uint8* Base;
+    memory_index Used;
+    int32 TempCount;
+};
+
+struct temporary_memory {
+    memory_arena* Arena;
+    memory_index Used;
 };
 
 struct debug_state {
-    uint32 SnapshotIndex;
-    uint32 CounterCount;
-    debug_counter_state CounterStates[512];
+    bool32 Initialized;
+    memory_arena CollateArena;
+    temporary_memory CollateTemp;
+    uint32 FrameBarLaneCount;
+    uint32 FrameCount;
+    real32 FrameBarScale;
+    debug_frame* Frames;
 };
 
 #endif
