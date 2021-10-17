@@ -1125,7 +1125,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         0, //WS_EX_TOPMOST | WS_EX_LAYERED,
         WindowClass.lpszClassName,
         "Handmade hero",
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+        WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         GlobalBackBuffer.Width + 50,
@@ -1135,6 +1135,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         Instance,
         0
     );
+
+    ShowWindow(Window, SW_SHOWMINIMIZED);
+    ShowWindow(Window, SW_SHOWNORMAL);
 
 #if 0
     int32 MonitorRefreshHz = 60;
