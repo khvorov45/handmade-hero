@@ -199,13 +199,14 @@ struct debug_record {
 
 struct debug_event {
     uint64 Clock;
-    uint16 ThreadIndex;
+    uint16 ThreadID;
     uint16 CoreIndex;
     uint16 DebugRecordIndex;
     uint16 TranslationUnit;
     uint8 Type;
 };
 
+#define MAX_DEBUG_THREAD_COUNT 256
 #define MAX_DEBUG_EVENT_ARRAY_COUNT 64
 #define MAX_DEBUG_TRANSLATION_UNITS 2
 #define MAX_DEBUG_EVENT_COUNT 16*65536
@@ -266,7 +267,7 @@ internal inline void RecordDebugEvent(uint32 RecordIndex, debug_event_type Event
     Assert(EventIndex < MAX_DEBUG_EVENT_COUNT);
     debug_event* Event = GlobalDebugTable->Events[ArrayIndex_EventIndex >> 32] + EventIndex;
     Event->Clock = __rdtsc();
-    Event->ThreadIndex = (uint16)GetThreadId();
+    Event->ThreadID = (uint16)GetThreadId();
     __rdtscp((uint32*)&Event->CoreIndex);
     Event->DebugRecordIndex = (uint16)RecordIndex;
     Event->TranslationUnit = TRANSLATION_UNIT_INDEX;
@@ -304,6 +305,7 @@ struct debug_frame_region {
     real32 MaxT;
 };
 
+#define MAX_REGIONS_PER_FRAME 5120
 struct debug_frame {
     uint64 BeginClock;
     uint64 EndClock;
@@ -323,6 +325,21 @@ struct temporary_memory {
     memory_index Used;
 };
 
+struct open_debug_block {
+    uint32 StartingFrameIndex;
+    debug_event* OpeningEvent;
+    open_debug_block* Parent;
+
+    open_debug_block* NextFree;
+};
+
+struct debug_thread {
+    uint32 ID;
+    uint32 LaneIndex;
+    open_debug_block* FirstOpenBlock;
+    debug_thread* Next;
+};
+
 struct debug_state {
     bool32 Initialized;
     memory_arena CollateArena;
@@ -331,6 +348,8 @@ struct debug_state {
     uint32 FrameCount;
     real32 FrameBarScale;
     debug_frame* Frames;
+    debug_thread* FirstThread;
+    open_debug_block* FirstFreeBlock;
 };
 
 #endif
