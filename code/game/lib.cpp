@@ -1932,11 +1932,7 @@ extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
     if (DebugState) {
         DebugState->CounterCount = 0;
-#if 0
-        UpdateDebugRecords(DebugState, ArrayCount(DebugRecords_Main), DebugRecords_Main);
-#else
         CollateDebugRecords(DebugState, EventCount, GlobalDebugTable->Events[EventArrayIndex]);
-#endif
         // DebugState->FrameEndInfos[DebugState->SnapshotIndex] = *Info;
 
         ++DebugState->SnapshotIndex;
