@@ -1886,6 +1886,7 @@ GetLaneFromThreadIndex(debug_state* DebugState, uint32 ThreadIndex) {
 internal void
 CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
 
+    DebugState->Frames = PushArray(&DebugState->CollateArena, MAX_DEBUG_EVENT_ARRAY_COUNT * 4, debug_frame);
     DebugState->FrameBarLaneCount = 0;
     DebugState->FrameCount = 0;
     DebugState->FrameBarScale = 0.0f;
@@ -1896,7 +1897,7 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
         ;
         ++EventArrayIndex) {
 
-        if (EventArrayIndex == MAX_DEBUG_FRAME_COUNT) {
+        if (EventArrayIndex == MAX_DEBUG_EVENT_ARRAY_COUNT) {
             EventArrayIndex = 0;
         }
         if (EventArrayIndex == InvalidEventArrayIndex) {
@@ -1920,6 +1921,7 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
                 CurrentFrame->BeginClock = Event->Clock;
                 CurrentFrame->EndClock = 0;
                 CurrentFrame->RegionCount = 0;
+                CurrentFrame->Regions = PushArray(&DebugState->CollateArena, MAX_DEBUG_RECORD_COUNT, debug_frame_region);
             } else if (CurrentFrame) {
                 uint64 RelativeClock = Event->Clock - CurrentFrame->BeginClock;
                 uint32 LaneIndex = GetLaneFromThreadIndex(DebugState, Event->ThreadIndex);
