@@ -189,6 +189,18 @@ typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 global_variable platform_api Platform;
 
+struct memory_arena {
+    memory_index Size;
+    uint8* Base;
+    memory_index Used;
+    int32 TempCount;
+};
+
+struct temporary_memory {
+    memory_arena* Arena;
+    memory_index Used;
+};
+
 struct debug_record {
     char* Filename;
     char* BlockName;
@@ -226,6 +238,14 @@ extern debug_table* GlobalDebugTable;
 #define DEBUG_GAME_FRAME_END(name) debug_table* name(game_memory* Memory)
 typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
 
+enum debug_event_type {
+    DebugEvent_FrameMarker,
+    DebugEvent_BeginBlock,
+    DebugEvent_EndBlock,
+};
+
+#if HANDMADE_PROFILE
+
 #define FRAME_MARKER() \
     {int Counter = __COUNTER__; \
     RecordDebugEvent(Counter, DebugEvent_FrameMarker); \
@@ -255,12 +275,6 @@ typedef DEBUG_GAME_FRAME_END(debug_game_frame_end);
 
 #define END_BLOCK(Name) END_BLOCK_(Counter_##Name)
 
-enum debug_event_type {
-    DebugEvent_FrameMarker,
-    DebugEvent_BeginBlock,
-    DebugEvent_EndBlock,
-};
-
 #define RecordDebugEvent(RecordIndex, EventType) \
     {Assert(((uint64)&GlobalDebugTable->EventArrayIndex_EventIndex & 0x7) == 0); \
     uint64 ArrayIndex_EventIndex = AtomicAddU64(&GlobalDebugTable->EventArrayIndex_EventIndex, 1); \
@@ -285,8 +299,18 @@ struct timed_block {
 
     ~timed_block() {
         END_BLOCK_(Counter)
-    }
+}
 };
+
+#else
+
+#define FRAME_MARKER()
+#define TIMED_BLOCK(BlockName, ...)
+#define TIMED_FUNCTION(...)
+#define BEGIN_BLOCK(Name)
+#define END_BLOCK(Name)
+
+#endif // HANDMADE_PROFILE
 
 struct debug_counter_snapshot {
     uint32 HitCount;
@@ -312,18 +336,6 @@ struct debug_frame {
     uint64 EndClock;
     uint32 RegionCount;
     debug_frame_region* Regions;
-};
-
-struct memory_arena {
-    memory_index Size;
-    uint8* Base;
-    memory_index Used;
-    int32 TempCount;
-};
-
-struct temporary_memory {
-    memory_arena* Arena;
-    memory_index Used;
 };
 
 struct open_debug_block {
