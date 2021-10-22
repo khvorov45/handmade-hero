@@ -2000,10 +2000,15 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
 
                                 if (Thread->FirstOpenBlock->Parent == 0) {
 
-                                    debug_frame_region* Region = AddRegion(DebugState, CurrentFrame);
-                                    Region->LaneIndex = Thread->LaneIndex;
-                                    Region->MinT = (real32)(OpeningEvent->Clock - CurrentFrame->BeginClock);
-                                    Region->MaxT = (real32)(Event->Clock - CurrentFrame->BeginClock);
+                                    real32 MinT = (real32)(OpeningEvent->Clock - CurrentFrame->BeginClock);
+                                    real32 MaxT = (real32)(Event->Clock - CurrentFrame->BeginClock);
+                                    real32 ThresholdT = 0.01f;
+                                    if (MaxT - MinT > ThresholdT) {
+                                        debug_frame_region* Region = AddRegion(DebugState, CurrentFrame);
+                                        Region->LaneIndex = Thread->LaneIndex;
+                                        Region->MinT = MinT;
+                                        Region->MaxT = MaxT;
+                                    }
 
                                 }
                             } else {
