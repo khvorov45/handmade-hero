@@ -45,8 +45,11 @@ inline int16 SafeTruncateToInt16(int32 Value) {
 }
 
 internal inline bool32 StringsAreEqual(char* A, char* B) {
-    while (*A && *B && (*A == *B)) { ++A; ++B; }
-    bool32 Result = (*A == 0) && (*B == 0);
+    bool32 Result = A == B;
+    if (A && B) {
+        while (*A && *B && (*A == *B)) { ++A; ++B; }
+        Result = (*A == 0) && (*B == 0);
+    }
     return Result;
 }
 

@@ -860,6 +860,7 @@ internal void DEBUGOverlay(game_memory* Memory) {
                 }
             }
 #endif
+            AtY -= 300.0f;
             real32 LaneWidth = 8.0f;
             real32 LaneCount = (real32)DebugState->FrameBarLaneCount;
             real32 BarWidth = LaneWidth * LaneCount;
@@ -885,9 +886,13 @@ internal void DEBUGOverlay(game_memory* Memory) {
               {0, 0.5f, 1.0f},
             };
 
-            for (uint32 FrameIndex = 0; FrameIndex < DebugState->FrameCount; ++FrameIndex) {
+            uint32 MaxFrame = DebugState->FrameCount;
+            if (MaxFrame > 10) {
+                MaxFrame = 10;
+            }
+            for (uint32 FrameIndex = 0; FrameIndex < MaxFrame; ++FrameIndex) {
 
-                debug_frame* Frame = DebugState->Frames + FrameIndex;
+                debug_frame* Frame = DebugState->Frames + DebugState->FrameCount - (FrameIndex + 1);
                 real32 StackX = ChartLeft + BarSpacing * (real32)FrameIndex;
                 real32 StackY = ChartMinY;
 

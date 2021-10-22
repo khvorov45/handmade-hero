@@ -262,12 +262,14 @@ enum debug_event_type {
 };
 
 internal inline void RecordDebugEvent(uint32 RecordIndex, debug_event_type EventType) {
+    Assert(((uint64)&GlobalDebugTable->EventArrayIndex_EventIndex & 0x7) == 0);
     uint64 ArrayIndex_EventIndex = AtomicAddU64(&GlobalDebugTable->EventArrayIndex_EventIndex, 1);
     uint32 EventIndex = ArrayIndex_EventIndex & 0xFFFFFFFF;
     Assert(EventIndex < MAX_DEBUG_EVENT_COUNT);
     debug_event* Event = GlobalDebugTable->Events[ArrayIndex_EventIndex >> 32] + EventIndex;
     Event->Clock = __rdtsc();
-    Event->ThreadID = (uint16)GetThreadId();
+    uint32 ThreadID = GetThreadId();
+    Event->ThreadID = (uint16)ThreadID;
     __rdtscp((uint32*)&Event->CoreIndex);
     Event->DebugRecordIndex = (uint16)RecordIndex;
     Event->TranslationUnit = TRANSLATION_UNIT_INDEX;
