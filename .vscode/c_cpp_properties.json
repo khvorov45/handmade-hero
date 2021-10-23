@@ -7,7 +7,8 @@
         "HANDMADE_INTERNAL",
         "HANDMADE_SLOW",
         "HANDMADE_WIN32",
-        "COMPILER_MSVC"
+        "COMPILER_MSVC",
+        "HANDMADE_PROFILE"
       ],
       "windowsSdkVersion": "10.0.18362.0",
       "compilerPath": "G:/Programs/VisualStudio/VC/Tools/MSVC/14.24.28314/bin/Hostx64/x64/cl.exe",

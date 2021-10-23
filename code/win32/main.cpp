@@ -762,6 +762,7 @@ inline LARGE_INTEGER Win32GetWallClock() {
     QueryPerformanceCounter(&Counter);
     return Counter;
 }
+
 # if 0
 internal void Wind32DebugDrawVertical(
     win32_offscreen_buffer* BackBuffer, int32 X, int32 Top, int32 Bottom,
@@ -1253,8 +1254,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     LARGE_INTEGER LastCounter = Win32GetWallClock();
     LARGE_INTEGER FlipWallClock = {};
 
-    uint64 LastCycleCount = __rdtsc();
-
     int32 DebugLastMarkerIndex = 0;
     win32_debug_time_marker DebugLastMarker[30] = {};
     DWORD AudioLatencyBytes = 0;
@@ -1264,8 +1263,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
     win32_game_code GameCode = Win32LoadGameCode(GameCodeDLLFullPathSource, GameCodeDLLFullPathLocked);
 
     while (GlobalRunning) {
-
-        FRAME_MARKER();
 
         BEGIN_BLOCK(ExecutableRefresh);
         NewInput->ExecutableReloaded = false;
@@ -1561,8 +1558,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
             while (SecondsElapsedForFrame < TargetSecondsPerFrame) {
                 SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
-            }
-        } else {
+        }
+    } else {
             //* MISSED FRAME
         }
 
@@ -1588,21 +1585,23 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         NewInput = OldInput;
         OldInput = Temp;
 
-        LARGE_INTEGER EndCounter = Win32GetWallClock();
-        LastCounter = EndCounter;
-
         END_BLOCK(FrameDisplay);
 
 #if HANDMADE_INTERNAL
-        uint64 EndCycleCount = __rdtsc();
-        uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
-        LastCycleCount = __rdtsc();
+        BEGIN_BLOCK(DebugCollation);
         if (GameCode.DEBUGGameFrameEnd) {
             GlobalDebugTable = GameCode.DEBUGGameFrameEnd(&GameMemory);
-            GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = __COUNTER__;
         }
         GlobalDebugTable_.EventArrayIndex_EventIndex = 0;
+        END_BLOCK(DebugCollation);
 #endif
-    }
+        LARGE_INTEGER EndCounter = Win32GetWallClock();
+        FRAME_MARKER(Win32GetSecondsElapsed(LastCounter, EndCounter));
+        LastCounter = EndCounter;
+
+        if (GameCode.DEBUGGameFrameEnd) {
+            GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = __COUNTER__;
+        }
+}
     return (0);
 }

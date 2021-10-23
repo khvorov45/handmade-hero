@@ -860,6 +860,16 @@ internal void DEBUGOverlay(game_memory* Memory) {
                 }
             }
 #endif
+            if (DebugState->FrameCount > 1) {
+                char TextBuffer[256];
+                _snprintf_s(
+                    TextBuffer, sizeof(TextBuffer),
+                    "Last frame time: %.02fms\n",
+                    DebugState->Frames[DebugState->FrameCount - 2].WallSecondsElapsed * 1000.0f
+                );
+                DEBUGTextLine(TextBuffer);
+            }
+#if 1
             AtY -= 300.0f;
             real32 LaneWidth = 8.0f;
             real32 LaneCount = (real32)DebugState->FrameBarLaneCount;
@@ -885,6 +895,7 @@ internal void DEBUGOverlay(game_memory* Memory) {
               {0.5f, 0, 1},
               {0, 0.5f, 1.0f},
             };
+
 
             uint32 MaxFrame = DebugState->FrameCount;
             if (MaxFrame > 10) {
@@ -923,9 +934,10 @@ internal void DEBUGOverlay(game_memory* Memory) {
                 V2(ChartWidth, 4.0f),
                 V4(1.0f, 1.0f, 1.0f, 1.0f)
             );
+#endif
         }
     }
-}
+        }
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Platform = Memory->PlatformAPI;
@@ -1216,7 +1228,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     for (int32 ControllerIndex = 0;
         ControllerIndex < ArrayCount(Input->Controllers);
-        ++ControllerIndex) {
+    ++ControllerIndex) {
 
         game_controller_input* Controller = GetController(Input, ControllerIndex);
 
@@ -1257,7 +1269,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #if 0
             if (Controller->ActionUp.EndedDown) {
                 ConHero->dSword = { 0.0f, 1.0f };
-            }
+        }
             if (Controller->ActionDown.EndedDown) {
                 ConHero->dSword = { 0.0f, -1.0f };
             }
@@ -1272,7 +1284,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             if (Controller->ActionUp.EndedDown) {
                 ChangePitch(&GameState->AudioState, GameState->Music, 0.5f);
                 ZoomRate = 1.0f;
-            }
+    }
             if (Controller->ActionDown.EndedDown) {
                 ChangePitch(&GameState->AudioState, GameState->Music, 1.0f);
                 ZoomRate = -1.0f;
@@ -1286,8 +1298,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 ConHero->dSword = { 1.0f, 0.0f };
             }
 #endif
-        }
     }
+}
 
     temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
 
@@ -1342,7 +1354,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 #endif
             }
         }
-    }
+            }
 
     // NOTE(sen) Fill ground bitmaps
     {
@@ -1867,7 +1879,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         TiledRenderGroupToOutput(TranState->HighPriorityQueue, DEBUGRenderGroup, DrawBuffer);
         EndRender(DEBUGRenderGroup);
     }
-}
+    }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
     game_state* GameState = (game_state*)Memory->PermanentStorage;
@@ -1949,6 +1961,7 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
 
                 if (CurrentFrame) {
                     CurrentFrame->EndClock = Event->Clock;
+                    CurrentFrame->WallSecondsElapsed = Event->SecondsElapsed;
                     real32 ClockRange = (real32)(CurrentFrame->EndClock - CurrentFrame->BeginClock);
 #if 0
                     if (ClockRange > 0) {
@@ -1959,76 +1972,78 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
                     }
 #endif
                 }
+
                 CurrentFrame = DebugState->Frames + DebugState->FrameCount++;
                 CurrentFrame->BeginClock = Event->Clock;
                 CurrentFrame->EndClock = 0;
                 CurrentFrame->RegionCount = 0;
                 CurrentFrame->Regions = PushArray(&DebugState->CollateArena, MAX_REGIONS_PER_FRAME, debug_frame_region);
+                CurrentFrame->WallSecondsElapsed = 0.0f;
 
-            } else if (CurrentFrame) {
+                        } else if (CurrentFrame) {
 
-                uint32 FrameIndex = DebugState->FrameCount - 1;
-                debug_thread* Thread = GetDebugThread(DebugState, Event->ThreadID);
-                uint64 RelativeClock = Event->Clock - CurrentFrame->BeginClock;
+                            uint32 FrameIndex = DebugState->FrameCount - 1;
+                            debug_thread* Thread = GetDebugThread(DebugState, Event->TC.ThreadID);
+                            uint64 RelativeClock = Event->Clock - CurrentFrame->BeginClock;
 
-                if (Event->Type == DebugEvent_BeginBlock) {
+                            if (Event->Type == DebugEvent_BeginBlock) {
 
-                    open_debug_block* DebugBlock = DebugState->FirstFreeBlock;
-                    if (DebugBlock) {
-                        DebugState->FirstFreeBlock = DebugBlock->NextFree;
-                    } else {
-                        DebugBlock = PushStruct(&DebugState->CollateArena, open_debug_block);
-                    }
-                    DebugBlock->StartingFrameIndex = FrameIndex;
-                    DebugBlock->OpeningEvent = Event;
-                    DebugBlock->Parent = Thread->FirstOpenBlock;
-                    Thread->FirstOpenBlock = DebugBlock;
-                    DebugBlock->NextFree = 0;
+                                open_debug_block* DebugBlock = DebugState->FirstFreeBlock;
+                                if (DebugBlock) {
+                                    DebugState->FirstFreeBlock = DebugBlock->NextFree;
+                                } else {
+                                    DebugBlock = PushStruct(&DebugState->CollateArena, open_debug_block);
+                                }
+                                DebugBlock->StartingFrameIndex = FrameIndex;
+                                DebugBlock->OpeningEvent = Event;
+                                DebugBlock->Parent = Thread->FirstOpenBlock;
+                                Thread->FirstOpenBlock = DebugBlock;
+                                DebugBlock->NextFree = 0;
 
-                } else if (Event->Type == DebugEvent_EndBlock) {
+                            } else if (Event->Type == DebugEvent_EndBlock) {
 
-                    if (Thread->FirstOpenBlock) {
+                                if (Thread->FirstOpenBlock) {
 
-                        open_debug_block* MatchingBlock = Thread->FirstOpenBlock;
-                        debug_event* OpeningEvent = MatchingBlock->OpeningEvent;
+                                    open_debug_block* MatchingBlock = Thread->FirstOpenBlock;
+                                    debug_event* OpeningEvent = MatchingBlock->OpeningEvent;
 
-                        if (OpeningEvent->ThreadID == Event->ThreadID &&
-                            OpeningEvent->DebugRecordIndex == Event->DebugRecordIndex &&
-                            OpeningEvent->TranslationUnit == Event->TranslationUnit) {
+                                    if (OpeningEvent->TC.ThreadID == Event->TC.ThreadID &&
+                                        OpeningEvent->DebugRecordIndex == Event->DebugRecordIndex &&
+                                        OpeningEvent->TranslationUnit == Event->TranslationUnit) {
 
-                            if (MatchingBlock->StartingFrameIndex == FrameIndex) {
+                                        if (MatchingBlock->StartingFrameIndex == FrameIndex) {
 
-                                if (Thread->FirstOpenBlock->Parent == 0) {
+                                            if (Thread->FirstOpenBlock->Parent == 0) {
 
-                                    real32 MinT = (real32)(OpeningEvent->Clock - CurrentFrame->BeginClock);
-                                    real32 MaxT = (real32)(Event->Clock - CurrentFrame->BeginClock);
-                                    real32 ThresholdT = 0.01f;
-                                    if (MaxT - MinT > ThresholdT) {
-                                        debug_frame_region* Region = AddRegion(DebugState, CurrentFrame);
-                                        Region->LaneIndex = Thread->LaneIndex;
-                                        Region->MinT = MinT;
-                                        Region->MaxT = MaxT;
+                                                real32 MinT = (real32)(OpeningEvent->Clock - CurrentFrame->BeginClock);
+                                                real32 MaxT = (real32)(Event->Clock - CurrentFrame->BeginClock);
+                                                real32 ThresholdT = 0.01f;
+                                                if (MaxT - MinT > ThresholdT) {
+                                                    debug_frame_region* Region = AddRegion(DebugState, CurrentFrame);
+                                                    Region->LaneIndex = Thread->LaneIndex;
+                                                    Region->MinT = MinT;
+                                                    Region->MaxT = MaxT;
+                                                }
+
+                                            }
+                                        } else {
+
+                                        }
+
+                                        Thread->FirstOpenBlock->NextFree = DebugState->FirstFreeBlock;
+                                        DebugState->FirstFreeBlock = Thread->FirstOpenBlock;
+                                        Thread->FirstOpenBlock = MatchingBlock->Parent;
+
+                                    } else {
+
                                     }
-
                                 }
                             } else {
-
+                                Assert(!"Invalid event type");
                             }
-
-                            Thread->FirstOpenBlock->NextFree = DebugState->FirstFreeBlock;
-                            DebugState->FirstFreeBlock = Thread->FirstOpenBlock;
-                            Thread->FirstOpenBlock = MatchingBlock->Parent;
-
-                        } else {
-
                         }
                     }
-                } else {
-                    Assert(!"Invalid event type");
                 }
-            }
-        }
-    }
 
 #if 0
     debug_counter_state* CounterArray[MAX_DEBUG_TRANSLATION_UNITS];
