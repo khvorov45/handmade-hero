@@ -227,7 +227,7 @@ struct debug_event {
 };
 
 #define MAX_DEBUG_THREAD_COUNT 256
-#define MAX_DEBUG_EVENT_ARRAY_COUNT 64
+#define MAX_DEBUG_EVENT_ARRAY_COUNT 8
 #define MAX_DEBUG_TRANSLATION_UNITS 2
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
@@ -259,22 +259,6 @@ enum debug_event_type {
 #define TIMED_BLOCK(BlockName, ...) TIMED_BLOCK_(#BlockName, __LINE__, ##__VA_ARGS__);
 #define TIMED_FUNCTION(...) TIMED_BLOCK_(__FUNCTION__, __LINE__ ##__VA_ARGS__);
 
-#define BEGIN_BLOCK_(Counter, FilenameInit, LinenumberInit, BlockNameInit) \
-        {debug_record* Record = GlobalDebugTable->Records[TRANSLATION_UNIT_INDEX] + Counter; \
-        Record->Filename = FilenameInit; \
-        Record->Linenumber = LinenumberInit; \
-        Record->BlockName = BlockNameInit; \
-        RecordDebugEvent(Counter, DebugEvent_BeginBlock);}
-
-#define BEGIN_BLOCK(Name) \
-    int Counter_##Name = __COUNTER__; \
-    BEGIN_BLOCK_(Counter_##Name, __FILE__, __LINE__, #Name)
-
-#define END_BLOCK_(Counter) \
-    RecordDebugEvent(Counter, DebugEvent_EndBlock);
-
-#define END_BLOCK(Name) END_BLOCK_(Counter_##Name)
-
 #define RecordDebugEventCommon(RecordIndex, EventType) \
     Assert(((uint64)&GlobalDebugTable->EventArrayIndex_EventIndex & 0x7) == 0); \
     uint64 ArrayIndex_EventIndex = AtomicAddU64(&GlobalDebugTable->EventArrayIndex_EventIndex, 1); \
@@ -289,7 +273,9 @@ enum debug_event_type {
 #define RecordDebugEvent(RecordIndex, EventType) \
     {\
         RecordDebugEventCommon(RecordIndex, EventType); \
-        __rdtscp((uint32*)&Event->TC.CoreIndex); \
+        uint32 CoreIndex; \
+        __rdtscp((uint32*)&CoreIndex); \
+        Event->TC.CoreIndex = (uint16)CoreIndex; \
         Event->TC.ThreadID = (uint16)GetThreadId(); \
     }
 
@@ -303,6 +289,23 @@ enum debug_event_type {
         Record->Linenumber = __LINE__; \
         Record->BlockName = "FrameMarker"; \
     }
+#define BEGIN_BLOCK_(Counter, FilenameInit, LinenumberInit, BlockNameInit) \
+    {\
+        debug_record* Record = GlobalDebugTable->Records[TRANSLATION_UNIT_INDEX] + Counter; \
+        Record->Filename = FilenameInit; \
+        Record->Linenumber = LinenumberInit; \
+        Record->BlockName = BlockNameInit; \
+        RecordDebugEvent(Counter, DebugEvent_BeginBlock);\
+    }
+
+#define BEGIN_BLOCK(Name) \
+    int Counter_##Name = __COUNTER__; \
+    BEGIN_BLOCK_(Counter_##Name, __FILE__, __LINE__, #Name)
+
+#define END_BLOCK_(Counter) \
+    RecordDebugEvent(Counter, DebugEvent_EndBlock);
+
+#define END_BLOCK(Name) END_BLOCK_(Counter_##Name)
 
 struct timed_block {
     int32 Counter;
@@ -340,6 +343,8 @@ struct debug_counter_state {
 };
 
 struct debug_frame_region {
+    debug_record* Record;
+    uint64 CycleCount;
     uint32 LaneIndex;
     real32 MinT;
     real32 MaxT;

@@ -1558,8 +1558,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
             while (SecondsElapsedForFrame < TargetSecondsPerFrame) {
                 SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
-        }
-    } else {
+            }
+        } else {
             //* MISSED FRAME
         }
 
@@ -1602,6 +1602,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         if (GameCode.DEBUGGameFrameEnd) {
             GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = __COUNTER__;
         }
-}
+    }
     return (0);
 }

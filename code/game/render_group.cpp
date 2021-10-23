@@ -260,6 +260,14 @@ internal inline void PushRect(
     }
 }
 
+internal inline void PushRect(
+    render_group* Group,
+    rectangle2 Rect, real32 Z,
+    v4 Color = V4(1, 1, 1, 1)
+) {
+    PushRect(Group, V3(GetCenter(Rect), Z), GetDim(Rect), Color);
+}
+
 internal void Clear(render_group* Group, v4 Color) {
     render_entry_clear* Entry = PushRenderElement(Group, render_entry_clear);
     if (Entry) {
