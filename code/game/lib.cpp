@@ -808,7 +808,7 @@ internal void EndDebugStatistic(debug_statistic* Stat) {
 internal void DEBUGOverlay(game_memory* Memory, game_input* Input) {
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
     if (DebugState && DEBUGRenderGroup) {
-        v2 MouseP = V2((real32)Input->MouseX - 0.5f * GlobalWidth, 0.5f * GlobalHeight - (real32)Input->MouseY);
+        v2 MouseP = V2(Input->MouseX, Input->MouseY);
         loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
         if (Font) {
             hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);

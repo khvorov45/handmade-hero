@@ -1300,8 +1300,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         POINT MouseP;
         GetCursorPos(&MouseP);
         ScreenToClient(Window, &MouseP);
-        NewInput->MouseX = MouseP.x;
-        NewInput->MouseY = MouseP.y;
+        NewInput->MouseX = (-0.5f * (real32)GlobalBackBuffer.Width + 0.5f) + (real32)MouseP.x;
+        NewInput->MouseY = (0.5f * (real32)GlobalBackBuffer.Height - 0.5f) - (real32)MouseP.y;
         NewInput->MouseZ = 0;
         Win32ProcessKeyboardMessage(&NewInput->MouseButtons[0], GetKeyState(VK_LBUTTON) & (1 << 15));
         Win32ProcessKeyboardMessage(&NewInput->MouseButtons[1], GetKeyState(VK_RBUTTON) & (1 << 15));

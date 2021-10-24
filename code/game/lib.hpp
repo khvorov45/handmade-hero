@@ -170,7 +170,7 @@ struct game_controller_input {
 
 struct game_input {
     game_button_state MouseButtons[5];
-    int32 MouseX, MouseY, MouseZ;
+    real32 MouseX, MouseY, MouseZ;
     bool32 ExecutableReloaded;
     real32 dtForFrame;
     game_controller_input Controllers[5];
