@@ -168,6 +168,15 @@ struct game_controller_input {
     };
 };
 
+enum game_input_mouse_button {
+    PlatformMouseButton_Left,
+    PlatformMouseButton_Middle,
+    PlatformMouseButton_Right,
+    PlatformMouseButton_Extended0,
+    PlatformMouseButton_Extended1,
+    PlatformMouseButton_Count,
+};
+
 struct game_input {
     game_button_state MouseButtons[5];
     real32 MouseX, MouseY, MouseZ;
@@ -175,6 +184,11 @@ struct game_input {
     real32 dtForFrame;
     game_controller_input Controllers[5];
 };
+
+bool32 WasPressed(game_button_state State) {
+    bool32 Result = State.HalfTransitionCount > 1 || (State.HalfTransitionCount == 1 && State.EndedDown);
+    return Result;
+}
 
 internal inline game_controller_input* GetController(game_input* Input, int ControllerIndex) {
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
@@ -376,6 +390,7 @@ struct debug_thread {
 
 struct debug_state {
     bool32 Initialized;
+    bool32 Paused;
     memory_arena CollateArena;
     temporary_memory CollateTemp;
     uint32 FrameBarLaneCount;
