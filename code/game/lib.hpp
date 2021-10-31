@@ -393,6 +393,7 @@ struct debug_state {
     bool32 Paused;
     memory_arena CollateArena;
     temporary_memory CollateTemp;
+    uint32 CollationArrayIndex;
     uint32 FrameBarLaneCount;
     uint32 FrameCount;
     real32 FrameBarScale;
