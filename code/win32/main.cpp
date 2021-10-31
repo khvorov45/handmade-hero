@@ -1548,6 +1548,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
         END_BLOCK(AudioUpdate);
 
+#if 0
         //* Timing
         BEGIN_BLOCK(FramerateWait);
 
@@ -1572,6 +1573,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         }
 
         END_BLOCK(FramerateWait);
+#endif
 
         //* Display
         BEGIN_BLOCK(FrameDisplay);
@@ -1610,6 +1612,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         if (GameCode.DEBUGGameFrameEnd) {
             GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = __COUNTER__;
         }
-        }
-    return (0);
     }
+    return (0);
+}
