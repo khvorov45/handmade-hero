@@ -805,9 +805,15 @@ internal void EndDebugStatistic(debug_statistic* Stat) {
     }
 }
 
+internal void
+RefreshCollation(debug_state* DebugState);
+
 internal void DEBUGOverlay(game_memory* Memory, game_input* Input) {
     debug_state* DebugState = (debug_state*)Memory->DebugStorage;
     if (DebugState && DEBUGRenderGroup) {
+
+        debug_record* HotRecord = 0;
+
         v2 MouseP = V2(Input->MouseX, Input->MouseY);
         if (WasPressed(Input->MouseButtons[PlatformMouseButton_Right])) {
             DebugState->Paused = !DebugState->Paused;
@@ -943,8 +949,9 @@ internal void DEBUGOverlay(game_memory* Memory, game_input* Input) {
                             Region->CycleCount,
                             Record->Filename, Record->Linenumber
                         );
-
                         DEBUGTextLine(TextBuffer);
+
+                        HotRecord = Record;
                     }
                 }
             }
@@ -959,6 +966,15 @@ internal void DEBUGOverlay(game_memory* Memory, game_input* Input) {
             );
 #endif
 #endif
+        }
+
+        if (WasPressed(Input->MouseButtons[PlatformMouseButton_Left])) {
+            if (HotRecord) {
+                DebugState->ScopeToRecord = HotRecord;
+            } else if (DebugState->ScopeToRecord) {
+                DebugState->ScopeToRecord = 0;
+            }
+            RefreshCollation(DebugState);
         }
     }
 }
@@ -1951,6 +1967,12 @@ AddRegion(debug_state* DebugState, debug_frame* CurrentFrame) {
     return Result;
 }
 
+internal inline debug_record*
+GetRecordFrom(open_debug_block* Block) {
+    debug_record* Result = Block ? Block->Source : 0;
+    return Result;
+}
+
 internal void
 CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
 
@@ -2015,6 +2037,7 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
                     DebugBlock->StartingFrameIndex = FrameIndex;
                     DebugBlock->OpeningEvent = Event;
                     DebugBlock->Parent = Thread->FirstOpenBlock;
+                    DebugBlock->Source = Source;
                     Thread->FirstOpenBlock = DebugBlock;
                     DebugBlock->NextFree = 0;
 
@@ -2031,7 +2054,7 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
 
                             if (MatchingBlock->StartingFrameIndex == FrameIndex) {
 
-                                if (Thread->FirstOpenBlock->Parent == 0) {
+                                if (GetRecordFrom(MatchingBlock->Parent) == DebugState->ScopeToRecord) {
 
                                     real32 MinT = (real32)(OpeningEvent->Clock - DebugState->CollationFrame->BeginClock);
                                     real32 MaxT = (real32)(Event->Clock - DebugState->CollationFrame->BeginClock);
@@ -2083,6 +2106,13 @@ RestartCollation(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
     DebugState->CollationFrame = 0;
 }
 
+internal void
+RefreshCollation(debug_state* DebugState) {
+    uint32 ArrayIndex = GlobalDebugTable->EventArrayIndex_EventIndex >> 32;
+    RestartCollation(DebugState, ArrayIndex);
+    CollateDebugRecords(DebugState, ArrayIndex);
+}
+
 extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
 
     GlobalDebugTable->RecordCount[TRANSLATION_UNIT_INDEX] = DebugRecords_Main_Count;
@@ -2105,8 +2135,12 @@ extern "C" DEBUG_GAME_FRAME_END(DEBUGGameFrameEnd) {
                 DebugState + 1
             );
             DebugState->CollateTemp = BeginTemporaryMemory(&DebugState->CollateArena);
-            RestartCollation(DebugState, (uint32)NextArrayIndex);
+
+            DebugState->Paused = false;
+            DebugState->ScopeToRecord = 0;
+
             DebugState->Initialized = true;
+            RestartCollation(DebugState, (uint32)NextArrayIndex);
         }
 
         if (!DebugState->Paused) {

@@ -375,6 +375,7 @@ struct debug_frame {
 
 struct open_debug_block {
     uint32 StartingFrameIndex;
+    debug_record* Source;
     debug_event* OpeningEvent;
     open_debug_block* Parent;
 
@@ -391,6 +392,9 @@ struct debug_thread {
 struct debug_state {
     bool32 Initialized;
     bool32 Paused;
+
+    debug_record* ScopeToRecord;
+
     memory_arena CollateArena;
     temporary_memory CollateTemp;
     uint32 CollationArrayIndex;
