@@ -718,13 +718,15 @@ DEBUGReset(uint32 Width, uint32 Height) {
     LeftEdge = -(real32)Width * 0.5f;
 }
 
-internal void DEBUGTextLine(char* String) {
+internal void
+DEBUGTextOutAt(v2 P, char* String) {
     if (DEBUGRenderGroup) {
         loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
         if (Font) {
             hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
             uint32 PrevCodepoint = 0;
-            real32 AtX = LeftEdge;
+            real32 AtX = P.x;
+            real32 AtY_ = P.y;
             real32 CharScale = FontScale;
             for (char* At = String; *At; ++At) {
                 uint32 Codepoint = *At;
@@ -733,10 +735,21 @@ internal void DEBUGTextLine(char* String) {
                 if (Codepoint != ' ') {
                     bitmap_id BitmapID = GetBitmapForGlyph(FontInfo, Font, Codepoint);
                     hha_bitmap* BitmapInfo = GetBitmapInfo(DEBUGRenderGroup->Assets, BitmapID);
-                    PushBitmap(DEBUGRenderGroup, BitmapID, CharScale * (real32)BitmapInfo->Dim[1], V3(AtX, AtY, 0), V4(1, 1, 1, 1));
+                    PushBitmap(DEBUGRenderGroup, BitmapID, CharScale * (real32)BitmapInfo->Dim[1], V3(AtX, AtY_, 0), V4(1, 1, 1, 1));
                 }
                 PrevCodepoint = Codepoint;
             }
+        }
+    }
+}
+
+internal void DEBUGTextLine(char* String) {
+    if (DEBUGRenderGroup) {
+        loaded_font* Font = PushFont(DEBUGRenderGroup, DEBUGFontID);
+        if (Font) {
+            hha_font* FontInfo = GetFontInfo(DEBUGRenderGroup->Assets, DEBUGFontID);
+            real32 AtX = LeftEdge;
+            DEBUGTextOutAt(V2(AtX, AtY), String);
             AtY -= GetLineAdvanceFor(FontInfo) * FontScale;
         }
     }
@@ -944,12 +957,12 @@ internal void DEBUGOverlay(game_memory* Memory, game_input* Input) {
                         char TextBuffer[256];
                         _snprintf_s(
                             TextBuffer, sizeof(TextBuffer),
-                            "%20s: %10Iucy [%s(%d)]",
+                            "%s: %10Iucy [%s(%d)]",
                             Record->BlockName,
                             Region->CycleCount,
                             Record->Filename, Record->Linenumber
                         );
-                        DEBUGTextLine(TextBuffer);
+                        DEBUGTextOutAt(MouseP + V2(0.0f, 10.f), TextBuffer);
 
                         HotRecord = Record;
                     }
