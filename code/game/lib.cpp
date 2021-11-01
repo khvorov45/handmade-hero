@@ -937,7 +937,8 @@ internal void DEBUGOverlay(game_memory* Memory, game_input* Input) {
 
                     debug_frame_region* Region = Frame->Regions + RegionIndex;
 
-                    v3 Color = Colors[RegionIndex % ArrayCount(Colors)];
+                    //v3 Color = Colors[RegionIndex % ArrayCount(Colors)];
+                    v3 Color = Colors[Region->ColorIndex % ArrayCount(Colors)];
                     real32 ThisMinX = StackX + Scale * Region->MinT;
                     real32 ThisMaxX = StackX + Scale * Region->MaxT;
 
@@ -2074,9 +2075,10 @@ CollateDebugRecords(debug_state* DebugState, uint32 InvalidEventArrayIndex) {
                                     real32 ThresholdT = 0.01f;
                                     if (MaxT - MinT > ThresholdT) {
                                         debug_frame_region* Region = AddRegion(DebugState, DebugState->CollationFrame);
-                                        Region->LaneIndex = Thread->LaneIndex;
+                                        Region->LaneIndex = (uint16)Thread->LaneIndex;
                                         Region->MinT = MinT;
                                         Region->MaxT = MaxT;
+                                        Region->ColorIndex = OpeningEvent->DebugRecordIndex;
                                         Region->CycleCount = Event->Clock - OpeningEvent->Clock;
                                         Region->Record = Source;
                                     }

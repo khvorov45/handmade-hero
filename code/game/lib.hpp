@@ -359,7 +359,8 @@ struct debug_counter_state {
 struct debug_frame_region {
     debug_record* Record;
     uint64 CycleCount;
-    uint32 LaneIndex;
+    uint16 LaneIndex;
+    uint16 ColorIndex;
     real32 MinT;
     real32 MaxT;
 };
